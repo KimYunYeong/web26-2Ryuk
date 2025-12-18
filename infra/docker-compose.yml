@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   api:
     image: ${DOCKER_USERNAME}/${DOCKER_IMAGE_BACKEND}:${DOCKER_IMAGE_TAG:-latest}
@@ -6,9 +8,13 @@ services:
       NODE_ENV: production
       PORT: ${API_PORT}
     expose:
-      - "${API_PORT}"
+      - '${API_PORT}'
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:${API_PORT}/health || exit 0"]
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --tries=1 --spider http://localhost:${API_PORT}/health || exit 0',
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -28,59 +34,36 @@ services:
   nginx:
     image: ${DOCKER_USERNAME}/${DOCKER_IMAGE_FRONTEND}:${DOCKER_IMAGE_TAG:-latest}
     container_name: nginx
+    # [핵심 수정] 환경변수 치환 후 로그를 출력하고 Nginx를 실행합니다.
+    entrypoint: ['/docker-entrypoint.sh']
+    command: ['sh', '-c', "cat /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
     depends_on:
       api:
         condition: service_healthy
     ports:
-      - "${NGINX_HTTP_PORT}:${NGINX_HTTP_PORT}"
-      - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
+      - '${NGINX_HTTP_PORT}:${NGINX_HTTP_PORT}'
+      - '${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}'
     volumes:
       - ./nginx/certs/fullchain.crt:/etc/nginx/ssl/fullchain.crt:ro
       - ./nginx/certs/private.key:/etc/nginx/ssl/private.key:ro
       - ./nginx/certs/dhparam.pem:/etc/nginx/ssl/dhparam.pem:ro
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf.template:ro
+      # 템플릿 파일 위치를 /etc/nginx/templates로 설정
+      - ./nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
     environment:
       API_HOST: ${API_HOST}
       API_PORT: ${API_PORT}
       NGINX_HTTP_PORT: ${NGINX_HTTP_PORT}
       NGINX_HTTPS_PORT: ${NGINX_HTTPS_PORT}
-    command: >
-      sh -c "
-        echo '=== 시작 ===' &&
-        echo 'gettext 설치 확인 중...' &&
-        if ! command -v envsubst > /dev/null 2>&1; then
-          echo 'envsubst 없음, gettext 설치 중...' &&
-          apk add --no-cache gettext || exit 1
-        fi &&
-        echo 'envsubst 버전:' &&
-        envsubst --version &&
-        echo '기본 nginx.conf 삭제 중...' &&
-        rm -f /etc/nginx/nginx.conf &&
-        rm -rf /etc/nginx/conf.d/* &&
-        echo '템플릿 파일 확인 (첫 5줄):' &&
-        head -5 /etc/nginx/nginx.conf.template &&
-        echo '환경변수 확인:' &&
-        echo '  API_HOST='$$API_HOST &&
-        echo '  API_PORT='$$API_PORT &&
-        echo '  NGINX_HTTP_PORT='$$NGINX_HTTP_PORT &&
-        echo '  NGINX_HTTPS_PORT='$$NGINX_HTTPS_PORT &&
-        echo 'envsubst 실행 중...' &&
-        envsubst '$${API_HOST} $${API_PORT} $${NGINX_HTTP_PORT} $${NGINX_HTTPS_PORT}' 
-        < /etc/nginx/nginx.conf.template 
-        > /etc/nginx/nginx.conf &&
-        echo '생성된 파일 확인 (첫 15줄):' &&
-        head -15 /etc/nginx/nginx.conf &&
-        echo '파일 크기:' &&
-        wc -l /etc/nginx/nginx.conf &&
-        echo 'events 섹션 확인:' &&
-        grep -c '^events' /etc/nginx/nginx.conf || echo 'WARNING: events 섹션 없음!' &&
-        echo '설정 파일 검증 중...' &&
-        nginx -t &&
-        echo 'Nginx 시작...' &&
-        nginx -g 'daemon off;'
-      "
+      # Nginx 고유 변수($host 등)가 깨지지 않도록 치환할 변수만 명시
+      NGINX_ENVSUBST_VAR_LIST: 'API_HOST API_PORT NGINX_HTTP_PORT NGINX_HTTPS_PORT'
+      # 결과물을 /etc/nginx/conf.d/ 폴더에 생성
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:${NGINX_HTTP_PORT}/health || wget --quiet --tries=1 --spider http://localhost:${NGINX_HTTP_PORT}/ || exit 0"]
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --tries=1 --spider http://localhost:${NGINX_HTTP_PORT}/health || wget --quiet --tries=1 --spider http://localhost:${NGINX_HTTP_PORT}/ || exit 0',
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
