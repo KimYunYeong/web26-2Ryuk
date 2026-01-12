@@ -17,6 +17,8 @@ import RoomCard from '@/app/features/room/components/card/RoomCard';
 import roomsMock from '@/mocks/data/rooms.json';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
 import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
+import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
+import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
 
 export default function FeatureComponents() {
   return (
@@ -94,6 +96,60 @@ export default function FeatureComponents() {
               chats={[]}
             />
           </Component>
+        </div>
+      </section>
+
+      <section id="speaker-control-button" className={styles.section}>
+        <h2 className={styles.sectionTitle}>SpeakerControlButton</h2>
+        <ComponentRelations componentId="speaker-control-button" />
+        <div className={styles.chatRow}>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Active</h3>
+            <div className={styles.buttonColumn}>
+              <Component>
+                <SpeakerControlButton initialState={true} />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Muted</h3>
+            <div className={styles.buttonColumn}>
+              <Component>
+                <SpeakerControlButton initialState={false} />
+              </Component>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="audio-control-buttons" className={styles.section}>
+        <h2 className={styles.sectionTitle}>AudioControlButtons</h2>
+        <ComponentRelations componentId="audio-control-buttons" />
+        <div className={styles.chatRow}>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Both Active</h3>
+            <div className={styles.buttonColumn}>
+              <Component>
+                <AudioControlButtons initialMicState={true} initialSpeakerState={true} />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Mic Muted</h3>
+            <div className={styles.buttonColumn}>
+              <Component>
+                <AudioControlButtons initialMicState={false} initialSpeakerState={true} />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Both Muted</h3>
+            <div className={styles.buttonColumn}>
+              <Component>
+                <AudioControlButtons initialMicState={false} initialSpeakerState={false} />
+              </Component>
+            </div>
+          </div>
         </div>
       </section>
 

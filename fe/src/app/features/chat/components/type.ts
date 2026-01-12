@@ -45,6 +45,4 @@ export interface RoomChatPanelProps {
   participantCount: number;
   chats: ChatReceiveData[];
   onMessageSubmit?: (message: string) => void;
-  onMicToggle?: () => void;
-  onSpeakerToggle?: () => void;
 }

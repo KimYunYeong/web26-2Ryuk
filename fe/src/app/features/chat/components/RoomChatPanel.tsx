@@ -3,16 +3,29 @@
 import ChatPanel from './ChatPanel';
 import { RoomChatPanelProps } from './type';
 import styles from './chat.module.css';
+import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
+import { useState } from 'react';
 
 export default function RoomChatPanel({
   participantCount,
   chats,
   onMessageSubmit,
-  onMicToggle,
-  onSpeakerToggle,
 }: RoomChatPanelProps) {
+  const [micState, setMicState] = useState(true);
+  const [speakerState, setSpeakerState] = useState(true);
+
+  const handleMicChange = (state: boolean) => setMicState(state);
+  const handleSpeakerChange = (state: boolean) => setSpeakerState(state);
+
   const headerChildren = (
-    <div className={styles.roomChatHeaderControls}>{/* <Avatar profileImage={myAvatar} /> */}</div>
+    <div className={styles.roomChatHeaderControls}>
+      <AudioControlButtons
+        initialMicState={micState}
+        initialSpeakerState={speakerState}
+        onMicChange={handleMicChange}
+        onSpeakerChange={handleSpeakerChange}
+      />
+    </div>
   );
 
   return (
