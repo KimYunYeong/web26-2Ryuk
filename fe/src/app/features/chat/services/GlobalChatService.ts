@@ -29,6 +29,7 @@ export class GlobalChatService implements ChatChannel {
   private participantsCallbacks: Set<ParticipantsCallback> = new Set();
   private isSubscribed = false;
   private messages: ChatReceiveData[] = [];
+  private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
 
   /**
    * WebSocket 연결 및 글로벌 채팅 구독
@@ -60,25 +61,44 @@ export class GlobalChatService implements ChatChannel {
    * WebSocket 이벤트 핸들러 등록
    */
   private registerEventHandlers(): void {
+    // 기존 핸들러 제거
+    this.removeEventHandlers();
+
     // connect 핸들러
-    WebSocketService.on('connect', () => this.handleConnect());
+    const connectHandler = () => this.handleConnect();
+    this.eventHandlers.set('connect', connectHandler);
+    WebSocketService.on('connect', connectHandler);
 
-    // 다른 이벤트 핸들러들
-    WebSocketService.on('disconnect', () => {
-      this.handleDisconnect();
-    });
+    // disconnect 핸들러
+    const disconnectHandler = () => this.handleDisconnect();
+    this.eventHandlers.set('disconnect', disconnectHandler);
+    WebSocketService.on('disconnect', disconnectHandler);
 
-    WebSocketService.on('chat:global:new-message', (dto: ChatReceiveDto) => {
-      this.handleGlobalMessage(dto);
-    });
+    // new-message 핸들러
+    const messageHandler = (dto: ChatReceiveDto) => this.handleGlobalMessage(dto);
+    this.eventHandlers.set('chat:global:new-message', messageHandler);
+    WebSocketService.on('chat:global:new-message', messageHandler);
 
-    WebSocketService.on('chat:global:participants-updated', (dto: ParticipantsUpdatedDto) => {
+    // participants-updated 핸들러
+    const participantsHandler = (dto: ParticipantsUpdatedDto) =>
       this.handleParticipantsUpdated(dto);
-    });
+    this.eventHandlers.set('chat:global:participants-updated', participantsHandler);
+    WebSocketService.on('chat:global:participants-updated', participantsHandler);
 
-    WebSocketService.on('error', (error: WebSocketError) => {
-      this.handleError(error);
+    // error 핸들러
+    const errorHandler = (error: WebSocketError) => this.handleError(error);
+    this.eventHandlers.set('error', errorHandler);
+    WebSocketService.on('error', errorHandler);
+  }
+
+  /**
+   * 등록된 이벤트 핸들러 제거
+   */
+  private removeEventHandlers(): void {
+    this.eventHandlers.forEach((handler, event) => {
+      WebSocketService.off(event, handler);
     });
+    this.eventHandlers.clear();
   }
 
   /**
@@ -129,11 +149,7 @@ export class GlobalChatService implements ChatChannel {
     this.notifyConnection(false);
 
     // 모든 이벤트 핸들러 제거
-    WebSocketService.off('connect');
-    WebSocketService.off('disconnect');
-    WebSocketService.off('chat:global:new-message');
-    WebSocketService.off('chat:global:participants-updated');
-    WebSocketService.off('error');
+    this.removeEventHandlers();
 
     WebSocketService.disconnect();
     this.isSubscribed = false;

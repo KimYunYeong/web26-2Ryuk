@@ -35,9 +35,20 @@
 
   /* Semantic Colors */
   --success: #28a745;
+  --success-border: #9fe2ae;
+  --success-bg: #c8f2d1;
+
   --error: #ff4b4b;
+  --error-border: #ffd6d6;
+  --error-bg: #ffe9e9;
+
   --warning: #ffc107;
+  --warning-border: #ffe391;
+  --warning-bg: #ffeeb9;
+
   --secondary: #64748b;
+  --secondary-border: #93a4bd;
+  --secondary-bg: #bcc9db;
 
   /* Typography - Large */
   --large-1: 900 40px/normal var(--pretendard);
