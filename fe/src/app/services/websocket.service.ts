@@ -144,6 +144,7 @@ export class WebSocketService {
    */
   static off(event: string, callback?: (...args: any[]) => void): void {
     if (!this.socket) return;
-    this.socket.off(event, callback);
+    if (callback) this.socket.off(event, callback);
+    else this.socket.removeAllListeners(event);
   }
 }

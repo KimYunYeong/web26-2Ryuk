@@ -8,9 +8,8 @@ import roomsMock from '@/mocks/data/rooms.json';
  * MSW 초기화 타이밍 문제를 피하기 위해 서버 컴포넌트에서는 직접 mock 데이터를 사용
  */
 export default async function RealtimeRoomsSectionServer() {
-  // 서버 컴포넌트에서는 직접 mock 데이터 사용 (MSW 의존성 제거)
   const roomDtos = roomsMock.rooms as RoomDto[];
-  const convertedRooms = roomDtos.map((room) => RoomConverter.toData(room));
+  const convertedRooms = roomDtos.map(RoomConverter.toData);
 
   return <RealtimeRoomsSection rooms={convertedRooms} />;
 }

@@ -4,13 +4,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
 import { ChatReceiveData } from '@/app/features/chat/dtos/type';
 import { authStore, type AuthStore } from '@/app/features/user/stores/auth';
-import ChatModalBase from './ChatModalBase';
+import ChatPanel from './ChatPanel';
 
 /**
  * GlobalChat 클라이언트 컴포넌트
  * WebSocket 연결 및 메시지 관리 담당
  */
-export default function GlobalChatModal() {
+export default function GlobalChatPanel() {
   const [chats, setChats] = useState<ChatReceiveData[]>([]);
   const [currentParticipants, setCurrentParticipants] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
@@ -59,9 +59,9 @@ export default function GlobalChatModal() {
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
 
   return (
-    <ChatModalBase
+    <ChatPanel
       iconName="globe"
-      title="전체 채팅"
+      type="global"
       participantCount={currentParticipants}
       chats={chats}
       onMessageSubmit={handleMessageSubmit}

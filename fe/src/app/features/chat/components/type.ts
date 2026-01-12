@@ -1,12 +1,14 @@
 import { ChatReceiveData } from '@/app/features/chat/dtos/type';
 
+export type ChatPanelType = 'global' | 'local';
+
 export interface ChatBubblesProps {
   chats: ChatReceiveData[];
 }
 
-export interface ChatModalHeaderProps {
+export interface ChatPanelHeaderProps {
   iconName: string;
-  title: string;
+  type: ChatPanelType;
   participantCount: number;
   isCollapsed: boolean;
   onToggle: () => void;
@@ -14,9 +16,9 @@ export interface ChatModalHeaderProps {
   isConnected?: boolean;
 }
 
-export interface ChatModalBaseProps {
+export interface ChatPanelProps {
   iconName: string;
-  title: string;
+  type: ChatPanelType;
   participantCount: number;
   chats: ChatReceiveData[];
   onMessageSubmit?: (message: string) => void;
@@ -39,7 +41,7 @@ export interface GlobalChatProps {
   isConnected?: boolean;
 }
 
-export interface RoomChatModalProps {
+export interface RoomChatPanelProps {
   participantCount: number;
   chats: ChatReceiveData[];
   onMessageSubmit?: (message: string) => void;
