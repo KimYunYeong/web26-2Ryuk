@@ -11,3 +11,8 @@ export interface TextButtonProps {
   type?: 'button' | 'submit' | 'reset';
   modalId?: string;
 }
+
+export interface GoBackButtonProps {
+  onClick?: () => void;
+  modalId?: string;
+}

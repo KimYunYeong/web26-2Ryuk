@@ -5,6 +5,7 @@ import ModalEventDelegation from '@/app/components/shared/modal/ModalEventDelega
 import Header from './components/layout/header/Header';
 import { RootLayoutProps } from './type';
 import type { Metadata } from 'next';
+import GoBackWrapper from './layout/GoBackWrapper';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://moolbangwool.duckdns.org';
 const siteName = '물방울톡';
@@ -56,7 +57,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <MSWProvider>
           <AuthProvider>
             <Header />
-            {children}
+            <div className="page">
+              <GoBackWrapper />
+              {children}
+            </div>
           </AuthProvider>
         </MSWProvider>
       </body>
