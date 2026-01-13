@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { RoomListResponseDto, RoomSearchQueryDto } from './dto/room.dto';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
@@ -22,5 +22,11 @@ export class RoomController {
     const keyword = query.keyword || '';
     const rooms = await this.roomService.searchLocalRooms(keyword);
     return { rooms };
+  }
+
+  // postman 에러 테스트용 -> GET /api/rooms/test/error
+  @Get('test/error')
+  async testError(): Promise<void> {
+    throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
