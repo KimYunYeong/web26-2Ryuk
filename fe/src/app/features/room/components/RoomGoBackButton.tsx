@@ -1,27 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { GhostTextButton } from '@/app/components/shared/button/TextButton';
-import { GhostIconButton } from '@/app/components/shared/icon/IconButton';
+import { usePathname } from 'next/navigation';
 import useNavigation from '@/app/hooks/useNavigation';
-import useResponsive from '@/app/hooks/useResponsive';
 import { useModal } from '@/app/components/shared/modal/useModal';
 import Modal from '@/app/components/shared/modal/Modal';
 import Dialog from '@/app/components/shared/dialog/Dialog';
 import Paths from '@/app/shared/path';
 import GoBackButton from '@/app/components/shared/button/GoBackButton';
+import roomService from '@/app/features/room/services/RoomService';
+import { RoomGoBackButtonProps } from '@/app/features/room/components/type';
 
-/**
- * Room 페이지 전용 GoBackButton
- * 나가기 전에 확인 모달을 띄웁니다.
- */
-export default function RoomGoBackButton() {
+export default function RoomGoBackButton({ roomId }: RoomGoBackButtonProps) {
   const { goBack } = useNavigation();
   const { openModal, closeModal } = useModal();
   const [modalId] = useState(() => `room-exit-${Date.now()}`);
 
   const handleGoBackClick = () => openModal(modalId);
-  const handleConfirm = () => goBack();
+  const handleConfirm = async () => {
+    if (roomId) {
+      await roomService.deleteRoom(roomId);
+      closeModal(modalId);
+    }
+    goBack();
+  };
   const handleCancel = () => closeModal(modalId);
 
   return (

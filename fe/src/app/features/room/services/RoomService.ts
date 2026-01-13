@@ -1,7 +1,7 @@
 import { HttpService } from '@/app/services/http.service';
-import { RoomDto, RoomEditDto, RoomsListData, RoomsListDto } from '@/app/features/room/dtos/type';
+import { RoomDto, RoomEditDto, RoomsListDto } from '@/app/features/room/dtos/type';
 import { authStore } from '@/app/features/user/stores/auth';
-import { ApiResponse } from './type';
+import { ApiResponse, IdDto } from './type';
 
 export class RoomService {
   async getRooms(): Promise<RoomsListDto> {
@@ -40,6 +40,14 @@ export class RoomService {
       throw new Error(response.message || '방 수정에 실패했습니다.');
     }
     return response.data;
+  }
+
+  async deleteRoom(roomId: string): Promise<void> {
+    const token = authStore.getState().token || undefined;
+    const response = await HttpService.delete<ApiResponse<IdDto>>(`/api/rooms/${roomId}`, token);
+    if (!response.success) {
+      throw new Error(response.message || '방 삭제에 실패했습니다.');
+    }
   }
 }
 

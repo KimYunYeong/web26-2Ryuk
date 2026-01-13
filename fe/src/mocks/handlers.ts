@@ -379,4 +379,76 @@ export const handlers = [
       );
     }
   }),
+
+  // Room Delete API (대화방 삭제)
+  http.delete('/api/rooms/:id', async ({ request, params }) => {
+    const { id } = params;
+
+    // Authorization 헤더 확인
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          success: false,
+          message: '인증이 필요합니다.',
+        },
+        { status: 401 },
+      );
+    }
+
+    try {
+      // 방 존재 확인
+      const roomIndex = rooms.findIndex((r) => r.id === id);
+      if (roomIndex === -1) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '존재하지 않는 방입니다.',
+          },
+          { status: 404 },
+        );
+      }
+
+      const existingRoom = rooms[roomIndex];
+
+      // 권한 확인 (호스트인지 확인)
+      const token = authHeader.replace('Bearer ', '');
+      const match = token.match(/^mock_token_(.+)_\d+$/);
+      const userId = match ? match[1] : 'unknown';
+
+      if (existingRoom.host_id !== userId) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '방 삭제 권한이 없습니다.',
+          },
+          { status: 403 },
+        );
+      }
+
+      // 방 삭제
+      rooms.splice(roomIndex, 1);
+
+      // 성공 응답 (200 OK)
+      return HttpResponse.json(
+        {
+          success: true,
+          message: '대화방이 성공적으로 삭제되었습니다.',
+          data: {
+            id: id,
+          },
+        },
+        { status: 200 },
+      );
+    } catch (error) {
+      // 서버 오류
+      return HttpResponse.json(
+        {
+          success: false,
+          message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        },
+        { status: 500 },
+      );
+    }
+  }),
 ];

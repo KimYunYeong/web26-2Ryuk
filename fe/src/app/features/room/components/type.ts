@@ -43,3 +43,7 @@ export interface RoomInfoWithModalProps {
   isHost: boolean;
   onUpdate?: (data: RoomEditData) => void;
 }
+
+export interface RoomGoBackButtonProps {
+  roomId: string;
+}
