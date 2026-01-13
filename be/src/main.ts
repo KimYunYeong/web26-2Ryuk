@@ -31,6 +31,8 @@ async function bootstrap() {
     }),
   );
 
+  // 전역 Interceptor는 AppModule의 APP_INTERCEPTOR provider로 등록됨
+
   // Redis WebSocket 어댑터 연결 (공유 Redis 클라이언트 사용)
   const redisClient = app.get(REDIS_CLIENT);
   const redisIoAdapter = new RedisIoAdapter(app);
