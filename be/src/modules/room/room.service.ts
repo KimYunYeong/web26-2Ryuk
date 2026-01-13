@@ -1,4 +1,15 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
@@ -199,6 +210,61 @@ export class RoomService implements OnModuleInit {
   async roomExists(roomId: string): Promise<boolean> {
     const exists = await this.redisClient.exists(`room:${roomId}`);
     return Boolean(exists);
+  }
+
+  /**
+   * 방 입장 가능 여부 검증
+   */
+  async validateJoinRoom(roomId: string, userId: string, password?: string): Promise<void> {
+    logMessage(this.logger, LOG.ROOM.VALIDATION_START(userId, roomId));
+
+    try {
+      // 방 존재 여부 확인
+      const roomKey = `room:${roomId}`;
+      const roomData = await this.redisClient.hGetAll(roomKey);
+
+      if (!roomData || Object.keys(roomData).length === 0) {
+        logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '존재하지 않는 방입니다.'));
+        throw new NotFoundException('존재하지 않는 방입니다.');
+      }
+
+      // 이미 참여 중인지 확인
+      const isInRoom = await this.isUserInRoom(userId, roomId);
+      if (isInRoom) {
+        logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '이미 참여 중인 사용자입니다.'));
+        throw new ConflictException('이미 해당 방에 참여 중입니다.');
+      }
+
+      // 정원 확인 (GLOBAL 방 제외)
+      if (roomData.type !== ROOM_TYPE.GLOBAL) {
+        const currentParticipants = parseInt(roomData.current_participants || '0', 10);
+        const maxParticipants = parseInt(roomData.max_participants || '0', 10);
+
+        if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
+          logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '방 정원 초과'));
+          throw new ForbiddenException('방 정원이 초과되었습니다.');
+        }
+      }
+
+      // 비밀번호 확인
+      if (roomData.is_private === '1') {
+        if (!password || roomData.password !== password) {
+          logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '비밀번호 불일치'));
+          throw new ForbiddenException('비밀번호가 일치하지 않습니다.');
+        }
+      }
+
+      logMessage(this.logger, LOG.ROOM.VALIDATION_SUCCESS(userId, roomId));
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Internal Server Error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.INTERNAL_VALIDATION_ERROR(userId, roomId, errorMessage));
+      throw new InternalServerErrorException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
   }
 
   // 방의 현재 참여자 수 증가

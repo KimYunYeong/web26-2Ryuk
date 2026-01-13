@@ -211,6 +211,30 @@ export const LOG = {
       message: `참여자 수 조회 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',
     }),
+    VALIDATION_START: (userId: string, roomId: string): LogMessage => ({
+      message: `방 입장 검증 시작: userId=${userId}, roomId=${roomId}`,
+      level: 'debug',
+    }),
+    VALIDATION_SUCCESS: (userId: string, roomId: string): LogMessage => ({
+      message: `방 입장 검증 성공: userId=${userId}, roomId=${roomId}`,
+      level: 'log',
+    }),
+    VALIDATION_ERROR: (userId: string, roomId: string, error: string): LogMessage => ({
+      message: `방 입장 검증 실패: userId=${userId}, roomId=${roomId}, error=${error}`,
+      level: 'warn',
+    }),
+    INTERNAL_VALIDATION_ERROR: (userId: string, roomId: string, error: string): LogMessage => ({
+      message: `방 입장 검증 중 내부 서버 오류 발생: userId=${userId}, roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
+    UNAUTH_API_ACCESS_JOIN: (roomId: string): LogMessage => ({
+      message: `인증되지 않은 사용자의 방 입장 검증 시도: roomId=${roomId}`,
+      level: 'warn',
+    }),
+    INVALID_TOKEN_API_JOIN: (roomId: string): LogMessage => ({
+      message: `유효하지 않은 토큰으로 방 입장 검증 시도: roomId=${roomId}`,
+      level: 'warn',
+    }),
   },
 } as const;
 
