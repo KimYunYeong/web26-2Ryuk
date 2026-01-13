@@ -9,8 +9,7 @@ interface RoomChatPanelServerProps {
   myUserId: string;
 }
 
-export default async function RoomChatPanelServer({ roomId, myUserId }: RoomChatPanelServerProps) {
-  // TODO: 웹소켓 연결로 대체
+export default async function RoomChatPanelServer({ roomId }: RoomChatPanelServerProps) {
   const [roomDto, chats] = await Promise.all([
     roomService.getRoom(roomId),
     roomChatService.getChats(roomId),

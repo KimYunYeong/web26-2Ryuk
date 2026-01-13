@@ -2,6 +2,7 @@ export interface RoomDto {
   id: string;
   title: string;
   tags: string[];
+  host_id: string;
   current_participants: number;
   max_participants: number;
   is_mic_available: boolean;
@@ -20,6 +21,7 @@ export interface RoomData {
   id: string;
   title: string;
   tags: string[];
+  hostId: string;
   currentParticipants: number;
   maxParticipants: number;
   isMicAvailable: boolean;
@@ -44,4 +46,12 @@ export interface RoomCreationData {
   isMicAvailable: boolean;
   isPrivate: boolean;
   password?: string;
+}
+
+export interface RoomsListDto {
+  rooms: RoomDto[];
+}
+
+export interface RoomsListData {
+  rooms: RoomData[];
 }

@@ -23,3 +23,10 @@ export interface RoomCreationFormProps {
   onSubmit?: (data: RoomCreationData) => void;
   onCancel?: () => void;
 }
+
+export interface RoomInfoProps {
+  title: string;
+  tags: string[];
+  isHost: boolean;
+  onEditClick?: () => void;
+}
