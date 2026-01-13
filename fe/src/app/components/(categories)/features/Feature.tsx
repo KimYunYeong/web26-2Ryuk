@@ -280,7 +280,7 @@ export default function FeatureComponents() {
           <Component>
             <TextButton.Ghost modalId="room-creation-demo" text="모달 열기" size="medium" />
             <Modal id="room-creation-demo">
-              <RoomCreateModalContent />
+              <RoomCreateModalContent submitText="방 만들기" />
             </Modal>
           </Component>
         </div>
@@ -293,7 +293,7 @@ export default function FeatureComponents() {
           <Component>
             <TextButton.Ghost modalId="room-update-demo" text="모달 열기" size="medium" />
             <Modal id="room-update-demo">
-              <RoomUpdateModalContent />
+              <RoomUpdateModalContent submitText="수정하기" />
             </Modal>
           </Component>
         </div>
