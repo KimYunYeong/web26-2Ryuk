@@ -14,6 +14,11 @@ export default function GoBackWrapper() {
 
   // Room 페이지인 경우 커스텀 GoBackButton 사용
   const isRoomPage = pathname.startsWith('/room/') && pathname !== '/room';
+  const roomId = pathname.split('/').pop() ?? '';
 
-  return <div className="go-back">{isRoomPage ? <RoomGoBackButton /> : <GoBackButton />}</div>;
+  return (
+    <div className="go-back">
+      {isRoomPage ? <RoomGoBackButton roomId={roomId} /> : <GoBackButton />}
+    </div>
+  );
 }
