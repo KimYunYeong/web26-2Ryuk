@@ -2,16 +2,37 @@ import IS from '@/utils/is';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+const MSW_HANDLED_PATHS: string[] = [
+  '/api/rooms/all',
+  '/api/rooms/:roomId',
+  '/api/posts/popular',
+  '/api/users/:userId/profile',
+  '/api/rooms',
+];
+
+function isMswHandled(path: string): boolean {
+  if (MSW_HANDLED_PATHS.includes(path)) return true;
+
+  return MSW_HANDLED_PATHS.some((pattern) => {
+    const regexPattern = pattern.replace(/:[^/]+/g, '[^/]+');
+    const regex = new RegExp(`^${regexPattern}$`);
+    return regex.test(path);
+  });
+}
+
 export class HttpService {
-  private static getBaseUrl(): string {
-    // 클라이언트 사이드: MSW가 상대 경로를 가로채므로 상대 경로 사용
-    if (typeof window !== 'undefined') return '';
+  private static getBaseUrl(url: string): string {
+    if (typeof window === 'undefined') {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      return apiUrl && apiUrl.trim() !== '' ? apiUrl : '';
+    }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl || apiUrl.trim() === '') return '';
+    if (process.env.NODE_ENV === 'development') {
+      if (isMswHandled(url)) return '';
+      return 'http://localhost:4000';
+    }
 
-    // NEXT_PUBLIC_API_URL이 설정되어 있으면 그대로 사용
-    return apiUrl;
+    return '';
   }
 
   private static async request<T>(
@@ -31,8 +52,9 @@ export class HttpService {
 
     if (!IS.nil(body)) requestInit.body = JSON.stringify(body);
 
-    const baseUrl = this.getBaseUrl();
+    const baseUrl = this.getBaseUrl(url);
     const fullUrl = baseUrl ? baseUrl + url : url;
+
     const response = await fetch(fullUrl, requestInit);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 

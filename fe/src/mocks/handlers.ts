@@ -38,7 +38,7 @@ export const handlers = [
   }),
 
   // Room API (단일 방 조회)
-  http.get(`/api/rooms/:roomId`, ({ params }) => {
+  http.get('/api/rooms/:roomId', ({ params }) => {
     const { roomId } = params;
     const room = rooms.find((r) => r.id === roomId);
     if (!room) {
@@ -181,9 +181,15 @@ export const handlers = [
         });
       };
 
+      // 토큰에서 userId 추출 (호스트 ID로 사용)
+      const token = authHeader.replace('Bearer ', '');
+      const match = token.match(/^mock-token-([^-]+)-/);
+      const hostId = match ? match[1] : 'unknown';
+
       // 새 방 생성
       const newRoom: RoomDto = {
         id: generateUUID(),
+        host_id: hostId,
         title: body.title,
         tags: body.tags,
         current_participants: 0,
@@ -197,20 +203,12 @@ export const handlers = [
       // rooms 배열에 새 방 추가
       rooms.unshift(newRoom);
 
-      // 성공 응답
+      // 성공 응답 (RoomDto 전체 반환)
       return HttpResponse.json(
         {
           success: true,
           message: '대화방이 성공적으로 생성되었습니다.',
-          data: {
-            id: newRoom.id,
-            title: newRoom.title,
-            tags: newRoom.tags,
-            max_participants: newRoom.max_participants,
-            is_mic_available: newRoom.is_mic_available,
-            is_private: newRoom.is_private,
-            create_date: newRoom.create_date,
-          },
+          data: newRoom,
         },
         { status: 201 },
       );
