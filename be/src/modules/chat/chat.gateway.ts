@@ -56,52 +56,58 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
-      const userId = client.data?.userId;
-      const isAuthenticated = client.data?.authenticated;
+      // 토큰 검증 및 사용자 식별
+      let userId: string | undefined = undefined;
+      let isAuthenticated = false;
 
+      const token = client.handshake.auth?.token;
+      if (token) {
+        const payload = this.mockAuthService.verifyMockToken(token);
+        if (payload) {
+          userId = payload.userId;
+          isAuthenticated = true;
+          // 소켓 데이터에 저장
+          client.data.userId = userId;
+          client.data.authenticated = true;
+        }
+      }
+
+      // 연결 로그
       try {
         logMessage(this.logger, LOG.WS.CONNECT(client.id, userId));
       } catch (logError) {
         this.logger.warn('연결 로그 실패', logError);
       }
 
-      // GLOBAL 방의 roomId 조회 후 참여 (인증 여부와 관계없이 모든 사용자)
-      // 우선 글로벌 방 하나만 있다고 가정...
+      // 글로벌 방 참여 로직
       const globalRoomId = GLOBAL_ROOM_ID;
-      const isUser = isAuthenticated && userId;
 
       if (globalRoomId) {
-        // 모든 사용자 Socket.io room 참여 (브로드캐스트용) - 먼저 join
+        // Socket.io room 참여
         try {
           await client.join(globalRoomId);
-          if (isUser) logMessage(this.logger, LOG.WS.SOCKET_IO_JOIN_AUTH(userId, globalRoomId));
-          else logMessage(this.logger, LOG.WS.SOCKET_IO_JOIN_UNAUTH(client.id, globalRoomId));
+          if (isAuthenticated && userId) {
+            logMessage(this.logger, LOG.WS.SOCKET_IO_JOIN_AUTH(userId, globalRoomId));
+          } else {
+            logMessage(this.logger, LOG.WS.SOCKET_IO_JOIN_UNAUTH(client.id, globalRoomId));
+          }
         } catch (joinError) {
           const errorMessage = joinError instanceof Error ? joinError.message : String(joinError);
           logMessage(this.logger, LOG.WS.SOCKET_IO_JOIN_ERROR(errorMessage));
         }
 
-        // 인증된 사용자는 Redis에도 논리적 상태 저장 및 참여자 수 업데이트
-        if (isUser) {
+        // 인증된 사용자는 Redis 상태 업데이트
+        if (isAuthenticated && userId) {
           try {
             const isInRoom = await this.roomService.isUserInRoom(userId, globalRoomId);
             if (!isInRoom) {
-              try {
-                await this.roomService.joinRoom(userId, globalRoomId);
-                logMessage(this.logger, LOG.WS.REDIS_JOIN(userId, globalRoomId));
-
-                // 참여자 수 조회 및 브로드캐스트 (인증된 사용자만 카운트)
-                const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
-                await this.chatService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
-              } catch (joinError) {
-                const errorMessage = joinError instanceof Error ? joinError.message : String(joinError);
-                logMessage(this.logger, LOG.WS.REDIS_JOIN_ERROR(errorMessage));
-              }
-            } else {
-              // 이미 참여 중인 경우에도 현재 참여자 수 브로드캐스트
-              const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
-              await this.chatService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
+              await this.roomService.joinRoom(userId, globalRoomId);
+              logMessage(this.logger, LOG.WS.REDIS_JOIN(userId, globalRoomId));
             }
+
+            // 참여자 수 조회 및 브로드캐스트 (항상 최신 상태 전송)
+            const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
+            await this.chatService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
           } catch (checkError) {
             const errorMessage = checkError instanceof Error ? checkError.message : String(checkError);
             logMessage(this.logger, LOG.WS.ROOM_PARTICIPATION_CHECK_ERROR(errorMessage));
@@ -109,7 +115,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
 
-      // 로그 출력
+      // 최종 연결 상태 로그
       if (isAuthenticated && userId) {
         try {
           logMessage(this.logger, LOG.WS.AUTH_CONNECT(userId));
@@ -296,7 +302,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
-   * 대화방 입장 처리
+   * 대화방 입장 처리 (로컬)
    * 요구사항: 권한 검증 후 논리적 상태 변경 및 Socket.io room 참여
    */
   @SubscribeMessage('room:join')
@@ -304,23 +310,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 디버깅: 받은 데이터 로그
     logMessage(this.logger, LOG.WS.ROOM_JOIN_DTO_RECEIVED(JSON.stringify(dto), typeof dto));
 
-    // 조인하려는 방의 타입 확인 (Redis에서 읽어온 값)
+    const userId = client.data.userId;
+    const isAuthenticated = client.data.authenticated;
+
+    // 글로벌 방 입장 요청은 무시 (연결 시 자동 입장됨)
+    if (dto.roomId === GLOBAL_ROOM_ID) {
+      return;
+    }
+
+    // 인증 확인
+    if (!isAuthenticated || !userId) {
+      logMessage(this.logger, LOG.ROOM.UNAUTH_JOIN(client.id));
+      client.emit('error', { message: '로그인이 필요합니다.' });
+      return;
+    }
+
+    // 방 타입 확인
     const roomType = await this.roomService.getRoomType(dto.roomId);
 
     try {
-      const userId = client.data.userId;
-      const isAuthenticated = client.data.authenticated;
-
-      // 로컬 방일때만 권한 검증
-      if (roomType === ROOM_TYPE.LOCAL) {
-        if (!isAuthenticated || !userId) {
-          logMessage(this.logger, LOG.ROOM.UNAUTH_JOIN(client.id));
-          client.emit('error', { message: '로그인이 필요합니다.' });
-          return;
-        }
+      // 방 존재 여부 및 타입 확인
+      if (roomType === null) {
+        logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.roomId));
+        client.emit('error', { message: '존재하지 않는 방입니다.' });
+        return;
       }
 
-      // 권한 검증: 방 입장 권한 확인
+      // 권한 검증
       const canJoin = await this.roomService.canUserJoinRoom(userId, dto.roomId);
       if (!canJoin) {
         logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.roomId));
@@ -336,40 +352,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // 방이 존재하지 않는 경우 처리
-      if (roomType === null) {
-        logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.roomId));
-        client.emit('error', { message: '존재하지 않는 방입니다.' });
-        return;
-      }
+      // 기존 로컬 방 자동 퇴장 처리 (방 이동)
+      // TODO: 추후 room:leave 핸들러 로직과 공통화하여 재사용 필요
+      const existingLocalRoom = await this.roomService.getUserLocalRoom(userId);
+      if (existingLocalRoom && existingLocalRoom !== dto.roomId) {
+        logMessage(this.logger, LOG.ROOM.JOIN_SWITCH(userId, existingLocalRoom, dto.roomId));
 
-      // GLOBAL 타입 방이 아닌 경우, 다른 로컬 방에 참여 중인지 확인
-      if (roomType !== ROOM_TYPE.GLOBAL) {
-        const existingLocalRoom = await this.roomService.getUserLocalRoom(userId);
-        if (existingLocalRoom && existingLocalRoom !== dto.roomId) {
-          // 기존 로컬 방에서 퇴장 처리
-          logMessage(this.logger, LOG.ROOM.JOIN_SWITCH(userId, existingLocalRoom, dto.roomId));
+        // 기존 방에서 제거
+        await this.roomService.leaveRoom(userId, existingLocalRoom);
+        client.leave(existingLocalRoom);
 
-          // 기존 방에서 제거
-          await this.roomService.leaveRoom(userId, existingLocalRoom);
-          client.leave(existingLocalRoom);
-
-          // 다른 참여자에게 알림
-          await this.chatService.notifyUserLeft(this.server, existingLocalRoom, userId);
-        }
+        // 다른 참여자에게 알림
+        await this.chatService.notifyUserLeft(this.server, existingLocalRoom, userId);
       }
 
       // 논리적 상태 변경: 방에 참여
       await this.roomService.joinRoom(userId, dto.roomId);
 
-      // Socket.io room에 참여 (브로드캐스트 최적화용)
+      // Socket.io room에 참여
       client.join(dto.roomId);
 
-      // 클라이언트에 입장 성공 알림
+      // 클라이언트에 입장 성공 알림 (ACK)
       client.emit('room:joined', { roomId: dto.roomId });
 
-      // 다른 참여자에게 알림
-      await this.chatService.notifyUserJoined(this.server, dto.roomId, userId);
+      // 브로드캐스트: 사용자 정보 및 현재 참여자 수 조회
+      const mockUser = this.mockAuthService.getMockUserById(userId);
+      const currentParticipants = await this.roomService.getCurrentParticipants(dto.roomId);
+
+      if (mockUser) {
+        await this.chatService.notifyUserJoined(
+          this.server,
+          dto.roomId,
+          {
+            userId,
+            nickname: mockUser.nickname,
+            profile_image: mockUser.profile_image,
+          },
+          currentParticipants,
+        );
+      }
 
       logMessage(this.logger, LOG.ROOM.JOIN(userId, dto.roomId));
     } catch (error) {
