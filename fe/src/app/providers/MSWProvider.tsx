@@ -1,15 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import IS from '@/utils/is';
 
 export default function MSWProvider({ children }: { children: ReactNode }) {
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
-    if (IS.undefined(window) || process.env.NODE_ENV !== 'development') return;
+    if (IS.undefined(window) || process.env.NODE_ENV !== 'development') {
+      setIsReady(true);
+      return;
+    }
     (async () => {
       const { worker } = await import('@/mocks/browser');
       await worker.start({
+        serviceWorker: {
+          url: '/mockServiceWorker.js',
+        },
         onUnhandledRequest: (request, print) => {
           const url = new URL(request.url);
           if (
@@ -22,8 +30,13 @@ export default function MSWProvider({ children }: { children: ReactNode }) {
           print.warning();
         },
       });
+      setIsReady(true);
     })();
   }, []);
+
+  if (!isReady) {
+    return null;
+  }
 
   return <>{children}</>;
 }

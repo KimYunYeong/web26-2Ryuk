@@ -134,6 +134,12 @@ export const componentRelations: ComponentRelation[] = [
     children: ['chip', 'status-chip', 'text-tooltip', 'icon-button', 'avatars'],
   },
   {
+    id: 'room-info',
+    title: 'RoomInfo',
+    category: 'feature',
+    children: ['chip', 'icon', 'icon-button'],
+  },
+  {
     id: 'realtime-rooms',
     title: 'RealtimeRoomsSection',
     category: 'feature',
@@ -223,6 +229,7 @@ export const featureSections = [
   { id: 'password-setting', title: 'PasswordSetting' },
   { id: 'room-creation-modal', title: 'RoomCreationModal' },
   { id: 'room-card', title: 'RoomCard' },
+  { id: 'room-info', title: 'RoomInfo' },
   { id: 'realtime-rooms', title: 'RealtimeRoomsSection' },
 ];
 

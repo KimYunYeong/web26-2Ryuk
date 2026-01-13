@@ -15,6 +15,7 @@ import PasswordSetting from '@/app/features/room/components/creation/PasswordSet
 import RoomCreationModalContent from '@/app/features/room/components/creation/RoomCreationModalContent';
 import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
 import RoomCard from '@/app/features/room/components/card/RoomCard';
+import RoomInfo from '@/app/features/room/components/info/RoomInfo';
 import roomsMock from '@/mocks/data/rooms.json';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
 import Modal from '@/app/components/shared/modal/Modal';
@@ -309,6 +310,17 @@ export default function FeatureComponents() {
               </Component>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="room-info" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RoomInfo</h2>
+        <ComponentRelations componentId="room-info" />
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>Default</h3>
+          <Component>
+            <RoomInfo title="같이 수다 떨어요~" tags={['게임', '친목']} />
+          </Component>
         </div>
       </section>
 

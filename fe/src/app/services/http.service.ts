@@ -4,8 +4,8 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export class HttpService {
   private static getBaseUrl(): string {
-    // 서버 사이드 렌더링에서는 상대 경로 사용
-    if (IS.undefined(window)) return '';
+    // 클라이언트 사이드: MSW가 상대 경로를 가로채므로 상대 경로 사용
+    if (typeof window !== 'undefined') return '';
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl || apiUrl.trim() === '') return '';
