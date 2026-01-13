@@ -22,9 +22,11 @@ export default function RoomCreationForm({
   const [isMicAvailable, setIsMicAvailable] = useState(initialData.isMicAvailable ?? true);
   const [isPrivate, setIsPrivate] = useState(initialData.isPrivate ?? false);
   const [password, setPassword] = useState(initialData.password || '');
+  const isDisabled = !title.trim() || tags.length === 0 || maxParticipants < 1;
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     const data: RoomCreationData = {
       title: title.trim(),
       tags: tags,
@@ -80,7 +82,13 @@ export default function RoomCreationForm({
 
       <div className={styles.footer}>
         <OutlineTextButton text="취소" size="medium" onClick={onCancel} />
-        <PrimaryTextButton text="대화방 만들기" size="medium" iconName="add" type="submit" />
+        <PrimaryTextButton
+          text="대화방 만들기"
+          size="medium"
+          iconName="add"
+          type="submit"
+          disabled={isDisabled}
+        />
       </div>
     </form>
   );
