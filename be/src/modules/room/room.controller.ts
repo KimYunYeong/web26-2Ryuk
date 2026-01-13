@@ -79,4 +79,10 @@ export class RoomController {
     const rooms = await this.roomService.searchLocalRooms(keyword);
     return { rooms };
   }
+
+  // postman 에러 테스트용 -> GET /api/rooms/test/error
+  @Get('test/error')
+  async testError(): Promise<void> {
+    throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
 }
