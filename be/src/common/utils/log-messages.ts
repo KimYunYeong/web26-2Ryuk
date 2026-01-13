@@ -203,6 +203,10 @@ export const LOG = {
       message: `방 정보 업데이트 완료: roomId=${roomId}`,
       level: 'log',
     }),
+    ROOM_DELETED: (roomId: string): LogMessage => ({
+      message: `방 삭제 완료: roomId=${roomId}`,
+      level: 'log',
+    }),
     PARTICIPANTS_INCREASE_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 수 증가 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',

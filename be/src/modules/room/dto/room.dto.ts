@@ -57,3 +57,8 @@ export class RoomResponseDto {
   @IsDate()
   create_date: Date;
 }
+
+export class RoomDeleteResponseDto {
+  @IsString()
+  id: string;
+}

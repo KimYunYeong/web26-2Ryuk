@@ -3,7 +3,7 @@ import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
 import { RedisClientType } from 'redis';
-import { RoomRequestDto, RoomResponseDto } from './dto/room.dto';
+import { RoomRequestDto, RoomResponseDto, RoomDeleteResponseDto } from './dto/room.dto';
 import { ROOM_TYPE, RoomType } from './room.type';
 
 @Injectable()
@@ -190,6 +190,7 @@ export class RoomService implements OnModuleInit {
       create_date: create_date.toISOString(),
     });
 
+    this.joinRoom(hostId, id);
     logMessage(this.logger, LOG.ROOM.ROOM_CREATED(id, ROOM_TYPE.LOCAL));
 
     return {
@@ -238,6 +239,31 @@ export class RoomService implements OnModuleInit {
       is_private: roomData.is_private,
       create_date: create_date,
     };
+  }
+
+  async deleteRoom(hostId: string, roomId: string): Promise<RoomDeleteResponseDto> {
+    const roomKey = `room:${roomId}`;
+    const memberKey = `room:${roomId}:members`;
+
+    const [existingHostId, members] = await Promise.all([
+      this.redisClient.hGet(roomKey, 'host_id'),
+      this.redisClient.hKeys(memberKey), // 멤버 ID 목록 가져오기
+    ]);
+
+    if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
+
+    if (existingHostId !== hostId) throw new HttpException('방 삭제 권한이 없습니다.', 403);
+
+    // 방 정보 및 멤버 목록 삭제
+    await Promise.all([
+      ...members.map((userId) => this.redisClient.sRem(`user:${userId}:rooms`, roomId)),
+      this.redisClient.del(roomKey),
+      this.redisClient.del(memberKey),
+    ]);
+
+    logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId));
+
+    return { id: roomId };
   }
 
   // 방 존재 여부 확인
