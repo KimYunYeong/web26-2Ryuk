@@ -37,6 +37,57 @@ export const handlers = [
     });
   }),
 
+  // Rooms Search API (방 검색)
+  http.get('/api/rooms/search', ({ request }) => {
+    const url = new URL(request.url);
+    const keyword = url.searchParams.get('keyword');
+
+    if (!keyword || keyword.trim() === '') {
+      return HttpResponse.json(
+        {
+          success: true,
+          message: '방 검색 조회에 성공 했습니다.',
+          data: { rooms: [] },
+        },
+        { status: 200 },
+      );
+    }
+
+    const searchKeyword = keyword.toLowerCase().trim();
+    const filteredRooms = rooms.filter((room) => {
+      // 제목에서 검색
+      if (room.title.toLowerCase().includes(searchKeyword)) {
+        return true;
+      }
+      // 태그에서 검색
+      if (room.tags.some((tag) => tag.toLowerCase().includes(searchKeyword))) {
+        return true;
+      }
+      return false;
+    });
+
+    // 검색 결과가 없으면 204 응답
+    if (filteredRooms.length === 0) {
+      return HttpResponse.json(
+        {
+          success: true,
+          message: '방 검색 조회에 성공 했습니다.',
+          data: { rooms: [] },
+        },
+        { status: 204 },
+      );
+    }
+
+    // 정상 응답
+    return HttpResponse.json({
+      success: true,
+      message: '방 검색 조회에 성공 했습니다.',
+      data: {
+        rooms: filteredRooms,
+      },
+    });
+  }),
+
   // Room API (단일 방 조회)
   http.get('/api/rooms/:roomId', ({ params }) => {
     const { roomId } = params;

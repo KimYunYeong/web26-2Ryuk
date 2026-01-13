@@ -29,7 +29,12 @@ export default function RealtimeRoomsSection({ rooms = [], onSearch }: RealtimeR
       const roomsDto = await roomService.getRooms();
       setRoomsData(roomsDto.rooms.map(RoomConverter.toData));
     })();
-  }, []); // 빈 배열로 마운트 시에만 실행
+  }, []);
+
+  const handleSearch = async (keyword: string) => {
+    const roomsDto = await roomService.searchRooms(keyword);
+    setRoomsData(roomsDto.rooms.map(RoomConverter.toData));
+  };
 
   const handleSubmit = async (data: RoomEditData) => {
     const roomDto = RoomConverter.editToDto(data);
@@ -49,7 +54,7 @@ export default function RealtimeRoomsSection({ rooms = [], onSearch }: RealtimeR
           </div>
           <div className={styles.actions}>
             <div className={styles.search}>
-              <SearchForm placeholder="제목, 내용, 작성자 검색" onSubmit={onSearch} />
+              <SearchForm placeholder="제목, 내용, 작성자 검색" onSubmit={handleSearch} />
             </div>
             <div className={styles.createRoom}>
               <TextButton.Primary

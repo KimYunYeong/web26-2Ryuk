@@ -12,6 +12,14 @@ export class RoomService {
     return response.data;
   }
 
+  async searchRooms(keyword: string): Promise<RoomsListDto> {
+    const response = await HttpService.get<ApiResponse<RoomsListDto>>(
+      `/api/rooms/search?keyword=${keyword}`,
+    );
+    if (!response.success || !response.data) return { rooms: [] };
+    return response.data;
+  }
+
   async getRoom(roomId: string): Promise<RoomDto> {
     const response = await HttpService.get<ApiResponse<RoomDto>>(`/api/rooms/${roomId}`);
     if (!response.success || !response.data) {
