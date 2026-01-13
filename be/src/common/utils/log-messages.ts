@@ -223,6 +223,10 @@ export const LOG = {
       message: `로컬 방 목록 조회 실패: ${error}`,
       level: 'error',
     }),
+    LOCAL_ROOMS_SEARCH_ERROR: (error: string): LogMessage => ({
+      message: `로컬 방 검색 실패: ${error}`,
+      level: 'error',
+    }),
   },
 } as const;
 

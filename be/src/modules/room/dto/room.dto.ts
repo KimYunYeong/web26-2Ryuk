@@ -80,3 +80,10 @@ export interface RoomListItemDto {
 export interface RoomListResponseDto {
   rooms: RoomListItemDto[];
 }
+
+// 방 검색 조회 시 사용하는 dto
+export class RoomSearchQueryDto {
+  @IsString()
+  @IsOptional()
+  keyword?: string;
+}
