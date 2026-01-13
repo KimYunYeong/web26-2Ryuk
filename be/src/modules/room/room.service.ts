@@ -1,7 +1,9 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { RedisClientType } from 'redis';
-import { LOG, logMessage } from '@src/common/utils/log-messages';
+import { HttpException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { LOG, logMessage } from '@src/common/utils/log-messages';
+import { UUID } from 'crypto';
+import { RedisClientType } from 'redis';
+import { RoomCreateRequestDto, RoomResponseDto } from './dto/room.dto';
 import { ROOM_TYPE, RoomType } from './room.type';
 
 @Injectable()
@@ -169,30 +171,36 @@ export class RoomService implements OnModuleInit {
    * 방 생성 (Redis Hash에 방 정보 저장)
    * 개발용: 글로벌 룸 자동 생성에 사용
    */
-  async createRoom(roomData: {
-    id: string;
-    title: string;
-    hostId: string;
-    type: RoomType;
-    maxParticipants?: number;
-    isPrivate?: boolean;
-    password?: string;
-  }): Promise<void> {
-    const { id, title, hostId, type, maxParticipants, isPrivate, password } = roomData;
+  async createRoom(hostId: string, roomData: RoomCreateRequestDto): Promise<RoomResponseDto> {
+    const id: UUID = crypto.randomUUID();
+    const create_date = new Date();
 
-    // room:{roomId} Hash에 방 정보 저장
+    if (roomData.max_participants <= 0) throw new HttpException('최대 참여자 수는 1명 이상이어야 합니다.', 400);
+
     await this.redisClient.hSet(`room:${id}`, {
-      title,
+      title: roomData.title,
+      tags: roomData.tags.join(','),
       host_id: hostId,
-      type,
-      max_participants: maxParticipants?.toString() || '',
+      type: ROOM_TYPE.LOCAL,
+      max_participants: roomData.max_participants.toString(),
       current_participants: '0',
-      is_private: isPrivate ? '1' : '0',
-      password: password || '',
-      create_date: new Date().toISOString(),
+      is_mic_available: roomData.is_mic_available.toString(),
+      is_private: roomData.is_private.toString(),
+      password: roomData.password || '',
+      create_date: create_date.toISOString(),
     });
 
-    logMessage(this.logger, LOG.ROOM.ROOM_CREATED(id, type));
+    logMessage(this.logger, LOG.ROOM.ROOM_CREATED(id, ROOM_TYPE.LOCAL));
+
+    return {
+      id,
+      title: roomData.title,
+      tags: roomData.tags,
+      max_participants: roomData.max_participants,
+      is_mic_available: roomData.is_mic_available,
+      is_private: roomData.is_private,
+      create_date: create_date,
+    };
   }
 
   // 방 존재 여부 확인
