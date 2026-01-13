@@ -1,4 +1,4 @@
-import { RoomCreationData, RoomData } from '../dtos/type';
+import { RoomEditData, RoomData } from '../dtos/type';
 
 export interface RoomCardProps extends RoomData {}
 
@@ -18,9 +18,9 @@ export interface PasswordSettingProps {
   onChangePassword?: (password: string) => void;
 }
 
-export interface RoomCreationFormProps {
-  initialData?: Partial<RoomCreationData>;
-  onSubmit?: (data: RoomCreationData) => void;
+export interface RoomEditFormProps {
+  initialData?: Partial<RoomEditData>;
+  onSubmit?: (data: RoomEditData) => void;
   onCancel?: () => void;
 }
 

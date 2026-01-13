@@ -1,10 +1,5 @@
 import { HttpService } from '@/app/services/http.service';
-import {
-  RoomDto,
-  RoomCreationDto,
-  RoomsListData,
-  RoomsListDto,
-} from '@/app/features/room/dtos/type';
+import { RoomDto, RoomEditDto, RoomsListData, RoomsListDto } from '@/app/features/room/dtos/type';
 import { authStore } from '@/app/features/user/stores/auth';
 import { ApiResponse } from './type';
 
@@ -25,7 +20,7 @@ export class RoomService {
     return response.data;
   }
 
-  async createRoom(data: RoomCreationDto): Promise<ApiResponse<RoomDto>> {
+  async createRoom(data: RoomEditDto): Promise<ApiResponse<RoomDto>> {
     const token = authStore.getState().token || undefined;
     const response = await HttpService.post<ApiResponse<RoomDto>>('/api/rooms', data, token);
     return response;

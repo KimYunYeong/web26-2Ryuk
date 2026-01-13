@@ -6,12 +6,12 @@ import * as IconCircle from '@/app/components/shared/icon/IconCircle';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import { RealtimeRoomsSectionProps } from './type';
-import { RoomCreationData } from '../dtos/type';
+import { RoomEditData } from '../dtos/type';
 import { RoomConverter } from '../dtos/Room';
 import useResponsive from '@/app/hooks/useResponsive';
 import CSSUtil from '@/utils/css';
 import Modal from '@/app/components/shared/modal/Modal';
-import RoomCreationModalContent from './creation/RoomCreationModalContent';
+import RoomCreateModalContent from './creation/RoomCreateModalContent';
 import roomService from '../services/RoomService';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useModal } from '@/app/components/shared/modal/useModal';
@@ -22,8 +22,8 @@ export default function RealtimeRoomsSection({ rooms, onSearch }: RealtimeRoomsS
   const { closeModal } = useModal();
   const headerClassName = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
 
-  const handleSubmit = async (data: RoomCreationData) => {
-    const roomDto = RoomConverter.creationToDto(data);
+  const handleSubmit = async (data: RoomEditData) => {
+    const roomDto = RoomConverter.editToDto(data);
     const response = await roomService.createRoom(roomDto);
 
     if (!response.success || !response.data?.id) return;
@@ -62,7 +62,7 @@ export default function RealtimeRoomsSection({ rooms, onSearch }: RealtimeRoomsS
         </div>
       </div>
       <Modal id="room-creation">
-        <RoomCreationModalContent onSubmit={handleSubmit} />
+        <RoomCreateModalContent onSubmit={handleSubmit} />
       </Modal>
     </>
   );

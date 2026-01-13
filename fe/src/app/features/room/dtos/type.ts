@@ -30,7 +30,7 @@ export interface RoomData {
   createDate: Date;
 }
 
-export interface RoomCreationDto {
+export interface RoomEditDto {
   title: string;
   tags: string[];
   max_participants: number;
@@ -39,7 +39,7 @@ export interface RoomCreationDto {
   password?: string;
 }
 
-export interface RoomCreationData {
+export interface RoomEditData {
   title: string;
   tags: string[];
   maxParticipants: number;

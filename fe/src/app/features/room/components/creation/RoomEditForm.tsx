@@ -7,15 +7,11 @@ import ParticipantStepper from '@/app/components/shared/stepper/ParticipantStepp
 import TagSelector from '@/app/components/shared/tag/TagSelector';
 import MicSetting from './MicSetting';
 import PasswordSetting from './PasswordSetting';
-import { RoomCreationData } from '@/app/features/room/dtos/type';
-import styles from './roomCreationForm.module.css';
-import { RoomCreationFormProps } from '@/app/features/room/components/type';
+import { RoomEditData } from '@/app/features/room/dtos/type';
+import styles from './roomEditForm.module.css';
+import { RoomEditFormProps } from '@/app/features/room/components/type';
 
-export default function RoomCreationForm({
-  initialData = {},
-  onSubmit,
-  onCancel,
-}: RoomCreationFormProps) {
+export default function RoomEditForm({ initialData = {}, onSubmit, onCancel }: RoomEditFormProps) {
   const [title, setTitle] = useState(initialData.title || '');
   const [tags, setTags] = useState<string[]>(initialData.tags || []);
   const [maxParticipants, setMaxParticipants] = useState(initialData.maxParticipants || 4);
@@ -27,7 +23,7 @@ export default function RoomCreationForm({
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const data: RoomCreationData = {
+    const data: RoomEditData = {
       title: title.trim(),
       tags: tags,
       maxParticipants: maxParticipants,

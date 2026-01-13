@@ -134,6 +134,19 @@ export const componentRelations: ComponentRelation[] = [
     ],
   },
   {
+    id: 'room-update-modal',
+    title: 'RoomUpdateModal',
+    category: 'feature',
+    children: [
+      'textfield',
+      'text-button',
+      'stepper',
+      'tag-selector',
+      'mic-setting',
+      'password-setting',
+    ],
+  },
+  {
     id: 'room-card',
     title: 'RoomCard',
     category: 'feature',
@@ -235,6 +248,7 @@ export const featureSections = [
   { id: 'mic-setting', title: 'MicSetting' },
   { id: 'password-setting', title: 'PasswordSetting' },
   { id: 'room-creation-modal', title: 'RoomCreationModal' },
+  { id: 'room-update-modal', title: 'RoomUpdateModal' },
   { id: 'room-card', title: 'RoomCard' },
   { id: 'room-info', title: 'RoomInfo' },
   { id: 'realtime-rooms', title: 'RealtimeRoomsSection' },

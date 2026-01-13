@@ -12,7 +12,8 @@ import { PostConverter } from '@/app/features/post/dtos/Post';
 import RoomChatPanel from '@/app/features/chat/components/RoomChatPanel';
 import MicSetting from '@/app/features/room/components/creation/MicSetting';
 import PasswordSetting from '@/app/features/room/components/creation/PasswordSetting';
-import RoomCreationModalContent from '@/app/features/room/components/creation/RoomCreationModalContent';
+import RoomCreateModalContent from '@/app/features/room/components/creation/RoomCreateModalContent';
+import RoomUpdateModalContent from '@/app/features/room/components/creation/RoomUpdateModalContent';
 import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
 import RoomCard from '@/app/features/room/components/card/RoomCard';
 import RoomInfo from '@/app/features/room/components/info/RoomInfo';
@@ -273,13 +274,26 @@ export default function FeatureComponents() {
       </section>
 
       <section id="room-creation-modal" className={styles.section}>
-        <h2 className={styles.sectionTitle}>RoomCreationModal</h2>
+        <h2 className={styles.sectionTitle}>RoomCreateModal</h2>
         <ComponentRelations componentId="room-creation-modal" />
         <div className={styles.showcaseBlock}>
           <Component>
             <TextButton.Ghost modalId="room-creation-demo" text="모달 열기" size="medium" />
             <Modal id="room-creation-demo">
-              <RoomCreationModalContent />
+              <RoomCreateModalContent />
+            </Modal>
+          </Component>
+        </div>
+      </section>
+
+      <section id="room-update-modal" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RoomUpdateModal</h2>
+        <ComponentRelations componentId="room-update-modal" />
+        <div className={styles.showcaseBlock}>
+          <Component>
+            <TextButton.Ghost modalId="room-update-demo" text="모달 열기" size="medium" />
+            <Modal id="room-update-demo">
+              <RoomUpdateModalContent />
             </Modal>
           </Component>
         </div>
