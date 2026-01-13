@@ -50,6 +50,9 @@
   --secondary-border: #93a4bd;
   --secondary-bg: #bcc9db;
 
+  /* Overlay Colors */
+  --scrim: #00000066;
+
   /* Typography - Large */
   --large-1: 900 40px/normal var(--pretendard);
   --large-2: 700 20px/normal var(--pretendard);
