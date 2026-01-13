@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class RoomJoinDto {
   @IsString()
@@ -28,4 +28,11 @@ export interface RoomListItemDto {
 // 방 목록 응답 시 사용하는 dto
 export interface RoomListResponseDto {
   rooms: RoomListItemDto[];
+}
+
+// 방 검색 조회 시 사용하는 dto
+export class RoomSearchQueryDto {
+  @IsString()
+  @IsOptional()
+  keyword?: string;
 }

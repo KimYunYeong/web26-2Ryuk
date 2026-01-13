@@ -331,4 +331,38 @@ export class RoomService implements OnModuleInit {
       throw error;
     }
   }
+
+  // 로컬 방 검색 조회
+  async searchLocalRooms(keyword: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      tags: string[];
+      current_participants: number;
+      max_participants: number;
+      is_mic_available: boolean;
+      is_private: boolean;
+      participant_profile_images: string[];
+      create_date: string;
+    }>
+  > {
+    try {
+      const allRooms = await this.getLocalRooms();
+      // keyword가 없으면 모든 로컬 룸 반환
+      if (!keyword || keyword.trim() === '') {
+        return allRooms;
+      }
+
+      const searchKeyword = keyword.trim().toLowerCase();
+      const filteredRooms = allRooms.filter((room) => {
+        return room.title.toLowerCase().includes(searchKeyword);
+      });
+
+      return filteredRooms;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_SEARCH_ERROR(errorMessage));
+      throw error;
+    }
+  }
 }
