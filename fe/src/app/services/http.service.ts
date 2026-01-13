@@ -60,8 +60,15 @@ export class HttpService {
     const response = await fetch(fullUrl, requestInit);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
+    // 204 No Content 응답 처리
+    if (response.status === 204) return {} as T;
+
     const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) return response.json();
+    if (contentType?.includes('application/json')) {
+      const text = await response.text();
+      if (!text || text.trim() === '') return {} as T;
+      return JSON.parse(text) as T;
+    }
 
     return response.text() as T;
   }
