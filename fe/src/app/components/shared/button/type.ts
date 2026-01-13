@@ -9,4 +9,5 @@ export interface TextButtonProps {
   size: ButtonSize;
   variant: ButtonVariant;
   type?: 'button' | 'submit' | 'reset';
+  modalId?: string;
 }

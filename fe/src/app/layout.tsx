@@ -1,6 +1,7 @@
 import './globals.css';
 import MSWProvider from '@/app/providers/MSWProvider';
 import AuthProvider from '@/app/providers/AuthProvider';
+import ModalEventDelegation from '@/app/components/shared/modal/ModalEventDelegation';
 import Header from './components/layout/header/Header';
 import { RootLayoutProps } from './type';
 import type { Metadata } from 'next';
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko">
       <body>
+        <ModalEventDelegation />
         <MSWProvider>
           <AuthProvider>
             <Header />

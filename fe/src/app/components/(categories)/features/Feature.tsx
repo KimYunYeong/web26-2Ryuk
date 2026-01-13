@@ -12,10 +12,13 @@ import { PostConverter } from '@/app/features/post/dtos/Post';
 import RoomChatPanel from '@/app/features/chat/components/RoomChatPanel';
 import MicSetting from '@/app/features/room/components/creation/MicSetting';
 import PasswordSetting from '@/app/features/room/components/creation/PasswordSetting';
+import RoomCreationModalContent from '@/app/features/room/components/creation/RoomCreationModalContent';
 import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
 import RoomCard from '@/app/features/room/components/card/RoomCard';
 import roomsMock from '@/mocks/data/rooms.json';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
+import Modal from '@/app/components/shared/modal/Modal';
+import { GhostTextButton } from '@/app/components/shared/button/TextButton';
 import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
 import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
@@ -40,7 +43,7 @@ export default function FeatureComponents() {
                     isMe: false,
                   }}
                   message="Their Message"
-                  timestamp={new Date('2024-01-15T14:30:00.000Z')}
+                  timestamp={new Date('2024-01-15T14:31:00.000Z')}
                 />
               </Component>
             </div>
@@ -165,8 +168,8 @@ export default function FeatureComponents() {
                 title="Title"
                 content="Content"
                 category="free"
-                createDate={new Date()}
-                updateDate={new Date()}
+                createDate={new Date('2024-01-15T14:31:00.000Z')}
+                updateDate={new Date('2024-01-15T14:31:00.000Z')}
                 viewCount={0}
                 likeCount={0}
                 commentCount={0}
@@ -193,7 +196,7 @@ export default function FeatureComponents() {
                 viewCount={0}
                 likeCount={0}
                 commentCount={0}
-                createDate={new Date()}
+                createDate={new Date('2024-01-15T14:31:00.000Z')}
               />
             </Component>
           </div>
@@ -266,6 +269,19 @@ export default function FeatureComponents() {
         </div>
       </section>
 
+      <section id="room-creation-modal" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RoomCreationModal</h2>
+        <ComponentRelations componentId="room-creation-modal" />
+        <div className={styles.showcaseBlock}>
+          <Component>
+            <GhostTextButton modalId="room-creation-demo" text="모달 열기" size="medium" />
+            <Modal id="room-creation-demo">
+              <RoomCreationModalContent />
+            </Modal>
+          </Component>
+        </div>
+      </section>
+
       <section id="room-card" className={styles.section}>
         <h2 className={styles.sectionTitle}>RoomCard</h2>
         <ComponentRelations componentId="room-card" />
@@ -282,7 +298,7 @@ export default function FeatureComponents() {
                   maxParticipants={10}
                   isMicAvailable
                   isPrivate={false}
-                  createDate={new Date()}
+                  createDate={new Date('2024-01-15T14:31:00.000Z')}
                   participantProfileImages={[
                     'https://i.pravatar.cc/150?img=1',
                     'https://i.pravatar.cc/150?img=2',
