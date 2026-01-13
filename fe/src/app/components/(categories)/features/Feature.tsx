@@ -19,10 +19,12 @@ import RoomInfo from '@/app/features/room/components/info/RoomInfo';
 import roomsMock from '@/mocks/data/rooms.json';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
 import Modal from '@/app/components/shared/modal/Modal';
-import { GhostTextButton } from '@/app/components/shared/button/TextButton';
 import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
 import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
+import * as TextButton from '@/app/components/shared/button/TextButton';
+import Dialog from '@/app/components/shared/dialog/Dialog';
+import Paths from '@/app/shared/path';
 
 export default function FeatureComponents() {
   return (
@@ -275,7 +277,7 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="room-creation-modal" />
         <div className={styles.showcaseBlock}>
           <Component>
-            <GhostTextButton modalId="room-creation-demo" text="모달 열기" size="medium" />
+            <TextButton.Ghost modalId="room-creation-demo" text="모달 열기" size="medium" />
             <Modal id="room-creation-demo">
               <RoomCreationModalContent />
             </Modal>
@@ -293,6 +295,7 @@ export default function FeatureComponents() {
               <Component>
                 <RoomCard
                   id="1"
+                  hostId="123e4567-e89b-12d3-a456-426614174000"
                   title="Title"
                   tags={['#tag1', '#tag2']}
                   currentParticipants={5}
@@ -319,7 +322,10 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <h3 className={styles.blockTitle}>Default</h3>
           <Component>
-            <RoomInfo title="같이 수다 떨어요~" tags={['게임', '친목']} />
+            <RoomInfo title="같이 수다 떨어요~" tags={['게임', '친목']} isHost={false} />
+          </Component>
+          <Component>
+            <RoomInfo title="같이 수다 떨어요~" tags={['게임', '친목']} isHost />
           </Component>
         </div>
       </section>
@@ -330,6 +336,24 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <RealtimeRoomsSection rooms={roomsMock.rooms.map(RoomConverter.toData)} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="dialog" className={styles.section}>
+        <h2 className={styles.sectionTitle}>Dialog</h2>
+        <ComponentRelations componentId="dialog" />
+        <div className={styles.showcaseBlock}>
+          <Component>
+            <TextButton.Primary modalId="dialog-example" text="Dialog 열기" size="medium" />
+            <Modal id="dialog-example">
+              <Dialog
+                modalId="dialog-example"
+                src={Paths.images('mascot_surprise')}
+                title="정말 나가시겠습니까?"
+                content="현재 진행 중인 대화 정보가 사라질 수 있으니 신중하게 결정해주세요!"
+              />
+            </Modal>
           </Component>
         </div>
       </section>
