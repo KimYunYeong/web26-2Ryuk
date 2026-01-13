@@ -1,12 +1,18 @@
 .roomInfo {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
   width: 100%;
   padding: 20px 40px;
   border-radius: 40px;
+  justify-content: space-between;
   background: var(--neutral-1);
   border: 1px solid var(--neutral-3);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .content {
