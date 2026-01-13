@@ -14,7 +14,12 @@ export default function RoomCreateModalContent(props: RoomEditFormProps) {
 
   return (
     <RoomEditModalContentBase title="대화방 만들기" subtitle="새로운 물방울을 띄워보세요!">
-      <RoomEditForm {...props} onCancel={handleCancel} onSubmit={handleSubmit} />
+      <RoomEditForm
+        {...props}
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+        submitText="대화방 만들기"
+      />
     </RoomEditModalContentBase>
   );
 }

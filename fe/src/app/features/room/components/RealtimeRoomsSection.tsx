@@ -6,8 +6,8 @@ import * as IconCircle from '@/app/components/shared/icon/IconCircle';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import { RealtimeRoomsSectionProps } from './type';
-import { RoomEditData } from '../dtos/type';
-import { RoomConverter } from '../dtos/Room';
+import { RoomEditData } from '@/app/features/room/dtos/type';
+import { RoomConverter } from '@/app/features/room/dtos/Room';
 import useResponsive from '@/app/hooks/useResponsive';
 import CSSUtil from '@/utils/css';
 import Modal from '@/app/components/shared/modal/Modal';
@@ -23,14 +23,16 @@ export default function RealtimeRoomsSection({ rooms, onSearch }: RealtimeRoomsS
   const headerClassName = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
 
   const handleSubmit = async (data: RoomEditData) => {
-    const roomDto = RoomConverter.editToDto(data);
-    const response = await roomService.createRoom(roomDto);
+    try {
+      const roomDto = RoomConverter.editToDto(data);
+      const createdRoom = await roomService.createRoom(roomDto);
 
-    if (!response.success || !response.data?.id) return;
-
-    const newRoomId = response.data.id;
-    closeModal('room-creation');
-    router.goToRoom(newRoomId);
+      closeModal('room-creation');
+      router.goToRoom(createdRoom.id);
+    } catch (error) {
+      // 에러 처리 (필요시 토스트 메시지 등 추가)
+      console.error('방 생성 실패:', error);
+    }
   };
 
   return (
@@ -62,7 +64,7 @@ export default function RealtimeRoomsSection({ rooms, onSearch }: RealtimeRoomsS
         </div>
       </div>
       <Modal id="room-creation">
-        <RoomCreateModalContent onSubmit={handleSubmit} />
+        <RoomCreateModalContent onSubmit={handleSubmit} submitText="방 만들기" />
       </Modal>
     </>
   );
