@@ -3,6 +3,7 @@ export interface RoomDto {
   title: string;
   tags: string[];
   host_id: string;
+  password?: string;
   current_participants: number;
   max_participants: number;
   is_mic_available: boolean;
@@ -22,6 +23,7 @@ export interface RoomData {
   title: string;
   tags: string[];
   hostId: string;
+  password?: string;
   currentParticipants: number;
   maxParticipants: number;
   isMicAvailable: boolean;

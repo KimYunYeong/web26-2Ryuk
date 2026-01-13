@@ -183,7 +183,7 @@ export const handlers = [
 
       // 토큰에서 userId 추출 (호스트 ID로 사용)
       const token = authHeader.replace('Bearer ', '');
-      const match = token.match(/^mock-token-([^-]+)-/);
+      const match = token.match(/^mock_token_(.+)_\d+$/);
       const hostId = match ? match[1] : 'unknown';
 
       // 새 방 생성
@@ -209,6 +209,162 @@ export const handlers = [
           success: true,
           message: '대화방이 성공적으로 생성되었습니다.',
           data: newRoom,
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      // JSON 파싱 오류 또는 기타 오류
+      return HttpResponse.json(
+        {
+          success: false,
+          message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        },
+        { status: 500 },
+      );
+    }
+  }),
+
+  // Room Update API (대화방 수정)
+  http.put('/api/rooms/:id', async ({ request, params }) => {
+    const { id } = params;
+
+    // Authorization 헤더 확인
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          success: false,
+          message: '인증이 필요합니다.',
+        },
+        { status: 401 },
+      );
+    }
+
+    try {
+      // 방 존재 확인
+      const roomIndex = rooms.findIndex((r) => r.id === id);
+      if (roomIndex === -1) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '존재하지 않는 방입니다.',
+          },
+          { status: 404 },
+        );
+      }
+
+      const existingRoom = rooms[roomIndex];
+
+      // 권한 확인 (호스트인지 확인)
+      const token = authHeader.replace('Bearer ', '');
+      const match = token.match(/^mock_token_(.+)_\d+$/);
+      const userId = match ? match[1] : 'unknown';
+
+      if (existingRoom.host_id !== userId) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '방 수정 권한이 없습니다.',
+          },
+          { status: 403 },
+        );
+      }
+
+      const body = (await request.json()) as {
+        title?: string;
+        tags?: string[];
+        max_participants?: number;
+        is_mic_available?: boolean;
+        is_private?: boolean;
+        password?: string;
+      };
+
+      // 필수 필드 검증
+      if (!body.title || typeof body.title !== 'string' || body.title.trim() === '') {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '요청 값이 올바르지 않습니다.',
+            data: { field: 'title', reason: '제목은 필수입니다.' },
+          },
+          { status: 400 },
+        );
+      }
+
+      if (!Array.isArray(body.tags)) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '요청 값이 올바르지 않습니다.',
+            data: { field: 'tags', reason: '태그는 배열이어야 합니다.' },
+          },
+          { status: 400 },
+        );
+      }
+
+      if (typeof body.max_participants !== 'number' || body.max_participants < 1) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '요청 값이 올바르지 않습니다.',
+            data: { field: 'max_participants', reason: '1 이상이어야 합니다.' },
+          },
+          { status: 400 },
+        );
+      }
+
+      if (typeof body.is_mic_available !== 'boolean') {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '요청 값이 올바르지 않습니다.',
+            data: { field: 'is_mic_available', reason: '불린 값이어야 합니다.' },
+          },
+          { status: 400 },
+        );
+      }
+
+      if (typeof body.is_private !== 'boolean') {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '요청 값이 올바르지 않습니다.',
+            data: { field: 'is_private', reason: '불린 값이어야 합니다.' },
+          },
+          { status: 400 },
+        );
+      }
+
+      // 비공개 방인데 비밀번호가 없는 경우
+      if (body.is_private && (!body.password || body.password.trim() === '')) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: '요청 값이 올바르지 않습니다.',
+            data: { field: 'password', reason: '비공개 방은 비밀번호가 필요합니다.' },
+          },
+          { status: 400 },
+        );
+      }
+
+      // 방 정보 업데이트
+      const updatedRoom: RoomDto = {
+        ...existingRoom,
+        title: body.title,
+        tags: body.tags,
+        max_participants: body.max_participants,
+        is_mic_available: body.is_mic_available,
+        is_private: body.is_private,
+      };
+
+      rooms[roomIndex] = updatedRoom;
+
+      // 성공 응답 (201 Created)
+      return HttpResponse.json(
+        {
+          success: true,
+          message: '대화방이 성공적으로 수정되었습니다.',
+          data: updatedRoom,
         },
         { status: 201 },
       );

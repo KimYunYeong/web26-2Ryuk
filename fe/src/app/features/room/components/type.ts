@@ -22,6 +22,7 @@ export interface RoomEditFormProps {
   initialData?: Partial<RoomEditData>;
   onSubmit?: (data: RoomEditData) => void;
   onCancel?: () => void;
+  submitText: string;
 }
 
 export interface RoomInfoProps {
@@ -29,4 +30,16 @@ export interface RoomInfoProps {
   tags: string[];
   isHost: boolean;
   onEditClick?: () => void;
+}
+
+export interface RoomInfoWithModalProps {
+  roomId: string;
+  title: string;
+  tags: string[];
+  maxParticipants: number;
+  isMicAvailable: boolean;
+  isPrivate: boolean;
+  password?: string;
+  isHost: boolean;
+  onUpdate?: (data: RoomEditData) => void;
 }

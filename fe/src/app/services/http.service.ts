@@ -5,6 +5,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 const MSW_HANDLED_PATHS: string[] = [
   '/api/rooms/all',
   '/api/rooms/:roomId',
+  '/api/rooms/:id',
   '/api/posts/popular',
   '/api/users/:userId/profile',
   '/api/rooms',

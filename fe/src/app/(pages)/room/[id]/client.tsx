@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import useResponsive from '@/app/hooks/useResponsive';
-import CSSUtil from '@/utils/css';
 import styles from './page.module.css';
-import RoomInfo from '@/app/features/room/components/info/RoomInfo';
+import RoomInfoWithModal from '@/app/features/room/components/info/RoomInfoWithModal';
 import roomService from '@/app/features/room/services/RoomService';
-import { RoomData } from '@/app/features/room/dtos/type';
+import { RoomData, RoomEditData } from '@/app/features/room/dtos/type';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
 import { authStore } from '@/app/features/user/stores/auth';
 
@@ -26,15 +25,31 @@ export default function RoomPageClient({ roomId }: RoomPageClientProps) {
     })();
   }, [roomId]);
 
-  const className = CSSUtil.buildCls('page', styles[status]);
-
   if (!room) return null;
 
+  const handleUpdate = (data: RoomEditData) => {
+    if (!room) return;
+
+    setRoom({
+      ...room,
+      title: data.title,
+      tags: data.tags,
+      maxParticipants: data.maxParticipants,
+      isMicAvailable: data.isMicAvailable,
+      isPrivate: data.isPrivate,
+    });
+  };
+
   return (
-    <div className={className}>
+    <div className={styles[status]}>
       <div className="content">
         <div className={styles.contentWrapper}>
-          <RoomInfo title={room.title} tags={room.tags} isHost={userId === room.hostId} />
+          <RoomInfoWithModal
+            roomId={room.id}
+            {...room}
+            isHost={userId === room.hostId}
+            onUpdate={handleUpdate}
+          />
         </div>
       </div>
     </div>
