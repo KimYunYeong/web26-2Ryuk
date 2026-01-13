@@ -353,17 +353,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // 기존 로컬 방 자동 퇴장 처리 (방 이동)
-      // TODO: 추후 room:leave 핸들러 로직과 공통화하여 재사용 필요
       const existingLocalRoom = await this.roomService.getUserLocalRoom(userId);
       if (existingLocalRoom && existingLocalRoom !== dto.roomId) {
         logMessage(this.logger, LOG.ROOM.JOIN_SWITCH(userId, existingLocalRoom, dto.roomId));
-
-        // 기존 방에서 제거
-        await this.roomService.leaveRoom(userId, existingLocalRoom);
-        client.leave(existingLocalRoom);
-
-        // 다른 참여자에게 알림
-        await this.chatService.notifyUserLeft(this.server, existingLocalRoom, userId);
+        await this.leaveRoomProcess(client, userId, existingLocalRoom);
       }
 
       // 논리적 상태 변경: 방에 참여
@@ -485,14 +478,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // 논리적 상태 변경: 방에서 퇴장
-      await this.roomService.leaveRoom(userId, dto.roomId);
+      // 공통 퇴장 처리
+      await this.leaveRoomProcess(client, userId, dto.roomId);
 
-      // Socket.io room에서 제거
-      client.leave(dto.roomId);
-
-      // 다른 참여자에게 알림
-      await this.chatService.notifyUserLeft(this.server, dto.roomId, userId);
+      // 클라이언트에 퇴장 성공 알림 (ACK)
+      client.emit('room:left', { roomId: dto.roomId });
 
       logMessage(this.logger, LOG.ROOM.LEAVE(userId, dto.roomId));
     } catch (error) {
@@ -525,5 +515,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.warn('에러 메시지 전송 실패', emitError);
       }
     }
+  }
+
+  /**
+   * 공통 방 퇴장 처리 로직
+   * Redis 상태 변경, 소켓 룸 탈퇴, 브로드캐스트 수행
+   */
+  private async leaveRoomProcess(client: Socket, userId: string, roomId: string) {
+    // Redis에서 제거
+    await this.roomService.leaveRoom(userId, roomId);
+
+    // 소켓 room 탈퇴
+    client.leave(roomId);
+
+    // 퇴장 후 참여자 수 조회
+    const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
+
+    // 다른 참여자에게 알림
+    await this.chatService.notifyUserLeft(this.server, roomId, userId, currentParticipants);
   }
 }
