@@ -1,4 +1,4 @@
-import { RoomDto, RoomData, RoomEditDto, RoomEditData } from './type';
+import { RoomDto, RoomData, RoomEditDto, RoomEditData, RoomsListDto, RoomsListData } from './type';
 export class RoomConverter {
   static toData(dto: RoomDto): RoomData {
     return {
@@ -28,6 +28,7 @@ export class RoomConverter {
       create_date: data.createDate.toISOString(),
     };
   }
+
   static editToDto(data: RoomEditData): RoomEditDto {
     return {
       title: data.title,

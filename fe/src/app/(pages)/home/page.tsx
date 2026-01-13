@@ -1,7 +1,7 @@
 import '@/app/page.css';
 import HeroSection from '@/app/components/layout/heroSection/HeroSection';
 import { PopularPostsSection } from '@/app/features/post/components/PopularPosts.server';
-import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection.server';
+import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
 import HomePageClient from './client';
 import styles from './page.module.css';
 

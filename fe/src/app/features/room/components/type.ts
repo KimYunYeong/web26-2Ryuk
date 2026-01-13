@@ -7,7 +7,7 @@ export interface RoomGridProps {
 }
 
 export interface RealtimeRoomsSectionProps {
-  rooms: RoomData[];
+  rooms?: RoomData[];
   onSearch?: (query: string) => void;
 }
 

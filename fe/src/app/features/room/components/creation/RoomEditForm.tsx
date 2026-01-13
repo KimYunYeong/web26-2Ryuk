@@ -36,7 +36,14 @@ export default function RoomEditForm({
       isPrivate: initialData.isPrivate ?? prev.isPrivate,
       password: initialData.password ?? prev.password,
     }));
-  }, [initialData]);
+  }, [
+    initialData.title,
+    initialData.tags,
+    initialData.maxParticipants,
+    initialData.isMicAvailable,
+    initialData.isPrivate,
+    initialData.password,
+  ]);
 
   const isDisabled =
     !formData.title.trim() || formData.tags.length === 0 || formData.maxParticipants < 1;

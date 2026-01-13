@@ -6,7 +6,7 @@ import * as IconCircle from '@/app/components/shared/icon/IconCircle';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import { RealtimeRoomsSectionProps } from './type';
-import { RoomEditData } from '@/app/features/room/dtos/type';
+import { RoomData, RoomEditData } from '@/app/features/room/dtos/type';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
 import useResponsive from '@/app/hooks/useResponsive';
 import CSSUtil from '@/utils/css';
@@ -15,24 +15,28 @@ import RoomCreateModalContent from './creation/RoomCreateModalContent';
 import roomService from '../services/RoomService';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useModal } from '@/app/components/shared/modal/useModal';
+import { useState, useEffect } from 'react';
 
-export default function RealtimeRoomsSection({ rooms, onSearch }: RealtimeRoomsSectionProps) {
+export default function RealtimeRoomsSection({ rooms = [], onSearch }: RealtimeRoomsSectionProps) {
+  const [roomsData, setRoomsData] = useState<RoomData[]>(rooms);
   const { isDesktop } = useResponsive();
   const router = useNavigation();
   const { closeModal } = useModal();
   const headerClassName = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
 
-  const handleSubmit = async (data: RoomEditData) => {
-    try {
-      const roomDto = RoomConverter.editToDto(data);
-      const createdRoom = await roomService.createRoom(roomDto);
+  useEffect(() => {
+    (async () => {
+      const roomsDto = await roomService.getRooms();
+      setRoomsData(roomsDto.rooms.map(RoomConverter.toData));
+    })();
+  }, []); // 빈 배열로 마운트 시에만 실행
 
-      closeModal('room-creation');
-      router.goToRoom(createdRoom.id);
-    } catch (error) {
-      // 에러 처리 (필요시 토스트 메시지 등 추가)
-      console.error('방 생성 실패:', error);
-    }
+  const handleSubmit = async (data: RoomEditData) => {
+    const roomDto = RoomConverter.editToDto(data);
+    const createdRoom = await roomService.createRoom(roomDto);
+
+    closeModal('room-creation');
+    router.goToRoom(createdRoom.id);
   };
 
   return (
@@ -58,7 +62,7 @@ export default function RealtimeRoomsSection({ rooms, onSearch }: RealtimeRoomsS
           </div>
         </div>
         <div className={styles.grid}>
-          {rooms.map((room) => (
+          {roomsData.map((room) => (
             <RoomCard key={room.id} {...room} />
           ))}
         </div>
