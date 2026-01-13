@@ -3,7 +3,7 @@ import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
 import { RedisClientType } from 'redis';
-import { RoomCreateRequestDto, RoomResponseDto } from './dto/room.dto';
+import { RoomRequestDto, RoomResponseDto } from './dto/room.dto';
 import { ROOM_TYPE, RoomType } from './room.type';
 
 @Injectable()
@@ -171,7 +171,7 @@ export class RoomService implements OnModuleInit {
    * 방 생성 (Redis Hash에 방 정보 저장)
    * 개발용: 글로벌 룸 자동 생성에 사용
    */
-  async createRoom(hostId: string, roomData: RoomCreateRequestDto): Promise<RoomResponseDto> {
+  async createRoom(hostId: string, roomData: RoomRequestDto): Promise<RoomResponseDto> {
     const id: UUID = crypto.randomUUID();
     const create_date = new Date();
 
@@ -194,6 +194,43 @@ export class RoomService implements OnModuleInit {
 
     return {
       id,
+      title: roomData.title,
+      tags: roomData.tags,
+      max_participants: roomData.max_participants,
+      is_mic_available: roomData.is_mic_available,
+      is_private: roomData.is_private,
+      create_date: create_date,
+    };
+  }
+
+  /**
+   * 방 정보 수정
+   */
+  async updateRoom(hostId: string, roomId: string, roomData: RoomRequestDto): Promise<RoomResponseDto> {
+    const roomKey = `room:${roomId}`;
+
+    const existingHostId = await this.redisClient.hGet(roomKey, 'host_id');
+
+    if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
+
+    if (existingHostId !== hostId) throw new HttpException('방 수정 권한이 없습니다.', 403);
+
+    await this.redisClient.hSet(roomKey, {
+      title: roomData.title,
+      tags: roomData.tags.join(','),
+      max_participants: roomData.max_participants.toString(),
+      is_mic_available: roomData.is_mic_available.toString(),
+      is_private: roomData.is_private.toString(),
+      password: roomData.password || '',
+    });
+
+    logMessage(this.logger, LOG.ROOM.ROOM_UPDATED(roomId));
+
+    const create_dateStr = await this.redisClient.hGet(roomKey, 'create_date');
+    const create_date = create_dateStr ? new Date(create_dateStr) : new Date();
+
+    return {
+      id: roomId,
       title: roomData.title,
       tags: roomData.tags,
       max_participants: roomData.max_participants,

@@ -199,6 +199,10 @@ export const LOG = {
       message: `방 생성 완료: roomId=${roomId}, type=${type}`,
       level: 'log',
     }),
+    ROOM_UPDATED: (roomId: string): LogMessage => ({
+      message: `방 정보 업데이트 완료: roomId=${roomId}`,
+      level: 'log',
+    }),
     PARTICIPANTS_INCREASE_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 수 증가 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',

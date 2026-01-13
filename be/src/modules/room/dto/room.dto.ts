@@ -12,7 +12,7 @@ export class RoomLeaveDto {
   roomId: string;
 }
 
-export class RoomCreateRequestDto {
+export class RoomRequestDto {
   @IsString()
   title: string;
 
