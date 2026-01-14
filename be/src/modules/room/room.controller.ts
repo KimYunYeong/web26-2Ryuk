@@ -11,12 +11,16 @@ import {
   UnauthorizedException,
   HttpStatus,
   Query,
-  UsePipes,
-  ValidationPipe,
   Logger,
 } from '@nestjs/common';
 import { MockAuthService } from '@src/modules/auth/mock-auth.service';
-import { RoomRequestDto, RoomResponseDto, RoomDeleteResponseDto, JoinRoomRequestDto } from './dto/room.dto';
+import {
+  RoomRequestDto,
+  RoomResponseDto,
+  RoomDeleteResponseDto,
+  JoinRoomRequestDto,
+  RoomJoinDto,
+} from './dto/room.dto';
 import { RoomService } from './room.service';
 import { RoomListResponseDto, RoomSearchQueryDto } from './dto/room.dto';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
@@ -114,12 +118,11 @@ export class RoomController {
    */
   @Post(':id/join')
   @ApiResponseMessage('입장 가능한 방입니다.')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async validateJoin(
     @Param('id') roomId: string,
     @Body() dto: JoinRoomRequestDto,
     @Headers('authorization') authHeader?: string,
-  ): Promise<void> {
+  ): Promise<RoomJoinDto> {
     if (!authHeader) {
       logMessage(this.logger, LOG.ROOM.UNAUTH_API_ACCESS_JOIN(roomId));
       throw new UnauthorizedException('인증이 필요합니다.');
@@ -134,5 +137,7 @@ export class RoomController {
     }
 
     await this.roomService.validateJoinRoom(roomId, payload.userId, dto.password);
+
+    return { roomId };
   }
 }
