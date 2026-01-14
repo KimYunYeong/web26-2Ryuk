@@ -83,16 +83,32 @@ export class ChatService {
   }
 
   // 사용자 방 참여 알림 (다른 참여자에게)
-  async notifyUserJoined(server: Server, roomId: string, userId: string): Promise<void> {
-    const data = { roomId, userId };
+  async notifyUserJoined(
+    server: Server,
+    roomId: string,
+    userInfo: { userId: string; nickname: string; profile_image: string | null },
+    currentParticipants: number,
+  ): Promise<void> {
+    const data = {
+      roomId,
+      user: {
+        id: userInfo.userId,
+        nickname: userInfo.nickname,
+        profile_image: userInfo.profile_image,
+      },
+      current_participants: currentParticipants.toString(),
+    };
 
     server.to(roomId).emit('room:user-joined', data);
-    logMessage(this.logger, LOG.CHAT.USER_JOINED(roomId, userId));
   }
 
   // 사용자 방 퇴장 알림 (다른 참여자에게)
-  async notifyUserLeft(server: Server, roomId: string, userId: string): Promise<void> {
-    const data = { roomId, userId };
+  async notifyUserLeft(server: Server, roomId: string, userId: string, currentParticipants: number): Promise<void> {
+    const data = {
+      roomId,
+      userId,
+      current_participants: currentParticipants.toString(),
+    };
 
     server.to(roomId).emit('room:user-left', data);
     logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));

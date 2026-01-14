@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { RoomController } from './room.controller';
 import { RoomService } from './room.service';
-import { AuthModule } from '@src/modules/auth/auth.module';
 
 @Module({
   imports: [AuthModule],
