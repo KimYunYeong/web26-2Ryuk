@@ -175,7 +175,7 @@ export class RoomService implements OnModuleInit {
     const id: UUID = crypto.randomUUID();
     const create_date = new Date();
 
-    if (roomData.max_participants <= 0) throw new HttpException('최대 참여자 수는 1명 이상이어야 합니다.', 400);
+    if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
 
     await this.redisClient.hSet(`room:${id}`, {
       title: roomData.title,
@@ -215,6 +215,8 @@ export class RoomService implements OnModuleInit {
     if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
 
     if (existingHostId !== hostId) throw new HttpException('방 수정 권한이 없습니다.', 403);
+
+    if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
 
     await this.redisClient.hSet(roomKey, {
       title: roomData.title,
