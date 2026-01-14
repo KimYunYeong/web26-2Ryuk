@@ -1,11 +1,84 @@
-import { Controller, Get, Query, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Headers,
+  Param,
+  Get,
+  Patch,
+  Post,
+  HttpException,
+  UnauthorizedException,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
+import { MockAuthService } from '@src/modules/auth/mock-auth.service';
+import { RoomRequestDto, RoomResponseDto, RoomDeleteResponseDto } from './dto/room.dto';
 import { RoomService } from './room.service';
 import { RoomListResponseDto, RoomSearchQueryDto } from './dto/room.dto';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
 
 @Controller('rooms')
 export class RoomController {
-  constructor(private readonly roomService: RoomService) {}
+  constructor(
+    private readonly roomService: RoomService,
+    private readonly authService: MockAuthService,
+  ) {}
+
+  @Post()
+  @ApiResponseMessage('대화방이 성공적으로 생성되었습니다.')
+  async createRoom(
+    @Headers('authorization') authHeader: string,
+    @Body() dto: RoomRequestDto,
+  ): Promise<RoomResponseDto> {
+    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
+
+    const token = authHeader.replace('Bearer ', '');
+    const payload = this.authService.verifyMockToken(token);
+
+    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+
+    const userId = payload.userId;
+
+    return await this.roomService.createRoom(userId, dto);
+  }
+
+  @Patch(':roomId')
+  @ApiResponseMessage('대화방이 성공적으로 수정되었습니다.')
+  async updateRoom(
+    @Headers('authorization') authHeader: string,
+    @Param('roomId') roomId: string,
+    @Body() dto: RoomRequestDto,
+  ): Promise<RoomResponseDto> {
+    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
+
+    const token = authHeader.replace('Bearer ', '');
+    const payload = this.authService.verifyMockToken(token);
+
+    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+
+    const userId = payload.userId;
+
+    return await this.roomService.updateRoom(userId, roomId, dto);
+  }
+
+  @Delete(':roomId')
+  @ApiResponseMessage('대화방이 성공적으로 삭제되었습니다.')
+  async deleteRoom(
+    @Headers('authorization') authHeader: string,
+    @Param('roomId') roomId: string,
+  ): Promise<RoomDeleteResponseDto> {
+    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
+
+    const token = authHeader.replace('Bearer ', '');
+    const payload = this.authService.verifyMockToken(token);
+
+    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+
+    const userId = payload.userId;
+
+    return await this.roomService.deleteRoom(userId, roomId);
+  }
 
   //로컬 방 목록 조회 -> GET /api/rooms/all
   @Get('all')

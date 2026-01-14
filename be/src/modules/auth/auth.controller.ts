@@ -11,7 +11,6 @@ export class AuthController {
    * POST /api/auth/mock/login
    */
   @Post('mock/login')
-  @UsePipes(new ValidationPipe({ transform: true }))
   mockLogin(@Body() dto: MockLoginDto) {
     // Mock 사용자 확인
     const user = this.mockAuthService.getMockUserById(dto.userId);
