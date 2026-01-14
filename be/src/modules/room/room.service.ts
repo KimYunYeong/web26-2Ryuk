@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, HttpException, HttpStatus } from '@nestjs/common';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
@@ -234,6 +234,135 @@ export class RoomService implements OnModuleInit {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.ROOM.PARTICIPANTS_FETCH_ERROR(roomId, errorMessage));
       return 0;
+    }
+  }
+
+  // 로컬 방 전체 목록 조회
+  async getLocalRooms(): Promise<
+    Array<{
+      id: string;
+      title: string;
+      tags: string[];
+      current_participants: number;
+      max_participants: number;
+      is_mic_available: boolean;
+      is_private: boolean;
+      participant_profile_images: string[];
+      create_date: string;
+    }>
+  > {
+    try {
+      const roomKeys = await this.redisClient.keys('room:*');
+
+      // room:{roomId} 형식의 방 키만 필터링
+      const mainRoomKeys = roomKeys.filter((key) => {
+        const parts = key.split(':');
+        return parts.length === 2;
+      });
+
+      const localRooms: Array<{
+        id: string;
+        title: string;
+        tags: string[];
+        current_participants: number;
+        max_participants: number;
+        is_mic_available: boolean;
+        is_private: boolean;
+        participant_profile_images: string[];
+        create_date: string;
+      }> = [];
+
+      for (const roomKey of mainRoomKeys) {
+        const roomId = roomKey.split(':')[1];
+
+        const roomType = await this.getRoomType(roomId);
+        if (roomType !== ROOM_TYPE.LOCAL) {
+          continue;
+        }
+
+        const roomData = await this.redisClient.hGetAll(roomKey);
+        if (!roomData || Object.keys(roomData).length === 0) {
+          continue;
+        }
+
+        const tags = await this.redisClient.sMembers(`room:${roomId}:tags`);
+
+        // 멤버 목록 조회
+        const memberUserIds = await this.redisClient.hKeys(`room:${roomId}:members`);
+        const participantProfileImages: string[] = [];
+
+        // 프로필 이미지 -> UI에 5개만 표시
+        const profileImageLimit = 5;
+        for (const userId of memberUserIds.slice(0, profileImageLimit)) {
+          try {
+            const memberInfo = await this.redisClient.hGetAll(`room:${roomId}:members:${userId}`);
+            if (memberInfo?.profile_image) {
+              participantProfileImages.push(memberInfo.profile_image);
+            }
+          } catch (error) {
+            this.logger.warn(`멤버 정보 조회 실패 (roomId: ${roomId}, userId: ${userId})`);
+          }
+        }
+
+        localRooms.push({
+          id: roomId,
+          title: roomData.title || '',
+          tags: tags || [],
+          current_participants: parseInt(roomData.current_participants || '0', 10),
+          max_participants: parseInt(roomData.max_participants || '0', 10),
+          is_mic_available: roomData.is_mic_available === '1',
+          is_private: roomData.is_private === '1',
+          participant_profile_images: participantProfileImages,
+          create_date: roomData.create_date || new Date().toISOString(),
+        });
+      }
+
+      // 최신순 정렬
+      localRooms.sort((a, b) => {
+        const dateA = new Date(a.create_date).getTime();
+        const dateB = new Date(b.create_date).getTime();
+        return dateB - dateA;
+      });
+
+      return localRooms;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_FETCH_ERROR(errorMessage));
+      throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // 로컬 방 검색 조회
+  async searchLocalRooms(keyword: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      tags: string[];
+      current_participants: number;
+      max_participants: number;
+      is_mic_available: boolean;
+      is_private: boolean;
+      participant_profile_images: string[];
+      create_date: string;
+    }>
+  > {
+    try {
+      const allRooms = await this.getLocalRooms();
+      // keyword가 없으면 모든 로컬 룸 반환
+      if (!keyword || keyword.trim() === '') {
+        return allRooms;
+      }
+
+      const searchKeyword = keyword.trim().toLowerCase();
+      const filteredRooms = allRooms.filter((room) => {
+        return room.title.toLowerCase().includes(searchKeyword);
+      });
+
+      return filteredRooms;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_SEARCH_ERROR(errorMessage));
+      throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
