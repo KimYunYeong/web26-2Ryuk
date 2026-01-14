@@ -9,10 +9,13 @@ import {
   Logger,
   NotFoundException,
   OnModuleInit,
+  HttpStatus,
 } from '@nestjs/common';
+import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
-import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { UUID } from 'crypto';
+import { RoomRequestDto, RoomResponseDto, RoomDeleteResponseDto } from './dto/room.dto';
 import { ROOM_TYPE, RoomType } from './room.type';
 
 @Injectable()
@@ -180,30 +183,101 @@ export class RoomService implements OnModuleInit {
    * 방 생성 (Redis Hash에 방 정보 저장)
    * 개발용: 글로벌 룸 자동 생성에 사용
    */
-  async createRoom(roomData: {
-    id: string;
-    title: string;
-    hostId: string;
-    type: RoomType;
-    maxParticipants?: number;
-    isPrivate?: boolean;
-    password?: string;
-  }): Promise<void> {
-    const { id, title, hostId, type, maxParticipants, isPrivate, password } = roomData;
+  async createRoom(hostId: string, roomData: RoomRequestDto): Promise<RoomResponseDto> {
+    const id: UUID = crypto.randomUUID();
+    const create_date = new Date();
 
-    // room:{roomId} Hash에 방 정보 저장
+    if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
+
     await this.redisClient.hSet(`room:${id}`, {
-      title,
+      title: roomData.title,
+      tags: roomData.tags.join(','),
       host_id: hostId,
-      type,
-      max_participants: maxParticipants?.toString() || '',
+      type: ROOM_TYPE.LOCAL,
+      max_participants: roomData.max_participants.toString(),
       current_participants: '0',
-      is_private: isPrivate ? '1' : '0',
-      password: password || '',
-      create_date: new Date().toISOString(),
+      is_mic_available: roomData.is_mic_available.toString(),
+      is_private: roomData.is_private.toString(),
+      password: roomData.password || '',
+      create_date: create_date.toISOString(),
     });
 
-    logMessage(this.logger, LOG.ROOM.ROOM_CREATED(id, type));
+    this.joinRoom(hostId, id);
+    logMessage(this.logger, LOG.ROOM.ROOM_CREATED(id, ROOM_TYPE.LOCAL));
+
+    return {
+      id,
+      title: roomData.title,
+      tags: roomData.tags,
+      max_participants: roomData.max_participants,
+      is_mic_available: roomData.is_mic_available,
+      is_private: roomData.is_private,
+      create_date: create_date,
+    };
+  }
+
+  /**
+   * 방 정보 수정
+   */
+  async updateRoom(hostId: string, roomId: string, roomData: RoomRequestDto): Promise<RoomResponseDto> {
+    const roomKey = `room:${roomId}`;
+
+    const existingHostId = await this.redisClient.hGet(roomKey, 'host_id');
+
+    if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
+
+    if (existingHostId !== hostId) throw new HttpException('방 수정 권한이 없습니다.', 403);
+
+    if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
+
+    await this.redisClient.hSet(roomKey, {
+      title: roomData.title,
+      tags: roomData.tags.join(','),
+      max_participants: roomData.max_participants.toString(),
+      is_mic_available: roomData.is_mic_available.toString(),
+      is_private: roomData.is_private.toString(),
+      password: roomData.password || '',
+    });
+
+    logMessage(this.logger, LOG.ROOM.ROOM_UPDATED(roomId));
+
+    const create_dateStr = await this.redisClient.hGet(roomKey, 'create_date');
+    const create_date = create_dateStr ? new Date(create_dateStr) : new Date();
+
+    return {
+      id: roomId,
+      title: roomData.title,
+      tags: roomData.tags,
+      max_participants: roomData.max_participants,
+      is_mic_available: roomData.is_mic_available,
+      is_private: roomData.is_private,
+      create_date: create_date,
+    };
+  }
+
+  async deleteRoom(hostId: string, roomId: string): Promise<RoomDeleteResponseDto> {
+    const roomKey = `room:${roomId}`;
+    const memberKey = `room:${roomId}:members`;
+
+    const [existingHostId, members] = await Promise.all([
+      this.redisClient.hGet(roomKey, 'host_id'),
+      this.redisClient.hKeys(memberKey), // 멤버 ID 목록 가져오기
+    ]);
+
+    if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
+
+    if (existingHostId !== hostId) throw new HttpException('방 삭제 권한이 없습니다.', 403);
+
+    // 방 정보 및 멤버 목록 삭제
+    await Promise.all([
+      ...members.map((userId) => this.redisClient.sRem(`user:${userId}:rooms`, roomId)),
+      this.redisClient.del(roomKey),
+      this.redisClient.del(memberKey),
+    ]);
+
+    logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId));
+
+    return { id: roomId };
   }
 
   // 방 존재 여부 확인
@@ -300,6 +374,135 @@ export class RoomService implements OnModuleInit {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.ROOM.PARTICIPANTS_FETCH_ERROR(roomId, errorMessage));
       return 0;
+    }
+  }
+
+  // 로컬 방 전체 목록 조회
+  async getLocalRooms(): Promise<
+    Array<{
+      id: string;
+      title: string;
+      tags: string[];
+      current_participants: number;
+      max_participants: number;
+      is_mic_available: boolean;
+      is_private: boolean;
+      participant_profile_images: string[];
+      create_date: string;
+    }>
+  > {
+    try {
+      const roomKeys = await this.redisClient.keys('room:*');
+
+      // room:{roomId} 형식의 방 키만 필터링
+      const mainRoomKeys = roomKeys.filter((key) => {
+        const parts = key.split(':');
+        return parts.length === 2;
+      });
+
+      const localRooms: Array<{
+        id: string;
+        title: string;
+        tags: string[];
+        current_participants: number;
+        max_participants: number;
+        is_mic_available: boolean;
+        is_private: boolean;
+        participant_profile_images: string[];
+        create_date: string;
+      }> = [];
+
+      for (const roomKey of mainRoomKeys) {
+        const roomId = roomKey.split(':')[1];
+
+        const roomType = await this.getRoomType(roomId);
+        if (roomType !== ROOM_TYPE.LOCAL) {
+          continue;
+        }
+
+        const roomData = await this.redisClient.hGetAll(roomKey);
+        if (!roomData || Object.keys(roomData).length === 0) {
+          continue;
+        }
+
+        const tags = await this.redisClient.sMembers(`room:${roomId}:tags`);
+
+        // 멤버 목록 조회
+        const memberUserIds = await this.redisClient.hKeys(`room:${roomId}:members`);
+        const participantProfileImages: string[] = [];
+
+        // 프로필 이미지 -> UI에 5개만 표시
+        const profileImageLimit = 5;
+        for (const userId of memberUserIds.slice(0, profileImageLimit)) {
+          try {
+            const memberInfo = await this.redisClient.hGetAll(`room:${roomId}:members:${userId}`);
+            if (memberInfo?.profile_image) {
+              participantProfileImages.push(memberInfo.profile_image);
+            }
+          } catch (error) {
+            this.logger.warn(`멤버 정보 조회 실패 (roomId: ${roomId}, userId: ${userId})`);
+          }
+        }
+
+        localRooms.push({
+          id: roomId,
+          title: roomData.title || '',
+          tags: tags || [],
+          current_participants: parseInt(roomData.current_participants || '0', 10),
+          max_participants: parseInt(roomData.max_participants || '0', 10),
+          is_mic_available: roomData.is_mic_available === '1',
+          is_private: roomData.is_private === '1',
+          participant_profile_images: participantProfileImages,
+          create_date: roomData.create_date || new Date().toISOString(),
+        });
+      }
+
+      // 최신순 정렬
+      localRooms.sort((a, b) => {
+        const dateA = new Date(a.create_date).getTime();
+        const dateB = new Date(b.create_date).getTime();
+        return dateB - dateA;
+      });
+
+      return localRooms;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_FETCH_ERROR(errorMessage));
+      throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // 로컬 방 검색 조회
+  async searchLocalRooms(keyword: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      tags: string[];
+      current_participants: number;
+      max_participants: number;
+      is_mic_available: boolean;
+      is_private: boolean;
+      participant_profile_images: string[];
+      create_date: string;
+    }>
+  > {
+    try {
+      const allRooms = await this.getLocalRooms();
+      // keyword가 없으면 모든 로컬 룸 반환
+      if (!keyword || keyword.trim() === '') {
+        return allRooms;
+      }
+
+      const searchKeyword = keyword.trim().toLowerCase();
+      const filteredRooms = allRooms.filter((room) => {
+        return room.title.toLowerCase().includes(searchKeyword);
+      });
+
+      return filteredRooms;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_SEARCH_ERROR(errorMessage));
+      throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

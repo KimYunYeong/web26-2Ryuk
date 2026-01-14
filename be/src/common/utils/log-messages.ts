@@ -199,6 +199,14 @@ export const LOG = {
       message: `방 생성 완료: roomId=${roomId}, type=${type}`,
       level: 'log',
     }),
+    ROOM_UPDATED: (roomId: string): LogMessage => ({
+      message: `방 정보 업데이트 완료: roomId=${roomId}`,
+      level: 'log',
+    }),
+    ROOM_DELETED: (roomId: string): LogMessage => ({
+      message: `방 삭제 완료: roomId=${roomId}`,
+      level: 'log',
+    }),
     PARTICIPANTS_INCREASE_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 수 증가 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',
@@ -209,6 +217,14 @@ export const LOG = {
     }),
     PARTICIPANTS_FETCH_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 수 조회 실패 (roomId: ${roomId}): ${error}`,
+      level: 'error',
+    }),
+    LOCAL_ROOMS_FETCH_ERROR: (error: string): LogMessage => ({
+      message: `로컬 방 목록 조회 실패: ${error}`,
+      level: 'error',
+    }),
+    LOCAL_ROOMS_SEARCH_ERROR: (error: string): LogMessage => ({
+      message: `로컬 방 검색 실패: ${error}`,
       level: 'error',
     }),
     VALIDATION_START: (userId: string, roomId: string): LogMessage => ({
