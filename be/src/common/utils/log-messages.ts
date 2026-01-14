@@ -199,6 +199,14 @@ export const LOG = {
       message: `방 생성 완료: roomId=${roomId}, type=${type}`,
       level: 'log',
     }),
+    ROOM_UPDATED: (roomId: string): LogMessage => ({
+      message: `방 정보 업데이트 완료: roomId=${roomId}`,
+      level: 'log',
+    }),
+    ROOM_DELETED: (roomId: string): LogMessage => ({
+      message: `방 삭제 완료: roomId=${roomId}`,
+      level: 'log',
+    }),
     PARTICIPANTS_INCREASE_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 수 증가 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',
@@ -218,6 +226,30 @@ export const LOG = {
     LOCAL_ROOMS_SEARCH_ERROR: (error: string): LogMessage => ({
       message: `로컬 방 검색 실패: ${error}`,
       level: 'error',
+    }),
+    VALIDATION_START: (userId: string, roomId: string): LogMessage => ({
+      message: `방 입장 검증 시작: userId=${userId}, roomId=${roomId}`,
+      level: 'debug',
+    }),
+    VALIDATION_SUCCESS: (userId: string, roomId: string): LogMessage => ({
+      message: `방 입장 검증 성공: userId=${userId}, roomId=${roomId}`,
+      level: 'log',
+    }),
+    VALIDATION_ERROR: (userId: string, roomId: string, error: string): LogMessage => ({
+      message: `방 입장 검증 실패: userId=${userId}, roomId=${roomId}, error=${error}`,
+      level: 'warn',
+    }),
+    INTERNAL_VALIDATION_ERROR: (userId: string, roomId: string, error: string): LogMessage => ({
+      message: `방 입장 검증 중 내부 서버 오류 발생: userId=${userId}, roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
+    UNAUTH_API_ACCESS_JOIN: (roomId: string): LogMessage => ({
+      message: `인증되지 않은 사용자의 방 입장 검증 시도: roomId=${roomId}`,
+      level: 'warn',
+    }),
+    INVALID_TOKEN_API_JOIN: (roomId: string): LogMessage => ({
+      message: `유효하지 않은 토큰으로 방 입장 검증 시도: roomId=${roomId}`,
+      level: 'warn',
     }),
   },
 } as const;
