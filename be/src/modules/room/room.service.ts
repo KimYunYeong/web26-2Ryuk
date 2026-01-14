@@ -17,6 +17,7 @@ import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
 import { RoomRequestDto, RoomResponseDto, RoomDeleteResponseDto } from './dto/room.dto';
 import { ROOM_TYPE, RoomType } from './room.type';
+import { Server } from 'socket.io';
 
 @Injectable()
 export class RoomService implements OnModuleInit {
@@ -504,5 +505,46 @@ export class RoomService implements OnModuleInit {
       logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_SEARCH_ERROR(errorMessage));
       throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  // 사용자 방 참여 알림 (다른 참여자에게)
+  async notifyUserJoined(
+    server: Server,
+    roomId: string,
+    userInfo: { userId: string; nickname: string; profile_image: string | null },
+    currentParticipants: number,
+  ): Promise<void> {
+    const data = {
+      roomId,
+      user: {
+        id: userInfo.userId,
+        nickname: userInfo.nickname,
+        profile_image: userInfo.profile_image,
+      },
+      current_participants: currentParticipants.toString(),
+    };
+
+    server.to(roomId).emit('room:user-joined', data);
+  }
+
+  // 사용자 방 퇴장 알림 (다른 참여자에게)
+  async notifyUserLeft(server: Server, roomId: string, userId: string, currentParticipants: number): Promise<void> {
+    const data = {
+      roomId,
+      userId,
+      current_participants: currentParticipants.toString(),
+    };
+
+    server.to(roomId).emit('room:user-left', data);
+    logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));
+  }
+
+  // 글로벌 채팅 참여자 수 업데이트 브로드캐스트
+  async notifyParticipantsUpdated(server: Server, roomId: string, currentParticipants: number): Promise<void> {
+    const data = { roomId, current_participants: currentParticipants };
+
+    // 글로벌 방의 경우 모든 클라이언트에게 브로드캐스트
+    server.emit('chat:global:participants-updated', data);
+    logMessage(this.logger, LOG.CHAT.PARTICIPANTS_UPDATED(roomId, currentParticipants));
   }
 }
