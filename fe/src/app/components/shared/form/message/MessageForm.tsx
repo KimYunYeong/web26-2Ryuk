@@ -24,8 +24,13 @@ export default function MessageForm({
     setMessage('');
   };
 
+  const handleFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleSubmit();
+  };
+
   return (
-    <form className={styles.messageForm} onSubmit={handleSubmit}>
+    <form className={styles.messageForm} onSubmit={handleFormSubmit}>
       <div className={styles.inputWrapper}>
         <PrimaryTextfield
           placeholder={placeholder}
