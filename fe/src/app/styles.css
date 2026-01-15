@@ -20,6 +20,9 @@
   --gradient-primary: linear-gradient(90deg, var(--primary-6) 0%, var(--primary-7) 100%);
   --gradient-primary-2: linear-gradient(45deg, #f5faff 0%, #ffffff 60%);
 
+  --gradient-neutral: linear-gradient(90deg, var(--neutral-6) 0%, var(--neutral-7) 100%);
+  --gradient-neutral-2: linear-gradient(45deg, #f7f7f7 0%, #ffffff 60%);
+
   /* Neutral Colors */
   --neutral: #0d121b;
   --on-neutral: #f0f0f0;
