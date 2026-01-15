@@ -1,21 +1,18 @@
-export interface RoomDto {
-  id: string;
-  title: string;
-  tags: string[];
-  host_id: string;
-  password?: string;
-  current_participants: number;
-  max_participants: number;
-  is_mic_available: boolean;
-  is_private: boolean;
-  participant_profile_images: string[];
-  create_date: string;
+interface ParticipantData {
+  userId: string;
+  nickname: string;
+  profileImage: string;
+  role: string;
+  isMicOn: boolean;
+  isAudioOn: boolean;
+  isSpeaking: boolean;
+  joinDate: Date;
 }
 
-export interface ParticipantData {
-  id: string;
+export interface SimpleParticipant {
+  userId: string;
   nickname: string;
-  profile_image: string;
+  profileImage: string;
 }
 
 export interface RoomData {
@@ -28,17 +25,27 @@ export interface RoomData {
   maxParticipants: number;
   isMicAvailable: boolean;
   isPrivate: boolean;
-  participantProfileImages: string[];
+  participants: SimpleParticipant[];
   createDate: Date;
 }
 
-export interface RoomEditDto {
+export interface ParticipantDto {
+  user_id: string;
+  nickname: string;
+  profile_image: string;
+}
+
+export interface RoomDto {
+  id: string;
   title: string;
   tags: string[];
+  host_id: string;
+  current_participants: number;
   max_participants: number;
   is_mic_available: boolean;
   is_private: boolean;
-  password?: string;
+  participants: ParticipantDto[];
+  create_date: string;
 }
 
 export interface RoomEditData {
@@ -50,10 +57,43 @@ export interface RoomEditData {
   password?: string;
 }
 
-export interface RoomsListDto {
-  rooms: RoomDto[];
+export interface RoomEditDto {
+  title: string;
+  tags: string[];
+  max_participants: number;
+  is_mic_available: boolean;
+  is_private: boolean;
+  password?: string;
+}
+
+export interface RoomJoinInfoDto {
+  title: string;
+  tags: string[];
+  is_mic_available: boolean;
+  is_private: boolean;
+  is_member: boolean;
+}
+
+export interface RoomJoinInfoData {
+  title: string;
+  tags: string[];
+  isMicAvailable: boolean;
+  isPrivate: boolean;
+  isMember: boolean;
 }
 
 export interface RoomsListData {
   rooms: RoomData[];
+}
+
+export interface RoomsListDto {
+  rooms: RoomDto[];
+}
+
+export interface RoomJoinDto {
+  password: string;
+}
+
+export interface RoomJoinData {
+  password: string;
 }
