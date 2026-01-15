@@ -17,12 +17,17 @@ export default function GlobalChatPanel() {
 
   // WebSocket 연결 및 구독
   useEffect(() => {
-    // GlobalChatService를 통해 WebSocket 연결 및 구독
-    globalChatService.subscribe();
+    const subscribe = async () => {
+      await globalChatService.subscribe();
 
-    // 저장된 메시지 복원 (subscribe() 후에 호출)
-    const savedMessages = globalChatService.getMessages();
-    if (savedMessages.length > 0) setChats(savedMessages);
+      const savedMessages = globalChatService.getMessages();
+      if (savedMessages.length > 0) setChats(savedMessages);
+
+      // 구독 완료 후 연결 상태 확인
+      setIsConnected(globalChatService.isConnected());
+    };
+
+    subscribe();
 
     // 메시지 수신 콜백 등록
     const unsubscribeMessage = globalChatService.onMessage((message) =>
@@ -38,9 +43,6 @@ export default function GlobalChatPanel() {
     const unsubscribeParticipants = globalChatService.onParticipantsChange((count) =>
       setCurrentParticipants(count),
     );
-
-    // 초기 연결 상태 설정
-    setIsConnected(globalChatService.isConnected());
 
     // 정리 함수
     return () => {
