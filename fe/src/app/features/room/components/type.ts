@@ -29,21 +29,17 @@ export interface RoomInfoProps {
   title: string;
   tags: string[];
   isHost: boolean;
+  isMicAvailable: boolean;
+  isPrivate: boolean;
   onEditClick?: () => void;
 }
 
-export interface RoomInfoWithModalProps {
-  roomId: string;
-  title: string;
-  tags: string[];
-  maxParticipants: number;
-  isMicAvailable: boolean;
-  isPrivate: boolean;
-  password?: string;
-  isHost: boolean;
-  onUpdate?: (data: RoomEditData) => void;
+export interface LeaveRoomButtonProps {
+  modalId: string;
+  handleClick?: () => void;
 }
 
-export interface RoomGoBackButtonProps {
-  roomId: string;
+export interface DeleteRoomButtonProps {
+  modalId: string;
+  handleClick?: () => void;
 }
