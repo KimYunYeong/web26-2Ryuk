@@ -12,7 +12,6 @@ import { Logger, Inject, UsePipes, ValidationPipe, BadRequestException, UseFilte
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from '@src/modules/room/room.service';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
@@ -42,7 +41,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly roomService: RoomService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-    private readonly mockAuthService: MockAuthService,
   ) {}
 
   /**
@@ -60,7 +58,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 디버깅: 인증 정보 확인
       this.logger.debug(`Connection - socketId: ${client.id}, userId: ${userId}, authenticated: ${isAuthenticated}`);
 
-      // 연결 로그
+      // 연결 로그 (userId만 사용, MySQL 조회 없음)
       try {
         logMessage(this.logger, LOG.WS.CONNECT(client.id, userId));
       } catch (logError) {
@@ -103,7 +101,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
 
-      // 최종 연결 상태 로그
+      // 최종 연결 상태 로그 (userId만 사용, MySQL 조회 없음)
       if (isAuthenticated && userId) {
         try {
           logMessage(this.logger, LOG.WS.AUTH_CONNECT(userId));

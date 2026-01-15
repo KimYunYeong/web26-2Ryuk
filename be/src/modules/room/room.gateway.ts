@@ -1,10 +1,12 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, Inject, ValidationPipe, BadRequestException, UsePipes, UseFilters } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from './room.service';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
+import { User } from '@src/modules/user/user.entity';
 import { RoomJoinDto, RoomLeaveDto } from './dto/room.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -34,7 +36,7 @@ export class RoomGateway {
   constructor(
     private readonly roomService: RoomService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-    private readonly mockAuthService: MockAuthService,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
   /**
@@ -105,17 +107,22 @@ export class RoomGateway {
       client.emit('room:joined', { roomId: dto.roomId });
 
       // 브로드캐스트: 사용자 정보 및 현재 참여자 수 조회
-      const mockUser = this.mockAuthService.getMockUserById(userId);
+      // MySQL에서 사용자 정보 조회 (nickname, profile_image)
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+        select: ['nickname', 'profile_image'],
+      });
+
       const currentParticipants = await this.roomService.getCurrentParticipants(dto.roomId);
 
-      if (mockUser) {
+      if (user) {
         await this.roomService.notifyUserJoined(
           this.server,
           dto.roomId,
           {
             userId,
-            nickname: mockUser.nickname,
-            profile_image: mockUser.profile_image,
+            nickname: user.nickname,
+            profile_image: user.profile_image,
           },
           currentParticipants,
         );
