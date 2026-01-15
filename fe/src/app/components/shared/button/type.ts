@@ -13,6 +13,7 @@ export interface TextButtonProps {
 }
 
 export interface GoBackButtonProps {
+  text?: string;
   onClick?: () => void;
   modalId?: string;
 }
