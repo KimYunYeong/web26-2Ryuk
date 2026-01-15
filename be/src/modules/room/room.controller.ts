@@ -138,6 +138,6 @@ export class RoomController {
 
     await this.roomService.validateJoinRoom(roomId, payload.userId, dto.password);
 
-    return { roomId };
+    return { room_id: roomId };
   }
 }

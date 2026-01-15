@@ -4,7 +4,7 @@ import { Logger, Inject, ValidationPipe, BadRequestException, UsePipes, UseFilte
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from './room.service';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
+import { AuthService } from '@src/modules/auth/auth.service';
 import { RoomJoinDto, RoomLeaveDto } from './dto/room.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -33,8 +33,8 @@ export class RoomGateway {
 
   constructor(
     private readonly roomService: RoomService,
+    private readonly authService: AuthService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-    private readonly mockAuthService: MockAuthService,
   ) {}
 
   /**
@@ -50,7 +50,7 @@ export class RoomGateway {
     const isAuthenticated = client.data.authenticated;
 
     // 글로벌 방 입장 요청은 무시 (연결 시 자동 입장됨)
-    if (dto.roomId === GLOBAL_ROOM_ID) {
+    if (dto.room_id === GLOBAL_ROOM_ID) {
       return;
     }
 
@@ -62,66 +62,65 @@ export class RoomGateway {
     }
 
     // 방 타입 확인
-    const roomType = await this.roomService.getRoomType(dto.roomId);
+    const roomType = await this.roomService.getRoomType(dto.room_id);
 
     try {
       // 방 존재 여부 및 타입 확인
       if (roomType === null) {
-        logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.roomId));
+        logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.room_id));
         client.emit('error', { message: '존재하지 않는 방입니다.' });
         return;
       }
 
       // 권한 검증
-      const canJoin = await this.roomService.canUserJoinRoom(userId, dto.roomId);
+      const canJoin = await this.roomService.canUserJoinRoom(userId, dto.room_id);
       if (!canJoin) {
-        logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.roomId));
+        logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.room_id));
         client.emit('error', { message: '방 입장 권한이 없습니다.' });
         return;
       }
 
       // 이미 참여 중인지 확인
-      const isInRoom = await this.roomService.isUserInRoom(userId, dto.roomId);
+      const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (isInRoom) {
-        logMessage(this.logger, LOG.ROOM.ALREADY_IN(userId, dto.roomId));
-        client.emit('room:joined', { roomId: dto.roomId });
+        logMessage(this.logger, LOG.ROOM.ALREADY_IN(userId, dto.room_id));
+        client.emit('room:joined', { room_id: dto.room_id });
         return;
       }
 
       // 기존 로컬 방 자동 퇴장 처리 (방 이동)
       const existingLocalRoom = await this.roomService.getUserLocalRoom(userId);
-      if (existingLocalRoom && existingLocalRoom !== dto.roomId) {
-        logMessage(this.logger, LOG.ROOM.JOIN_SWITCH(userId, existingLocalRoom, dto.roomId));
+      if (existingLocalRoom && existingLocalRoom !== dto.room_id) {
+        logMessage(this.logger, LOG.ROOM.JOIN_SWITCH(userId, existingLocalRoom, dto.room_id));
         await this.leaveRoomProcess(client, userId, existingLocalRoom);
       }
 
       // 논리적 상태 변경: 방에 참여
-      await this.roomService.joinRoom(userId, dto.roomId);
+      await this.roomService.joinRoom(userId, dto.room_id);
 
       // Socket.io room에 참여
-      client.join(dto.roomId);
+      client.join(dto.room_id);
 
       // 클라이언트에 입장 성공 알림 (ACK)
-      client.emit('room:joined', { roomId: dto.roomId });
+      client.emit('room:joined', { room_id: dto.room_id });
 
       // 브로드캐스트: 사용자 정보 및 현재 참여자 수 조회
-      const mockUser = this.mockAuthService.getMockUserById(userId);
-      const currentParticipants = await this.roomService.getCurrentParticipants(dto.roomId);
+      // Service를 통해 MySQL에서 사용자 정보 조회
+      const user = await this.authService.getUserById(userId);
+      const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
 
-      if (mockUser) {
-        await this.roomService.notifyUserJoined(
-          this.server,
-          dto.roomId,
-          {
-            userId,
-            nickname: mockUser.nickname,
-            profile_image: mockUser.profile_image,
-          },
-          currentParticipants,
-        );
-      }
+      await this.roomService.notifyUserJoined(
+        this.server,
+        dto.room_id,
+        {
+          userId,
+          nickname: user.nickname,
+          profile_image: user.profile_image,
+        },
+        currentParticipants,
+      );
 
-      logMessage(this.logger, LOG.ROOM.JOIN(userId, dto.roomId));
+      logMessage(this.logger, LOG.ROOM.JOIN(userId, dto.room_id));
     } catch (error) {
       // ValidationPipe 에러 처리
       if (error instanceof BadRequestException) {
@@ -173,20 +172,20 @@ export class RoomGateway {
       }
 
       // 참여 중인지 확인
-      const isInRoom = await this.roomService.isUserInRoom(userId, dto.roomId);
+      const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (!isInRoom) {
-        logMessage(this.logger, LOG.ROOM.NOT_IN(userId, dto.roomId));
+        logMessage(this.logger, LOG.ROOM.NOT_IN(userId, dto.room_id));
         client.emit('error', { message: '해당 방에 참여하지 않았습니다.' });
         return;
       }
 
       // 공통 퇴장 처리
-      await this.leaveRoomProcess(client, userId, dto.roomId);
+      await this.leaveRoomProcess(client, userId, dto.room_id);
 
       // 클라이언트에 퇴장 성공 알림 (ACK)
-      client.emit('room:left', { roomId: dto.roomId });
+      client.emit('room:left', { room_id: dto.room_id });
 
-      logMessage(this.logger, LOG.ROOM.LEAVE(userId, dto.roomId));
+      logMessage(this.logger, LOG.ROOM.LEAVE(userId, dto.room_id));
     } catch (error) {
       // ValidationPipe 에러 처리
       if (error instanceof BadRequestException) {
