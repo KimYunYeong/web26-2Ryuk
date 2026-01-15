@@ -6,12 +6,13 @@
   background: var(--primary-3);
 }
 
-.page > .content {
-  width: 1200px;
+.page .content {
+  width: 90vw;
+  max-width: 1200px;
   margin: 0 60px;
 }
 
-.page > .go-back {
+.page .go-back {
   position: absolute;
   top: 80px;
   left: 12px;

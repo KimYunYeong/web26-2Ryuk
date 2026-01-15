@@ -7,7 +7,7 @@ import Header from './components/layout/header/Header';
 import { RootLayoutProps } from './type';
 import { metadataConfig } from './meta';
 
-export const metadata = metadataConfig();
+export const metadata = metadataConfig;
 
 /**
  * 모든 페이지에 공통으로 적용

@@ -1,12 +1,12 @@
 'use client';
 
 import { GhostTextButton } from './TextButton';
-import { GhostIconButton } from '../icon/IconButton';
+import { GhostIconButton } from '@/app/components/shared/icon/IconButton';
 import useNavigation from '@/app/hooks/useNavigation';
 import useResponsive from '@/app/hooks/useResponsive';
 import { GoBackButtonProps } from './type';
 
-export default function GoBackButton({ onClick }: GoBackButtonProps) {
+export default function GoBackButton({ text = '돌아가기', onClick }: GoBackButtonProps) {
   const { goBack } = useNavigation();
   const { isDesktop } = useResponsive();
 
@@ -15,9 +15,13 @@ export default function GoBackButton({ onClick }: GoBackButtonProps) {
     else goBack();
   };
 
-  return isDesktop ? (
-    <GhostTextButton iconName="left" text="돌아가기" size="medium" onClick={handleClick} />
-  ) : (
-    <GhostIconButton name="left" size="medium" onClick={handleClick} />
+  return (
+    <div className="go-back">
+      {isDesktop ? (
+        <GhostTextButton iconName="left" text={text} size="medium" onClick={handleClick} />
+      ) : (
+        <GhostIconButton name="left" size="medium" onClick={handleClick} />
+      )}
+    </div>
   );
 }
