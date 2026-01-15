@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Headers, UsePipes, ValidationPipe } from '
 import { AuthService } from './auth.service';
 import { MockAuthService } from './mock-auth.service';
 import { MockLoginDto, MockUserResponseDto } from './dto/mock-login.dto';
+import { toUuid } from '@src/common/utils/user-id';
 
 @Controller('auth')
 export class AuthController {
@@ -23,12 +24,15 @@ export class AuthController {
     // Mock 토큰 발급
     const token = this.mockAuthService.generateMockToken(dto.userId);
 
+    // UUID 변환
+    const uuid = toUuid(dto.userId);
+
     return {
       success: true,
       token,
-      userId: dto.userId,
+      userId: uuid,
       user: {
-        id: user.id,
+        id: uuid,
         email: user.email,
         nickname: user.nickname,
         profile_image: user.profile_image,

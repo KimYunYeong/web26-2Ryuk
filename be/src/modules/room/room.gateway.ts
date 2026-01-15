@@ -84,8 +84,42 @@ export class RoomGateway {
       const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (isInRoom) {
         logMessage(this.logger, LOG.ROOM.ALREADY_IN(userId, dto.room_id));
-        client.emit('room:joined', { room_id: dto.room_id });
+
+        // Redis에는 참여 중이지만 Socket.io room에 참여하지 않았을 수 있으므로
+        // Socket.io room에 참여하도록 보장
+        client.join(dto.room_id);
+        client.emit('room:join', { roomId: dto.room_id });
+
+        // 이미 참여 중이어도 다른 사용자에게 브로드캐스트를 보내야 함
+        // (예: 호스트가 방을 만든 직후 다른 사용자가 입장하는 경우)
+        const user = await this.authService.getUserById(userId);
+        const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
+
+        // Redis adapter를 사용하는 경우 room 참여가 전파되는 데 시간이 걸릴 수 있으므로
+        // 약간의 지연을 두고 브로드캐스트 전송
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await this.roomService.notifyUserJoined(
+          this.server,
+          dto.room_id,
+          {
+            userId,
+            nickname: user.nickname,
+            profile_image: user.profile_image,
+          },
+          currentParticipants,
+        );
+
         return;
+      }
+
+      // 정원 확인
+      let currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
+      const maxParticipants = (await this.roomService.getRoom(dto.room_id)).max_participants;
+
+      if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
+        logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, dto.room_id, '방 정원 초과'));
+        client.emit('error', { message: '방 정원이 초과되었습니다.' });
       }
 
       // 기존 로컬 방 자동 퇴장 처리 (방 이동)
@@ -97,17 +131,21 @@ export class RoomGateway {
 
       // 논리적 상태 변경: 방에 참여
       await this.roomService.joinRoom(userId, dto.room_id);
+      currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
 
       // Socket.io room에 참여
       client.join(dto.room_id);
 
       // 클라이언트에 입장 성공 알림 (ACK)
-      client.emit('room:joined', { room_id: dto.room_id });
+      client.emit('room:join', { roomId: dto.room_id });
 
       // 브로드캐스트: 사용자 정보 및 현재 참여자 수 조회
       // Service를 통해 MySQL에서 사용자 정보 조회
       const user = await this.authService.getUserById(userId);
-      const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
+
+      // Redis adapter를 사용하는 경우 room 참여가 전파되는 데 시간이 걸릴 수 있으므로
+      // 약간의 지연을 두고 브로드캐스트 전송
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       await this.roomService.notifyUserJoined(
         this.server,
@@ -183,7 +221,7 @@ export class RoomGateway {
       await this.leaveRoomProcess(client, userId, dto.room_id);
 
       // 클라이언트에 퇴장 성공 알림 (ACK)
-      client.emit('room:left', { room_id: dto.room_id });
+      client.emit('room:leave', { roomId: dto.room_id });
 
       logMessage(this.logger, LOG.ROOM.LEAVE(userId, dto.room_id));
     } catch (error) {

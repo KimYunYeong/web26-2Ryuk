@@ -1,4 +1,14 @@
-import { IsArray, IsBoolean, IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDate,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * REST API 방 입장 요청 DTO (Body)
@@ -25,6 +35,54 @@ export class RoomLeaveDto {
   room_id: string;
 }
 
+/**
+ * 참여자 정보 DTO
+ */
+export class ParticipantDto {
+  @IsString()
+  @IsNotEmpty()
+  user_id: string;
+
+  @IsString()
+  nickname: string;
+
+  @IsString()
+  profile_image: string;
+}
+
+/**
+ * 참여자 상세 정보 DTO
+ */
+export class ParticipantDetailDto {
+  @IsString()
+  @IsNotEmpty()
+  user_id: string;
+
+  @IsString()
+  nickname: string;
+
+  @IsString()
+  profile_image: string;
+
+  @IsString()
+  role: string;
+
+  @IsBoolean()
+  is_mic_on: boolean;
+
+  @IsBoolean()
+  is_audio_on: boolean;
+
+  @IsBoolean()
+  is_speaking: boolean;
+
+  @IsDate()
+  join_date: Date;
+}
+
+/**
+ * 방 생성 요청 DTO
+ */
 export class RoomRequestDto {
   @IsString()
   title: string;
@@ -47,7 +105,10 @@ export class RoomRequestDto {
   password?: string;
 }
 
-export class RoomResponseDto {
+/**
+ * 방 목록 조회 응답 DTO (각 방 항목)
+ */
+export class RoomReadResponseDto {
   @IsString()
   id: string;
 
@@ -58,8 +119,68 @@ export class RoomResponseDto {
   @IsString({ each: true })
   tags: string[];
 
+  @IsString()
+  host_id: string;
+
+  @IsNumber()
+  current_participants: number;
+
   @IsNumber()
   max_participants: number;
+
+  @IsBoolean()
+  is_mic_available: boolean;
+
+  @IsBoolean()
+  is_private: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ParticipantDto)
+  participants: ParticipantDto[];
+
+  @IsDate()
+  @Type(() => Date)
+  create_date: Date;
+}
+
+/**
+ * 방 목록 응답 DTO
+ */
+export class RoomListResponseDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RoomReadResponseDto)
+  rooms: RoomReadResponseDto[];
+}
+
+/**
+ * 방 생성 응답 DTO
+ */
+export class RoomCreateResponseDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  title: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  tags: string[];
+
+  @IsString()
+  host_id: string;
+
+  @IsNumber()
+  current_participants: number;
+
+  @IsNumber()
+  max_participants: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ParticipantDetailDto)
+  participants: ParticipantDetailDto[];
 
   @IsBoolean()
   is_mic_available: boolean;
@@ -71,32 +192,40 @@ export class RoomResponseDto {
   create_date: Date;
 }
 
+/**
+ * 방 삭제 응답 DTO
+ */
 export class RoomDeleteResponseDto {
   @IsString()
   id: string;
 }
 
-// 방 목록의 각각의 항목 dto
-export interface RoomListItemDto {
-  id: string;
-  title: string;
-  tags: string[];
-  current_participants: number;
-  max_participants: number;
-  is_mic_available: boolean;
-  is_private: boolean;
-  participant_profile_images: string[];
-  create_date: string;
-}
-
-// 방 목록 응답 시 사용하는 dto
-export interface RoomListResponseDto {
-  rooms: RoomListItemDto[];
-}
-
-// 방 검색 조회 시 사용하는 dto
+/**
+ * 방 검색 조회 시 사용하는 DTO
+ */
 export class RoomSearchQueryDto {
   @IsString()
   @IsOptional()
   keyword?: string;
+}
+
+export class RoomJoinInfoResponseDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  title: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  tags: string[];
+
+  @IsBoolean()
+  is_mic_available: boolean;
+
+  @IsBoolean()
+  is_private: boolean;
+
+  @IsBoolean()
+  is_member: boolean;
 }

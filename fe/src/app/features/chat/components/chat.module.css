@@ -5,12 +5,19 @@
   height: 540px;
   display: flex;
   flex-direction: column;
-  background: var(--neutral-1);
   border-radius: 40px;
-  border: 2px solid var(--primary-3);
   overflow: hidden;
+  background: var(--neutral-1);
   box-shadow: 0 4px 8px #00000034;
   transition: all 0.3s cubic-bezier(0.47, 1.4, 0.5, 0.9);
+}
+
+.chatPanel.global {
+  border: 2px solid var(--primary-3);
+}
+
+.chatPanel.local {
+  border: 2px solid var(--neutral-3);
 }
 
 .chatPanel.collapsed {
@@ -25,7 +32,14 @@
   width: 100%;
   gap: 12px;
   padding: 20px;
+}
+
+.chatPanel.global > .header {
   background: var(--primary-3);
+}
+
+.chatPanel.local > .header {
+  background: var(--neutral-3);
 }
 
 .chatPanel .headerContent {
@@ -95,13 +109,20 @@
   display: flex;
   padding: 24px;
   flex-direction: column;
-  /* background: var(--gradient-primary-2); */
   align-items: stretch;
   scrollbar-width: none;
   -ms-overflow-style: none;
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+.chatPanel.global .chattingArea {
+  background: var(--gradient-primary-2);
+}
+
+.chatPanel.local .chattingArea {
+  background: var(--gradient-neutral-2);
 }
 
 .chatBubbles {

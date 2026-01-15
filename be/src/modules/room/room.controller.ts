@@ -16,13 +16,16 @@ import {
 import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 import {
   RoomRequestDto,
-  RoomResponseDto,
+  RoomCreateResponseDto,
   RoomDeleteResponseDto,
   JoinRoomRequestDto,
   RoomJoinDto,
+  RoomListResponseDto,
+  RoomSearchQueryDto,
+  RoomReadResponseDto,
+  RoomJoinInfoResponseDto,
 } from './dto/room.dto';
 import { RoomService } from './room.service';
-import { RoomListResponseDto, RoomSearchQueryDto } from './dto/room.dto';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 
@@ -35,12 +38,15 @@ export class RoomController {
     private readonly authService: MockAuthService,
   ) {}
 
+  /**
+   * 대화방 생성
+   */
   @Post()
   @ApiResponseMessage('대화방이 성공적으로 생성되었습니다.')
   async createRoom(
     @Headers('authorization') authHeader: string,
     @Body() dto: RoomRequestDto,
-  ): Promise<RoomResponseDto> {
+  ): Promise<RoomCreateResponseDto> {
     if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
 
     const token = authHeader.replace('Bearer ', '');
@@ -53,13 +59,16 @@ export class RoomController {
     return await this.roomService.createRoom(userId, dto);
   }
 
+  /**
+   * 대화방 수정
+   */
   @Patch(':roomId')
   @ApiResponseMessage('대화방이 성공적으로 수정되었습니다.')
   async updateRoom(
     @Headers('authorization') authHeader: string,
     @Param('roomId') roomId: string,
     @Body() dto: RoomRequestDto,
-  ): Promise<RoomResponseDto> {
+  ): Promise<RoomCreateResponseDto> {
     if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
 
     const token = authHeader.replace('Bearer ', '');
@@ -72,6 +81,9 @@ export class RoomController {
     return await this.roomService.updateRoom(userId, roomId, dto);
   }
 
+  /**
+   * 대화방 삭제
+   */
   @Delete(':roomId')
   @ApiResponseMessage('대화방이 성공적으로 삭제되었습니다.')
   async deleteRoom(
@@ -90,24 +102,57 @@ export class RoomController {
     return await this.roomService.deleteRoom(userId, roomId);
   }
 
-  //로컬 방 목록 조회 -> GET /api/rooms/all
+  /**
+   * 로컬 방 목록 조회 -> GET /api/rooms/all
+   */
   @Get('all')
   @ApiResponseMessage('방 목록 조회에 성공 했습니다.')
   async getLocalRooms(): Promise<RoomListResponseDto> {
-    const rooms = await this.roomService.getLocalRooms();
-    return { rooms };
+    return await this.roomService.getLocalRooms();
   }
 
-  //로컬 방 검색 -> GET /api/rooms/search?keyword=검색어
+  /**
+   * 로컬 방 검색 -> GET /api/rooms/search?keyword=검색어
+   */
   @Get('search')
   @ApiResponseMessage('방 검색 조회에 성공 했습니다.')
   async searchLocalRooms(@Query() query: RoomSearchQueryDto): Promise<RoomListResponseDto> {
     const keyword = query.keyword || '';
-    const rooms = await this.roomService.searchLocalRooms(keyword);
-    return { rooms };
+    return await this.roomService.searchLocalRooms(keyword);
   }
 
-  // postman 에러 테스트용 -> GET /api/rooms/test/error
+  /**
+   * 로컬 방 상세 -> GET /api/rooms/:id
+   */
+  @Get(':id')
+  @ApiResponseMessage('방 상세 조회에 성공 했습니다.')
+  async getRoom(@Param('id') roomId: string): Promise<RoomReadResponseDto> {
+    return await this.roomService.getRoom(roomId);
+  }
+
+  /**
+   * 대화방 입장 정보 조회
+   */
+  @Get(':id/join')
+  @ApiResponseMessage('방 입장 정보 조회에 성공 했습니다.')
+  async getRoomJoinInfo(
+    @Headers('authorization') authHeader: string,
+    @Param('id') roomId: string,
+  ): Promise<RoomJoinInfoResponseDto> {
+    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
+
+    const token = authHeader.replace('Bearer ', '');
+    const payload = this.authService.verifyMockToken(token);
+
+    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+
+    const userId = payload.userId;
+    return await this.roomService.getRoomJoinInfo(userId, roomId);
+  }
+
+  /**
+   * postman 에러 테스트용 -> GET /api/rooms/test/error
+   */
   @Get('test/error')
   async testError(): Promise<void> {
     throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -116,7 +161,7 @@ export class RoomController {
   /**
    * 방 입장 가능 여부 검증
    */
-  @Post(':id/join')
+  @Post(':id/validate-join')
   @ApiResponseMessage('입장 가능한 방입니다.')
   async validateJoin(
     @Param('id') roomId: string,

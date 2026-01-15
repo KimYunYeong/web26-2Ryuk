@@ -4,7 +4,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: #00000066;
+  background-color: var(--scrim);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -15,4 +15,19 @@
 
 .backdrop.visible {
   opacity: 1;
+}
+
+.content {
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
