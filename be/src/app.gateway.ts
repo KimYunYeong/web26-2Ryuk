@@ -5,17 +5,17 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   ConnectedSocket,
-  MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, Inject, UsePipes, ValidationPipe, BadRequestException, UseFilters } from '@nestjs/common';
+import { Logger, Inject, UsePipes, ValidationPipe, UseFilters } from '@nestjs/common';
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from '@src/modules/room/room.service';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
-import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
+import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 
 @UseFilters(new WsExceptionFilter()) // 필터
 @WebSocketGateway({ namespace: '/' })
@@ -37,15 +37,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(AppGateway.name);
+  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(
     private readonly roomService: RoomService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
+    private readonly mockAuthService: MockAuthService,
   ) {}
 
   /**
    * 클라이언트 연결 처리
    * - 글로벌 채팅에 자동 참여 (Socket.io room 사용)
+   * - 세션 복구: 재연결 시 이전에 참여했던 방에 자동 재참여
    */
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
@@ -55,19 +58,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = client.data.userId as string | undefined;
       const isAuthenticated = client.data.authenticated as boolean | undefined;
 
-      // 디버깅: 인증 정보 확인
-      this.logger.debug(`Connection - socketId: ${client.id}, userId: ${userId}, authenticated: ${isAuthenticated}`);
+      // 연결 로그
+      logMessage(this.logger, LOG.WS.CONNECT(client.id, userId));
 
-      // 연결 로그 (userId만 사용, MySQL 조회 없음)
-      try {
-        logMessage(this.logger, LOG.WS.CONNECT(client.id, userId));
-      } catch (logError) {
-        this.logger.warn('연결 로그 실패', logError);
-      }
-
-      // 글로벌 방 참여 로직
       const globalRoomId = GLOBAL_ROOM_ID;
 
+      // 글로벌 방 처리 (인증/비인증 모두)
       if (globalRoomId) {
         // Socket.io room 참여
         try {
@@ -91,44 +87,84 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
               logMessage(this.logger, LOG.WS.REDIS_JOIN(userId, globalRoomId));
             }
 
-            // 참여자 수 조회 및 브로드캐스트 (항상 최신 상태 전송)
+            // 참여자 수 조회 및 브로드캐스트
             const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
             await this.roomService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
-
-            // 글로벌 룸 최신 메시지 전송
-            await this.sendGlobalChatRecents(client, globalRoomId, userId);
           } catch (checkError) {
             const errorMessage = checkError instanceof Error ? checkError.message : String(checkError);
             logMessage(this.logger, LOG.WS.ROOM_PARTICIPATION_CHECK_ERROR(errorMessage));
           }
-        } else {
-          // 인증되지 않은 사용자도 최신 메시지 조회 가능 (is_me는 모두 false)
-          try {
-            await this.sendGlobalChatRecents(client, globalRoomId, null);
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            this.logger.error(`글로벌 채팅 최신 메시지 전송 실패: ${errorMessage}`);
-          }
         }
+
+        // 글로벌 룸 최신 메시지 전송 (인증/비인증 모두)
+        await this.sendGlobalChatRecents(client, globalRoomId, userId || null);
       }
 
-      // 최종 연결 상태 로그 (userId만 사용, MySQL 조회 없음)
+      // 인증된 사용자의 경우 세션 복구 및 로컬 방 재참여 처리
       if (isAuthenticated && userId) {
-        try {
-          logMessage(this.logger, LOG.WS.AUTH_CONNECT(userId));
-        } catch (logError) {
-          this.logger.warn('인증 로그 실패', logError);
+        // 기존 disconnect 타이머 취소 (재연결됨)
+        const existingTimer = this.disconnectTimers.get(userId);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          this.disconnectTimers.delete(userId);
         }
+
+        // 세션 복구: 이전에 참여했던 방 목록 가져오기
+        const previousRooms = await this.roomService.getUserSession(userId);
+        const roomsToRestore = previousRooms.length > 0 ? previousRooms : [];
+
+        // 세션 복구: 이전에 참여했던 로컬 방에 재참여
+        for (const roomId of roomsToRestore) {
+          // 글로벌 방은 이미 처리했으므로 스킵
+          if (roomId === globalRoomId) continue;
+
+          const isInRoom = await this.roomService.isUserInRoom(userId, roomId);
+          if (isInRoom) continue;
+
+          // 방 존재 여부 확인
+          const roomExists = await this.roomService.roomExists(roomId);
+          if (!roomExists) continue;
+
+          // Socket.io room에 재참여
+          await client.join(roomId);
+
+          // Redis 상태 복구
+          await this.roomService.joinRoom(userId, roomId);
+
+          // 참여자 수 업데이트 및 브로드캐스트
+          const mockUser = this.mockAuthService.getMockUserById(userId);
+          const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
+
+          if (!mockUser) continue;
+
+          // 참여자 알림 전송
+          await this.roomService.notifyUserJoined(
+            this.server,
+            roomId,
+            {
+              userId,
+              nickname: mockUser.nickname,
+              profile_image: mockUser.profile_image,
+            },
+            currentParticipants,
+          );
+        }
+
+        // 세션 복구 완료 후 세션 정보 삭제
+        if (roomsToRestore.length > 0) {
+          await this.roomService.clearUserSession(userId);
+        }
+
+        // 최종 연결 상태 로그
+        logMessage(this.logger, LOG.WS.AUTH_CONNECT(userId));
       } else {
-        try {
-          logMessage(this.logger, LOG.WS.UNAUTH_CONNECT(client.id));
-        } catch (logError) {
-          this.logger.warn('비인증 로그 실패', logError);
-        }
+        // 비인증 사용자 최종 연결 상태 로그
+        logMessage(this.logger, LOG.WS.UNAUTH_CONNECT(client.id));
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
+
       logMessage(this.logger, LOG.WS.CONNECTION_HANDLE_ERROR(errorMessage, errorStack));
     }
   }
@@ -140,35 +176,40 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     logMessage(this.logger, LOG.WS.DISCONNECT(client.id, userId));
 
-    const globalRoomId = GLOBAL_ROOM_ID;
+    // 인증되지 않은 사용자는 처리하지 않음
+    if (!isAuthenticated || !userId) return;
 
-    // 인증된 사용자가 글로벌 방에 참여 중인 경우 참여자 수 업데이트 및 브로드캐스트
-    if (isAuthenticated && userId && globalRoomId) {
-      try {
-        const isInRoom = await this.roomService.isUserInRoom(userId, globalRoomId);
-        if (isInRoom) {
-          // 글로벌 방에서 제거 (참여자 수 감소)
-          await this.roomService.leaveRoom(userId, globalRoomId);
+    // 현재 참여 중인 방 목록 저장
+    const rooms = await this.roomService.getUserRooms(userId);
+    await this.roomService.saveUserSession(userId, rooms);
 
-          // 참여자 수 조회 및 브로드캐스트 (인증된 사용자만 카운트)
+    // 기존 타이머가 있으면 취소
+    const existingTimer = this.disconnectTimers.get(userId);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    // 30초 후 실제 종료 여부 확인하는 타이머 설정
+    const timer = setTimeout(async () => {
+      // 세션 복구 여부 확인
+      const sessionKey = `user:session:${userId}:rooms`;
+      const stillDisconnected = !(await this.redisClient.exists(sessionKey));
+
+      if (stillDisconnected) {
+        // 실제 종료로 간주하고 방에서 제거
+        await this.roomService.leaveAllRooms(userId);
+        await this.roomService.clearUserSession(userId);
+
+        const globalRoomId = GLOBAL_ROOM_ID;
+        if (globalRoomId) {
           const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
           await this.roomService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logMessage(this.logger, LOG.WS.GLOBAL_ROOM_LEAVE_ERROR(errorMessage));
       }
-    }
 
-    // 모든 방에서 제거 (글로벌 방은 이미 처리됨)
-    if (userId) {
-      try {
-        await this.roomService.leaveAllRooms(userId);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logMessage(this.logger, LOG.WS.GLOBAL_ROOM_LEAVE_ERROR(errorMessage));
-      }
-    }
+      this.disconnectTimers.delete(userId);
+    }, USER_SESSION_EXPIRATION_TIME * 1000);
+
+    // 타이머를 Map에 저장 (로그아웃 시 취소하기 위해)
+    this.disconnectTimers.set(userId, timer);
   }
 
   /**
@@ -188,11 +229,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const globalRoomId = GLOBAL_ROOM_ID;
       if (!globalRoomId) return;
 
-      const isInRoom = await this.roomService.isUserInRoom(userId, globalRoomId);
-      if (!isInRoom) return;
+      // 참여한 모든 방에서 제거 (참여자 수 감소)
+      await this.roomService.leaveAllRooms(userId);
 
-      // 글로벌 방에서 제거 (참여자 수 감소)
-      await this.roomService.leaveRoom(userId, globalRoomId);
+      // disconnect 타이머 취소 (로그아웃 시 세션 복구 불필요)
+      const existingTimer = this.disconnectTimers.get(userId);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+        this.disconnectTimers.delete(userId);
+      }
+
+      // 모든 세션 삭제
+      await this.roomService.clearUserSession(userId);
+      await this.redisClient.del(`user:session:${userId}`);
 
       // 참여자 수 조회 및 브로드캐스트
       const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
