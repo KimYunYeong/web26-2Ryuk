@@ -11,12 +11,17 @@ import {
   OnModuleInit,
   HttpStatus,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
+import { createHash } from 'crypto';
+import { User } from '@src/modules/user/user.entity';
 import { RoomRequestDto, RoomResponseDto, RoomDeleteResponseDto } from './dto/room.dto';
 import { ROOM_TYPE, RoomType } from './room.type';
+import { Server } from 'socket.io';
 
 @Injectable()
 export class RoomService implements OnModuleInit {
@@ -25,7 +30,10 @@ export class RoomService implements OnModuleInit {
   /**
    * Redis 클라이언트 설정
    */
-  constructor(@Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType) {}
+  constructor(
+    @Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+  ) {}
 
   onModuleInit() {
     this.initializeGlobalRoom();
@@ -90,10 +98,47 @@ export class RoomService implements OnModuleInit {
     return true;
   }
 
+  /**
+   * 문자열을 UUID 형식으로 변환
+   * 'J001' 같은 문자열을 일관된 UUID 문자열로 변환
+   * 시드 스크립트와 동일한 변환 로직 사용
+   */
+  private stringToUuid(str: string): string {
+    const hash = createHash('md5').update(str).digest('hex');
+    const uuid = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`;
+    return uuid;
+  }
+
   // 사용자 방 참여 처리
   async joinRoom(userId: string, roomId: string): Promise<void> {
-    // 방 멤버 목록에 추가 (Hash), 사용자의 참여 방 목록에 추가 (Set)
+    // Mock ID('J001' 형식)를 UUID로 변환
+    const uuid = this.stringToUuid(userId);
+
+    // MySQL에서 사용자 정보 조회 (Single Source of Truth)
+    const user = await this.userRepository.findOne({
+      where: { id: uuid },
+      select: ['id', 'nickname', 'profile_image', 'role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // room:{roomId}:members Hash에 userId 추가 (참여 시간)
     await this.redisClient.hSet(`room:${roomId}:members`, userId, Date.now().toString());
+
+    // room:{roomId}:members:{userId} Hash에 멤버 상세 정보 저장
+    await this.redisClient.hSet(`room:${roomId}:members:${userId}`, {
+      nickname: user.nickname,
+      profile_image: user.profile_image || '',
+      role: user.role || 'USER',
+      is_mic_on: '0',
+      is_audio_on: '1',
+      is_speaking: '0',
+      join_date: new Date().toISOString(),
+    });
+
+    // user:{userId}:rooms Set에 방 ID 추가
     await this.redisClient.sAdd(`user:${userId}:rooms`, roomId);
 
     // 참여자 수 증가
@@ -186,21 +231,25 @@ export class RoomService implements OnModuleInit {
   async createRoom(hostId: string, roomData: RoomRequestDto): Promise<RoomResponseDto> {
     const id: UUID = crypto.randomUUID();
     const create_date = new Date();
+    const tagKey = `room:${id}:tags`;
 
     if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
 
     await this.redisClient.hSet(`room:${id}`, {
       title: roomData.title,
-      tags: roomData.tags.join(','),
       host_id: hostId,
       type: ROOM_TYPE.LOCAL,
       max_participants: roomData.max_participants.toString(),
       current_participants: '0',
-      is_mic_available: roomData.is_mic_available.toString(),
-      is_private: roomData.is_private.toString(),
+      is_mic_available: roomData.is_mic_available ? '1' : '0',
+      is_private: roomData.is_private ? '1' : '0',
       password: roomData.password || '',
       create_date: create_date.toISOString(),
     });
+
+    if (roomData.tags && roomData.tags.length > 0) {
+      await this.redisClient.sAdd(tagKey, roomData.tags);
+    }
 
     this.joinRoom(hostId, id);
     logMessage(this.logger, LOG.ROOM.ROOM_CREATED(id, ROOM_TYPE.LOCAL));
@@ -221,6 +270,7 @@ export class RoomService implements OnModuleInit {
    */
   async updateRoom(hostId: string, roomId: string, roomData: RoomRequestDto): Promise<RoomResponseDto> {
     const roomKey = `room:${roomId}`;
+    const tagKey = `room:${roomId}:tags`;
 
     const existingHostId = await this.redisClient.hGet(roomKey, 'host_id');
 
@@ -232,12 +282,16 @@ export class RoomService implements OnModuleInit {
 
     await this.redisClient.hSet(roomKey, {
       title: roomData.title,
-      tags: roomData.tags.join(','),
       max_participants: roomData.max_participants.toString(),
-      is_mic_available: roomData.is_mic_available.toString(),
-      is_private: roomData.is_private.toString(),
+      is_mic_available: roomData.is_mic_available ? '1' : '0',
+      is_private: roomData.is_private ? '1' : '0',
       password: roomData.password || '',
     });
+
+    if (roomData.tags && roomData.tags.length > 0) {
+      await this.redisClient.del(tagKey);
+      await this.redisClient.sAdd(tagKey, roomData.tags);
+    }
 
     logMessage(this.logger, LOG.ROOM.ROOM_UPDATED(roomId));
 
@@ -258,6 +312,7 @@ export class RoomService implements OnModuleInit {
   async deleteRoom(hostId: string, roomId: string): Promise<RoomDeleteResponseDto> {
     const roomKey = `room:${roomId}`;
     const memberKey = `room:${roomId}:members`;
+    const tagKey = `room:${roomId}:tags`;
 
     const [existingHostId, members] = await Promise.all([
       this.redisClient.hGet(roomKey, 'host_id'),
@@ -273,6 +328,7 @@ export class RoomService implements OnModuleInit {
       ...members.map((userId) => this.redisClient.sRem(`user:${userId}:rooms`, roomId)),
       this.redisClient.del(roomKey),
       this.redisClient.del(memberKey),
+      this.redisClient.del(tagKey),
     ]);
 
     logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId));
@@ -504,5 +560,46 @@ export class RoomService implements OnModuleInit {
       logMessage(this.logger, LOG.ROOM.LOCAL_ROOMS_SEARCH_ERROR(errorMessage));
       throw new HttpException('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  // 사용자 방 참여 알림 (다른 참여자에게)
+  async notifyUserJoined(
+    server: Server,
+    roomId: string,
+    userInfo: { userId: string; nickname: string; profile_image: string | null },
+    currentParticipants: number,
+  ): Promise<void> {
+    const data = {
+      roomId,
+      user: {
+        id: userInfo.userId,
+        nickname: userInfo.nickname,
+        profile_image: userInfo.profile_image,
+      },
+      current_participants: currentParticipants.toString(),
+    };
+
+    server.to(roomId).emit('room:user-joined', data);
+  }
+
+  // 사용자 방 퇴장 알림 (다른 참여자에게)
+  async notifyUserLeft(server: Server, roomId: string, userId: string, currentParticipants: number): Promise<void> {
+    const data = {
+      roomId,
+      userId,
+      current_participants: currentParticipants.toString(),
+    };
+
+    server.to(roomId).emit('room:user-left', data);
+    logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));
+  }
+
+  // 글로벌 채팅 참여자 수 업데이트 브로드캐스트
+  async notifyParticipantsUpdated(server: Server, roomId: string, currentParticipants: number): Promise<void> {
+    const data = { roomId, current_participants: currentParticipants };
+
+    // 글로벌 방의 경우 모든 클라이언트에게 브로드캐스트
+    server.emit('chat:global:participants-updated', data);
+    logMessage(this.logger, LOG.CHAT.PARTICIPANTS_UPDATED(roomId, currentParticipants));
   }
 }

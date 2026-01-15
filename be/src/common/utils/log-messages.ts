@@ -44,7 +44,7 @@ export const LOG = {
       level: 'log',
     }),
     REDIS_JOIN: (userId: string, roomId: string): LogMessage => ({
-      message: `인증된 사용자 ${userId}가 글로벌 방 ${roomId}에 Redis 참여 완료`,
+      message: `인증된 사용자 ${userId}와 방 ${roomId}를 Redis에 상호 연동 완료`,
       level: 'log',
     }),
     ROOM_JOIN_DTO_RECEIVED: (dto: string, type: string): LogMessage => ({
@@ -136,7 +136,7 @@ export const LOG = {
   // 방 관련
   ROOM: {
     JOIN: (userId: string, roomId: string): LogMessage => ({
-      message: `사용자 방 입장: userId=${userId}, roomId=${roomId}`,
+      message: `물리적 입장 - 사용자 방 입장: userId=${userId}, roomId=${roomId}`,
       level: 'log',
     }),
     LEAVE: (userId: string, roomId: string): LogMessage => ({
@@ -168,7 +168,7 @@ export const LOG = {
       level: 'debug',
     }),
     USER_JOINED: (userId: string, roomId: string): LogMessage => ({
-      message: `사용자 ${userId}가 방 ${roomId}에 참여했습니다.`,
+      message: `논리적 입장 - 사용자 ${userId}가 방 ${roomId}에 참여했습니다.`,
       level: 'log',
     }),
     USER_LEFT: (userId: string, roomId: string): LogMessage => ({
