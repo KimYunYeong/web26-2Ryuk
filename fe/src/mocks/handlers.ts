@@ -4,12 +4,8 @@
  * 개발 환경에서 API 요청을 모킹하기 위한 핸들러들을 정의
  */
 import { http, HttpResponse } from 'msw';
-import roomsMock from './data/rooms.json';
 import postListCardMock from './data/postListCard.json';
 import profilesMock from './data/profiles.json';
-import type { RoomDto } from '@/app/features/room/dtos/type';
-
-const rooms: RoomDto[] = [...roomsMock.rooms];
 
 export const handlers = [
   // Popular Posts API
