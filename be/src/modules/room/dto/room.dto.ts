@@ -16,13 +16,13 @@ export class JoinRoomRequestDto {
 export class RoomJoinDto extends JoinRoomRequestDto {
   @IsString()
   @IsNotEmpty()
-  roomId: string;
+  room_id: string;
 }
 
 export class RoomLeaveDto {
   @IsString()
   @IsNotEmpty()
-  roomId: string;
+  room_id: string;
 }
 
 export class RoomRequestDto {
