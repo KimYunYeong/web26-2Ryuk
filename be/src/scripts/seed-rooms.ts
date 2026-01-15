@@ -14,6 +14,7 @@
 import { createClient, RedisClientType } from 'redis';
 import { loadEnv } from '../config/env';
 import { ROOM_TYPE } from '../modules/room/room.type';
+import { toUuid } from '@src/common/utils/user-id';
 
 loadEnv();
 
@@ -226,7 +227,28 @@ async function seedRooms() {
   try {
     await client.connect();
 
-    console.log('\n=== 방 더미 데이터 생성 시작 ===\n');
+    // 기존 사용자별 방 목록 키 정리 (J001 형식으로 저장된 오래된 데이터)
+    console.log('\n=== 기존 사용자별 방 목록 키 정리 ===');
+    const userKeys = await client.keys('user:*:rooms');
+    const oldFormatKeys = userKeys.filter((key) => {
+      // J001, J002 같은 형식의 키만 필터링 (UUID 형식이 아닌 것)
+      const match = key.match(/^user:(.+):rooms$/);
+      if (!match) return false;
+      const userId = match[1];
+      // UUID 형식이 아니면 (하이픈이 없거나 J로 시작하면) 오래된 형식
+      return !userId.includes('-') || userId.startsWith('J');
+    });
+
+    if (oldFormatKeys.length > 0) {
+      console.log(`⚠️  오래된 형식의 사용자 키 ${oldFormatKeys.length}개 발견: ${oldFormatKeys.join(', ')}`);
+      console.log('오래된 형식의 키를 삭제합니다...');
+      await Promise.all(oldFormatKeys.map((key) => client.del(key)));
+      console.log(`✅ ${oldFormatKeys.length}개의 오래된 키 삭제 완료\n`);
+    } else {
+      console.log('✅ 오래된 형식의 키가 없습니다.\n');
+    }
+
+    console.log('=== 방 더미 데이터 생성 시작 ===\n');
 
     for (const room of dummyRooms) {
       const roomKey = `room:${room.id}`;
@@ -239,10 +261,13 @@ async function seedRooms() {
         console.log(`✅ 기존 방 삭제 완료: ${room.title} (${room.id})\n`);
       }
 
+      // hostId를 UUID로 변환
+      const hostUuid = toUuid(room.hostId);
+
       // 방 메타데이터 저장
       await client.hSet(roomKey, {
         title: room.title,
-        host_id: room.hostId,
+        host_id: hostUuid,
         type: room.type,
         max_participants: room.maxParticipants.toString(),
         current_participants: room.members.length.toString(),
@@ -259,11 +284,14 @@ async function seedRooms() {
 
       // 멤버 정보 저장
       for (const member of room.members) {
-        // room:{roomId}:members Hash에 userId 추가 (참여 시간)
-        await client.hSet(`room:${room.id}:members`, member.userId, Date.now().toString());
+        // Mock ID('J001' 형식)를 UUID로 변환
+        const memberUuid = toUuid(member.userId);
 
-        // room:{roomId}:members:{userId} Hash에 멤버 상세 정보 저장
-        await client.hSet(`room:${room.id}:members:${member.userId}`, {
+        // room:{roomId}:members Hash에 UUID 추가 (참여 시간)
+        await client.hSet(`room:${room.id}:members`, memberUuid, Date.now().toString());
+
+        // room:{roomId}:members:{uuid} Hash에 멤버 상세 정보 저장
+        await client.hSet(`room:${room.id}:members:${memberUuid}`, {
           nickname: member.nickname,
           profile_image: member.profileImage,
           role: 'USER',
@@ -273,8 +301,8 @@ async function seedRooms() {
           join_date: new Date().toISOString(),
         });
 
-        // user:{userId}:rooms Set에 방 ID 추가
-        await client.sAdd(`user:${member.userId}:rooms`, room.id);
+        // user:{uuid}:rooms Set에 방 ID 추가
+        await client.sAdd(`user:${memberUuid}:rooms`, room.id);
       }
 
       console.log(`✅ 방 생성 완료: ${room.title} (${room.id})`);
