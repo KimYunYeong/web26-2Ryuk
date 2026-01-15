@@ -94,9 +94,20 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
             // 참여자 수 조회 및 브로드캐스트 (항상 최신 상태 전송)
             const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
             await this.roomService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
+
+            // 글로벌 룸 최신 메시지 전송
+            await this.sendGlobalChatRecents(client, globalRoomId, userId);
           } catch (checkError) {
             const errorMessage = checkError instanceof Error ? checkError.message : String(checkError);
             logMessage(this.logger, LOG.WS.ROOM_PARTICIPATION_CHECK_ERROR(errorMessage));
+          }
+        } else {
+          // 인증되지 않은 사용자도 최신 메시지 조회 가능 (is_me는 모두 false)
+          try {
+            await this.sendGlobalChatRecents(client, globalRoomId, null);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(`글로벌 채팅 최신 메시지 전송 실패: ${errorMessage}`);
           }
         }
       }
@@ -191,6 +202,35 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.LOGOUT_ERROR(errorMessage));
+    }
+  }
+
+  // 글로벌 룸 입장 시 최신 메시지 전송
+  private async sendGlobalChatRecents(client: Socket, roomId: string, userId: string | null): Promise<void> {
+    try {
+      const recents = await this.roomService.getGlobalChatRecents(roomId);
+
+      const messages = recents.map((msg) => ({
+        message: msg.content,
+        sender: {
+          sender_id: msg.sender_id,
+          nickname: msg.nickname,
+          profile_image: msg.profile_image,
+          is_me: userId ? msg.sender_id === userId : false,
+        },
+        timestamp: msg.create_date,
+      }));
+
+      client.emit('chat:global:recents', {
+        messages,
+      });
+
+      this.logger.debug(
+        `글로벌 채팅 최신 메시지 전송: roomId=${roomId}, userId=${userId || 'anonymous'}, count=${recents.length}`,
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`글로벌 채팅 최신 메시지 전송 실패: ${errorMessage}`);
     }
   }
 }
