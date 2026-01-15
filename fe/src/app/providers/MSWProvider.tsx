@@ -20,40 +20,27 @@ export default function MSWProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // 개발 환경에서만 MSW 활성화
+    // 서버 사이드에서는 MSW 초기화하지 않음
     if (IS.undefined(window) || process.env.NODE_ENV !== 'development') {
       setIsReady(true);
       return;
     }
 
+    // 클라이언트 사이드에서만 동적 import로 MSW 초기화
     (async () => {
-      const { worker } = await import('@/mocks/browser');
-      await worker.start({
-        serviceWorker: {
-          url: '/mockServiceWorker.js',
-        },
-        onUnhandledRequest: (request, print) => {
-          const url = new URL(request.url);
-
-          // Next.js 내부 요청은 무시
-          if (
-            url.pathname.startsWith('/__nextjs_') ||
-            url.pathname.startsWith('/_next/') ||
-            url.pathname === '/favicon.ico' ||
-            url.pathname === '/manifest.json'
-          )
-            return;
-
-          // API 요청은 MSW 핸들러가 없으면 절대 URL로 요청되므로 여기서는 무시
-          if (url.pathname.startsWith('/api/')) {
-            return;
-          }
-
-          // 기타 요청은 경고
-          print.warning();
-        },
-      });
-      setIsReady(true);
+      try {
+        const { worker } = await import('@/mocks/browser');
+        await worker.start({
+          serviceWorker: {
+            url: '/mockServiceWorker.js',
+          },
+          onUnhandledRequest: 'bypass',
+        });
+      } catch (error) {
+        console.error('[MSWProvider] Failed to start MSW:', error);
+      } finally {
+        setIsReady(true);
+      }
     })();
   }, []);
 
