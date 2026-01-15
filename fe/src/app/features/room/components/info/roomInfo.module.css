@@ -34,6 +34,13 @@
   color: var(--primary-6);
 }
 
+.titleContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
 .title {
   font: var(--heading-1);
   color: var(--neutral-9);
@@ -43,6 +50,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.titleContainer svg {
+  color: var(--neutral-4);
 }
 
 .tags {

@@ -5,38 +5,53 @@ import Modal from '@/app/components/shared/modal/Modal';
 import RoomUpdateModalContent from '../creation/RoomUpdateModalContent';
 import { useModal } from '@/app/components/shared/modal/useModal';
 import { RoomEditData } from '@/app/features/room/dtos/type';
-import { RoomInfoWithModalProps } from '@/app/features/room/components/type';
 import { RoomConverter } from '@/app/features/room/dtos/Room';
 import roomService from '@/app/features/room/services/RoomService';
+import { roomStore } from '@/app/features/room/stores/room';
+import { useToast } from '@/app/components/shared/toast/useToast';
+
+interface RoomInfoWithModalProps {
+  roomId: string;
+  title?: string;
+  tags?: string[];
+  isHost?: boolean;
+  isMicAvailable?: boolean;
+  isPrivate?: boolean;
+  maxParticipants?: number;
+}
 
 export default function RoomInfoWithModal({
   roomId,
-  title,
-  tags,
-  maxParticipants,
-  isMicAvailable,
-  isPrivate,
-  password,
-  isHost,
-  onUpdate,
+  title = '',
+  tags = [],
+  isHost = false,
+  isMicAvailable = false,
+  isPrivate = false,
+  maxParticipants = 2,
 }: RoomInfoWithModalProps) {
   const { openModal, closeModal } = useModal();
-  const modalId = `room-update-${roomId}`;
+  const { showSuccessToast } = useToast();
+
+  const modalId = `room-update-${title}`;
 
   const handleEditClick = () => openModal(modalId);
 
   const handleCancel = () => closeModal(modalId);
   const handleSubmit = async (data: RoomEditData) => {
-    try {
-      const roomDto = RoomConverter.editToDto(data);
-      await roomService.updateRoom(roomId, roomDto);
+    const roomDto = RoomConverter.editToDto(data);
+    const updatedDto = await roomService.updateRoom(roomId, roomDto);
+    const updated = RoomConverter.toData(updatedDto);
 
-      closeModal(modalId);
-      onUpdate?.(data);
-    } catch (error) {
-      // 에러 처리 (필요시 토스트 메시지 등 추가)
-      console.error('방 수정 실패:', error);
-    }
+    roomStore.getState().updateRoomData({
+      title: updated.title,
+      tags: updated.tags,
+      maxParticipants: updated.maxParticipants,
+      isMicAvailable: updated.isMicAvailable,
+      isPrivate: updated.isPrivate,
+    });
+
+    closeModal(modalId);
+    showSuccessToast('수정 완료!');
   };
 
   const initialData: Partial<RoomEditData> = {
@@ -45,12 +60,18 @@ export default function RoomInfoWithModal({
     maxParticipants,
     isMicAvailable,
     isPrivate,
-    password,
   };
 
   return (
     <>
-      <RoomInfo title={title} tags={tags} isHost={isHost} onEditClick={handleEditClick} />
+      <RoomInfo
+        title={title}
+        tags={tags}
+        isHost={isHost}
+        isMicAvailable={isMicAvailable}
+        isPrivate={isPrivate}
+        onEditClick={handleEditClick}
+      />
       <Modal id={modalId}>
         <RoomUpdateModalContent
           initialData={initialData}
