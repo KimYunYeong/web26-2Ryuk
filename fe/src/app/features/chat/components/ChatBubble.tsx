@@ -1,6 +1,6 @@
 'use client';
 
-import { ChatBubbleProps } from './chat.type';
+import { ChatBubbleProps } from './type';
 import Avatar from '@/app/components/shared/profile/Avatar';
 import styles from './chat.module.css';
 import CSSUtil from '@/utils/css';

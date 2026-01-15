@@ -6,11 +6,10 @@ import styles from './chat.module.css';
 import MessageForm from '@/app/components/shared/form/message/MessageForm';
 import { ChatPanelProps, ChatPanelHeaderProps } from './type';
 import * as IconCircle from '@/app/components/shared/icon/IconCircle';
-import { GhostIconButton } from '@/app/components/shared/icon/IconButton';
+import * as IconButton from '@/app/components/shared/icon/IconButton';
 import CSSUtil from '@/utils/css';
-import FloatingWidget, {
-  FloatingWidgetHandle,
-} from '@/app/components/shared/floatingWidget/FloatingWidget';
+import FloatingWidget from '@/app/components/shared/floatingWidget/FloatingWidget';
+import { FloatingWidgetHandle } from '@/app/components/shared/floatingWidget/type';
 import { useClickOutside } from '@/app/hooks/useClickOutside';
 
 function ChatPanelHeader({
@@ -54,7 +53,7 @@ function ChatPanelHeader({
         </div>
       </div>
       {headerChildren}
-      <GhostIconButton name={iconNameToggle} size="medium" onClick={onToggle} />
+      <IconButton.Ghost name={iconNameToggle} size="medium" onClick={onToggle} />
     </div>
   );
 }
@@ -99,7 +98,11 @@ export default function ChatPanel({
     requestAnimationFrame(scrollToBottom);
   };
 
-  const className = CSSUtil.buildCls(styles.chatPanel, isCollapsed && styles.collapsed);
+  const className = CSSUtil.buildCls(
+    styles.chatPanel,
+    styles[type],
+    isCollapsed && styles.collapsed,
+  );
 
   return (
     <FloatingWidget ref={floatingWidgetRef} id="chat-panel" dragHandleId="chat-panel-header">
