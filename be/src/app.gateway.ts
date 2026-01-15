@@ -12,7 +12,6 @@ import { Logger, Inject, UsePipes, ValidationPipe, BadRequestException, UseFilte
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from '@src/modules/room/room.service';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
@@ -42,7 +41,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly roomService: RoomService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-    private readonly mockAuthService: MockAuthService,
   ) {}
 
   /**
@@ -60,7 +58,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 디버깅: 인증 정보 확인
       this.logger.debug(`Connection - socketId: ${client.id}, userId: ${userId}, authenticated: ${isAuthenticated}`);
 
-      // 연결 로그
+      // 연결 로그 (userId만 사용, MySQL 조회 없음)
       try {
         logMessage(this.logger, LOG.WS.CONNECT(client.id, userId));
       } catch (logError) {
@@ -96,14 +94,25 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
             // 참여자 수 조회 및 브로드캐스트 (항상 최신 상태 전송)
             const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
             await this.roomService.notifyParticipantsUpdated(this.server, globalRoomId, currentParticipants);
+
+            // 글로벌 룸 최신 메시지 전송
+            await this.sendGlobalChatRecents(client, globalRoomId, userId);
           } catch (checkError) {
             const errorMessage = checkError instanceof Error ? checkError.message : String(checkError);
             logMessage(this.logger, LOG.WS.ROOM_PARTICIPATION_CHECK_ERROR(errorMessage));
           }
+        } else {
+          // 인증되지 않은 사용자도 최신 메시지 조회 가능 (is_me는 모두 false)
+          try {
+            await this.sendGlobalChatRecents(client, globalRoomId, null);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(`글로벌 채팅 최신 메시지 전송 실패: ${errorMessage}`);
+          }
         }
       }
 
-      // 최종 연결 상태 로그
+      // 최종 연결 상태 로그 (userId만 사용, MySQL 조회 없음)
       if (isAuthenticated && userId) {
         try {
           logMessage(this.logger, LOG.WS.AUTH_CONNECT(userId));
@@ -193,6 +202,35 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.LOGOUT_ERROR(errorMessage));
+    }
+  }
+
+  // 글로벌 룸 입장 시 최신 메시지 전송
+  private async sendGlobalChatRecents(client: Socket, roomId: string, userId: string | null): Promise<void> {
+    try {
+      const recents = await this.roomService.getGlobalChatRecents(roomId);
+
+      const messages = recents.map((msg) => ({
+        message: msg.content,
+        sender: {
+          sender_id: msg.sender_id,
+          nickname: msg.nickname,
+          profile_image: msg.profile_image,
+          is_me: userId ? msg.sender_id === userId : false,
+        },
+        timestamp: msg.create_date,
+      }));
+
+      client.emit('chat:global:recents', {
+        messages,
+      });
+
+      this.logger.debug(
+        `글로벌 채팅 최신 메시지 전송: roomId=${roomId}, userId=${userId || 'anonymous'}, count=${recents.length}`,
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`글로벌 채팅 최신 메시지 전송 실패: ${errorMessage}`);
     }
   }
 }
