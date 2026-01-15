@@ -33,6 +33,3 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-
-# 방 seed 데이터 삽입 스크립트
-src/scripts/seed-rooms.ts
