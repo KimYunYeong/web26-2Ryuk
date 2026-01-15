@@ -127,8 +127,16 @@ export class ChatGateway {
         return;
       }
 
+      const user = await this.authService.getUserWithRole(userId);
+
+      const senderInfo = {
+        role: user.role,
+        nickname: user.nickname,
+        profile_image: user.profile_image,
+      };
+
       // 메시지 브로드캐스트
-      await this.chatService.broadcastRoomChat(this.server, dto.room_id, userId, dto.message);
+      await this.chatService.broadcastRoomChat(this.server, dto.room_id, userId, dto.message, senderInfo, client.id);
     } catch (error) {
       // ValidationPipe 에러 처리
       if (error instanceof BadRequestException) {
