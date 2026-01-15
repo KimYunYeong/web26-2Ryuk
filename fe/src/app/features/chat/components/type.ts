@@ -2,6 +2,18 @@ import { ChatReceiveData } from '@/app/features/chat/dtos/type';
 
 export type ChatPanelType = 'global' | 'local';
 
+export interface ChatBubbleProps {
+  id: string;
+  message: string;
+  sender: {
+    role: string;
+    nickname: string;
+    profileImage: string | null;
+    isMe: boolean;
+  };
+  timestamp: Date;
+}
+
 export interface ChatBubblesProps {
   chats: ChatReceiveData[];
 }
@@ -41,7 +53,7 @@ export interface GlobalChatProps {
   isConnected?: boolean;
 }
 
-export interface RoomChatPanelProps {
+export interface LocalChatPanelProps {
   participantCount: number;
   chats: ChatReceiveData[];
   onMessageSubmit?: (message: string) => void;

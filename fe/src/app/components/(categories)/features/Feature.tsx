@@ -9,7 +9,7 @@ import ComponentRelations from '@/app/components/helpers/ComponentRelations';
 import globalChatMock from '@/mocks/data/globalChat.json';
 import postListCardMock from '@/mocks/data/postListCard.json';
 import { PostConverter } from '@/app/features/post/dtos/Post';
-import RoomChatPanel from '@/app/features/chat/components/RoomChatPanel';
+import RoomChatPanel from '@/app/features/chat/components/LocalChatPanel';
 import MicSetting from '@/app/features/room/components/creation/MicSetting';
 import PasswordSetting from '@/app/features/room/components/creation/PasswordSetting';
 import RoomCreateModalContent from '@/app/features/room/components/creation/RoomCreateModalContent';
@@ -98,10 +98,7 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="room-chat-panel" />
         <div className={styles.showcaseBlock}>
           <Component>
-            <RoomChatPanel
-              participantCount={roomsMock.rooms[0]?.current_participants || 0}
-              chats={[]}
-            />
+            <RoomChatPanel />
           </Component>
         </div>
       </section>
@@ -317,11 +314,27 @@ export default function FeatureComponents() {
                   isMicAvailable
                   isPrivate={false}
                   createDate={new Date('2024-01-15T14:31:00.000Z')}
-                  participantProfileImages={[
-                    'https://i.pravatar.cc/150?img=1',
-                    'https://i.pravatar.cc/150?img=2',
-                    'https://i.pravatar.cc/150?img=3',
-                    'https://i.pravatar.cc/150?img=4',
+                  participants={[
+                    {
+                      userId: '1',
+                      nickname: 'User1',
+                      profileImage: 'https://i.pravatar.cc/150?img=1',
+                    },
+                    {
+                      userId: '2',
+                      nickname: 'User2',
+                      profileImage: 'https://i.pravatar.cc/150?img=2',
+                    },
+                    {
+                      userId: '3',
+                      nickname: 'User3',
+                      profileImage: 'https://i.pravatar.cc/150?img=3',
+                    },
+                    {
+                      userId: '4',
+                      nickname: 'User4',
+                      profileImage: 'https://i.pravatar.cc/150?img=4',
+                    },
                   ]}
                 />
               </Component>
@@ -336,10 +349,22 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <h3 className={styles.blockTitle}>Default</h3>
           <Component>
-            <RoomInfo title="같이 수다 떨어요~" tags={['게임', '친목']} isHost={false} />
+            <RoomInfo
+              title="같이 수다 떨어요~"
+              tags={['게임', '친목']}
+              isHost={false}
+              isMicAvailable={true}
+              isPrivate={false}
+            />
           </Component>
           <Component>
-            <RoomInfo title="같이 수다 떨어요~" tags={['게임', '친목']} isHost />
+            <RoomInfo
+              title="같이 수다 떨어요~"
+              tags={['게임', '친목']}
+              isHost={true}
+              isMicAvailable={true}
+              isPrivate={true}
+            />
           </Component>
         </div>
       </section>
@@ -349,7 +374,7 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="realtime-rooms" />
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
-            <RealtimeRoomsSection rooms={roomsMock.rooms.map(RoomConverter.toData)} />
+            <RealtimeRoomsSection />
           </Component>
         </div>
       </section>
