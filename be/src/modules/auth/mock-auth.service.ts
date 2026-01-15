@@ -73,6 +73,9 @@ export class MockAuthService {
   /**
    * userId로 Mock 사용자 조회
    * 원본 ID('J001') 또는 UUID 형식 모두 지원
+   *
+   * 주의: 이 메서드는 Mock 로그인/토큰 검증용으로만 사용됩니다.
+   * 실제 사용자 정보 조회는 MySQL에서 수행해야 합니다.
    */
   getMockUserById(userId: string): MockUser | undefined {
     // 원본 ID 형식인지 확인 (J001, J002 등)

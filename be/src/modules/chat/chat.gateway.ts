@@ -5,7 +5,7 @@ import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { ChatService } from './chat.service';
 import { RoomService } from '@src/modules/room/room.service';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
+import { AuthService } from '@src/modules/auth/auth.service';
 import { GlobalChatSendDto, RoomChatSendDto } from './dto/chat-message.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -35,8 +35,8 @@ export class ChatGateway {
   constructor(
     private readonly chatService: ChatService,
     private readonly roomService: RoomService,
+    private readonly authService: AuthService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-    private readonly mockAuthService: MockAuthService,
   ) {}
 
   // 글로벌 채팅 메시지 수신 및 브로드캐스트 (인증되지 않은 사용자는 수신만)
@@ -61,17 +61,13 @@ export class ChatGateway {
         return;
       }
 
-      // 사용자 정보 조회 (MockAuthService 사용, 나중에 UserService로 교체)
-      const mockUser = this.mockAuthService?.getMockUserById(userId);
-      if (!mockUser) {
-        client.emit('error', { message: '사용자 정보를 찾을 수 없습니다.' });
-        return;
-      }
+      // Service를 통해 MySQL에서 실제 사용자 정보 조회
+      const user = await this.authService.getUserWithRole(userId);
 
       const senderInfo = {
-        role: mockUser.role,
-        nickname: mockUser.nickname,
-        profile_image: mockUser.profile_image,
+        role: user.role,
+        nickname: user.nickname,
+        profile_image: user.profile_image,
       };
 
       // 메시지 브로드캐스트 (is_me 구분하여 전송)
@@ -124,15 +120,15 @@ export class ChatGateway {
       }
 
       // 권한 검증: 해당 방의 참여자인지 확인
-      const isInRoom = await this.roomService.isUserInRoom(userId, dto.roomId);
+      const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (!isInRoom) {
-        logMessage(this.logger, LOG.CHAT.NOT_MEMBER_SEND(userId, dto.roomId));
+        logMessage(this.logger, LOG.CHAT.NOT_MEMBER_SEND(userId, dto.room_id));
         client.emit('error', { message: '해당 방에 참여하지 않았습니다.' });
         return;
       }
 
       // 메시지 브로드캐스트
-      await this.chatService.broadcastRoomChat(this.server, dto.roomId, userId, dto.message);
+      await this.chatService.broadcastRoomChat(this.server, dto.room_id, userId, dto.message);
     } catch (error) {
       // ValidationPipe 에러 처리
       if (error instanceof BadRequestException) {

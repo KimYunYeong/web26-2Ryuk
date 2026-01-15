@@ -115,6 +115,8 @@ export class RedisIoAdapter extends IoAdapter {
     }
 
     // TODO: query.userId 방식 제거 (개발 편의용)
+    // OAuth 환경에서는 이 부분이 제거되고, 토큰 방식만 사용됩니다.
+    // 개발 편의를 위해 Mock 사용자 목록에서 확인 (MySQL 조회 불필요)
     if (queryUserId) {
       const user = this.mockAuthService.getMockUserById(queryUserId);
       if (user) {
