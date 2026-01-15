@@ -17,8 +17,6 @@ import RoomUpdateModalContent from '@/app/features/room/components/creation/Room
 import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
 import RoomCard from '@/app/features/room/components/card/RoomCard';
 import RoomInfo from '@/app/features/room/components/info/RoomInfo';
-import roomsMock from '@/mocks/data/rooms.json';
-import { RoomConverter } from '@/app/features/room/dtos/Room';
 import Modal from '@/app/components/shared/modal/Modal';
 import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
