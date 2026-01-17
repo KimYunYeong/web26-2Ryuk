@@ -11,6 +11,7 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -49,7 +50,7 @@ export class ChatGateway {
       // 권한 검증: 인증되지 않은 사용자는 메시지 송신 불가능
       if (!isAuthenticated || !userId) {
         logMessage(this.logger, LOG.CHAT.UNAUTH_SEND(client.id));
-        client.emit('error', { message: '인증이 필요합니다.' });
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -57,7 +58,7 @@ export class ChatGateway {
       const globalRoomId = await this.roomService.getUserGlobalRoom(userId);
       if (!globalRoomId) {
         logMessage(this.logger, LOG.CHAT.NOT_MEMBER_SEND(userId, 'global'));
-        client.emit('error', { message: '글로벌 채팅방에 참여하지 않았습니다.' });
+        client.emit('error', createWsError('NOT_FOUND', '글로벌 채팅방에 참여하지 않았습니다.'));
         return;
       }
 
@@ -73,29 +74,14 @@ export class ChatGateway {
       // 메시지 브로드캐스트 (is_me 구분하여 전송)
       await this.chatService.broadcastGlobalChat(this.server, globalRoomId, userId, dto.message, senderInfo, client.id);
     } catch (error) {
-      // ValidationPipe 에러 처리
-      if (error instanceof BadRequestException) {
-        const errorResponse = error.getResponse();
-        const message =
-          typeof errorResponse === 'object' && errorResponse !== null && 'message' in errorResponse
-            ? Array.isArray(errorResponse.message)
-              ? errorResponse.message.join(', ')
-              : errorResponse.message
-            : '입력값이 올바르지 않습니다.';
-
-        try {
-          client.emit('error', { message: String(message) });
-        } catch (emitError) {
-          this.logger.warn('에러 메시지 전송 실패', emitError);
-        }
-        return;
-      }
-
-      // 기타 에러 처리
+      // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.GLOBAL_CHAT_HANDLE_ERROR(errorMessage));
+
+      const errorResponse = createWsErrorResponse(error, '메시지 전송 중 문제가 발생했습니다.');
       try {
-        client.emit('error', { message: '메시지 전송 중 문제가 발생했습니다.' });
+        client.emit('error', errorResponse);
+        return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
       }
@@ -115,7 +101,7 @@ export class ChatGateway {
       // 권한 검증: 인증되지 않은 사용자는 메시지 송신 불가능
       if (!isAuthenticated || !userId) {
         logMessage(this.logger, LOG.CHAT.UNAUTH_ROOM_SEND(client.id));
-        client.emit('error', { message: '인증이 필요합니다.' });
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -123,7 +109,7 @@ export class ChatGateway {
       const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (!isInRoom) {
         logMessage(this.logger, LOG.CHAT.NOT_MEMBER_SEND(userId, dto.room_id));
-        client.emit('error', { message: '해당 방에 참여하지 않았습니다.' });
+        client.emit('error', createWsError('NOT_FOUND', '해당 방에 참여하지 않았습니다.'));
         return;
       }
 
@@ -138,29 +124,14 @@ export class ChatGateway {
       // 메시지 브로드캐스트
       await this.chatService.broadcastRoomChat(this.server, dto.room_id, userId, dto.message, senderInfo, client.id);
     } catch (error) {
-      // ValidationPipe 에러 처리
-      if (error instanceof BadRequestException) {
-        const errorResponse = error.getResponse();
-        const message =
-          typeof errorResponse === 'object' && errorResponse !== null && 'message' in errorResponse
-            ? Array.isArray(errorResponse.message)
-              ? errorResponse.message.join(', ')
-              : errorResponse.message
-            : '입력값이 올바르지 않습니다.';
-
-        try {
-          client.emit('error', { message: String(message) });
-        } catch (emitError) {
-          this.logger.warn('에러 메시지 전송 실패', emitError);
-        }
-        return;
-      }
-
-      // 기타 에러 처리
+      // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.ROOM_CHAT_HANDLE_ERROR(errorMessage));
+
+      const errorResponse = createWsErrorResponse(error, '메시지 전송 중 문제가 발생했습니다.');
       try {
-        client.emit('error', { message: '메시지 전송 중 문제가 발생했습니다.' });
+        client.emit('error', errorResponse);
+        return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
       }

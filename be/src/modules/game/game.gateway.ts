@@ -6,6 +6,7 @@ import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { ValidationPipe } from '@nestjs/common';
 import { GameService } from './game.service';
 import { GameRecruitDto } from './dto/game-recruit.dto';
+import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -40,7 +41,7 @@ export class GameGateway {
 
       // 권한 검증: 인증되지 않은 사용자는 게임 모집 불가능
       if (!isAuthenticated || !userId) {
-        client.emit('error', { message: '인증이 필요합니다.' });
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -52,28 +53,11 @@ export class GameGateway {
         room_id: dto.room_id,
       });
     } catch (error) {
-      // ValidationPipe 에러 처리
-      if (error instanceof BadRequestException) {
-        const errorResponse = error.getResponse();
-        const message =
-          typeof errorResponse === 'object' && errorResponse !== null && 'message' in errorResponse
-            ? Array.isArray(errorResponse.message)
-              ? errorResponse.message.join(', ')
-              : errorResponse.message
-            : '입력값이 올바르지 않습니다.';
-
-        try {
-          client.emit('error', { message: String(message) });
-        } catch (emitError) {
-          this.logger.warn('에러 메시지 전송 실패', emitError);
-        }
-        return;
-      }
-
-      // 기타 에러 처리
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      // 모든 예외를 일관되게 처리
+      const errorResponse = createWsErrorResponse(error, '게임 모집 중 문제가 발생했습니다.');
       try {
-        client.emit('error', { message: errorMessage || '게임 모집 중 문제가 발생했습니다.' });
+        client.emit('error', errorResponse);
+        return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
       }
