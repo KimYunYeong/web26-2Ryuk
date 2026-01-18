@@ -7,9 +7,34 @@
   align-items: center;
   justify-content: center;
   box-sizing: content-box;
-  color: var(--neutral-9);
-  background: var(--neutral-2);
+  font: var(--heading-2);
   padding: 0.5px;
+}
+
+.avatar.primary {
+  background: var(--primary-6);
+  color: var(--primary-1);
+}
+
+.avatar.secondary {
+  background: var(--primary-3);
+  color: var(--primary-6);
+}
+
+.avatar.default {
+  background: var(--neutral-2);
+  color: var(--neutral-9);
+}
+
+.avatar.success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.avatar.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+
 }
 
 .avatar img {

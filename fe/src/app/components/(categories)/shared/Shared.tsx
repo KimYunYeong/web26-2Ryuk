@@ -1030,13 +1030,19 @@ export default function SharedComponents() {
           <div className={styles.iconRow}>
             <div className={styles.circleItem}>
               <Component>
-                <Avatar profileImage="https://i.pravatar.cc/150?img=1" />
+                <Avatar nickname="강하늘" />
               </Component>
               <span className={styles.iconLabel}>Default</span>
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Avatar profileImage="https://i.pravatar.cc/150?img=2" isActive />
+                <Avatar nickname="강하늘" profileImage="https://i.pravatar.cc/150?img=1" />
+              </Component>
+              <span className={styles.iconLabel}>Default</span>
+            </div>
+            <div className={styles.circleItem}>
+              <Component>
+                <Avatar nickname="강하늘" profileImage="https://i.pravatar.cc/150?img=2" isActive />
               </Component>
               <span className={styles.iconLabel}>Active</span>
             </div>
@@ -1056,7 +1062,12 @@ export default function SharedComponents() {
         <div className={styles.showcaseBlock}>
           <div className={styles.circleItem}>
             <Component>
-              <Avatars profileImages={profilesMock.map((profile) => profile.avatar)} />
+              <Avatars
+                profiles={profilesMock.map(({ nickname, profileImage }) => ({
+                  nickname,
+                  profileImage,
+                }))}
+              />
             </Component>
             <span className={styles.iconLabel}>Avatars</span>
           </div>
@@ -1076,7 +1087,7 @@ export default function SharedComponents() {
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Profile nickname="강하늘" profileImage={profilesMock[0]?.avatar} />
+                <Profile nickname="강하늘" profileImage={profilesMock[0]?.profileImage} />
               </Component>
               <span className={styles.iconLabel}>With Avatar</span>
             </div>

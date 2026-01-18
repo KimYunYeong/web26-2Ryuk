@@ -29,7 +29,7 @@ export default function RoomVoiceChat() {
           <div className={styles.participantsList}>
             {participants.map((participant) => (
               <div key={participant.userId} className={styles.participantItem}>
-                <Avatar profileImage={participant.profileImage} />
+                <Avatar nickname={participant.nickname} profileImage={participant.profileImage} />
                 <span className={styles.nickname}>{participant.nickname}</span>
               </div>
             ))}

@@ -4,6 +4,7 @@ export interface ProfileProps {
 }
 
 export interface AvatarProps {
+  nickname: string;
   profileImage?: string;
   isActive?: boolean;
   onClick?: () => void;
@@ -15,6 +16,6 @@ export interface AvatarCountProps {
 }
 
 export interface AvatarsProps {
-  profileImages: string[];
+  profiles: { nickname: string; profileImage: string }[];
   viewCount?: number;
 }
