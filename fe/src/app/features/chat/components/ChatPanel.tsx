@@ -21,7 +21,7 @@ function ChatPanelHeader({
   headerChildren,
   isConnected = true,
 }: ChatPanelHeaderProps) {
-  const iconNameToggle = isCollapsed ? 'up' : 'down';
+  const iconNameToggle = isCollapsed ? 'down' : 'up';
   const counts = `${participantCount.toLocaleString()}명${isCollapsed ? '' : ' 참여중'}`;
 
   const getTitle = () => {
