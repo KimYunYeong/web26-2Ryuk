@@ -8,6 +8,7 @@ import * as TextButton from '@/app/components/shared/button/TextButton';
 import * as Textfield from '@/app/components/shared/textfield/Textfield';
 import * as Slider from '@/app/components/shared/slider/Slider';
 import * as Chip from '@/app/components/shared/chip/Chip';
+import * as ChipButton from '@/app/components/shared/chip/ChipButton';
 import Toggle from '@/app/components/shared/toggle/Toggle';
 import ToggleChip from '@/app/components/shared/chip/ToggleChip';
 import StatusChip from '@/app/components/shared/chip/StatusChip';
@@ -803,6 +804,342 @@ export default function SharedComponents() {
               <Component>
                 <Chip.Outline label="small" size="small" icon="message" />
               </Component>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="chip-button" className={styles.section}>
+        <h2 className={styles.sectionTitle}>ChipButton</h2>
+        <ComponentRelations componentId="chip-button" />
+        <div className={styles.buttonTableContainer}>
+          <div className={styles.chipTable}>
+            <div className={styles.chipTableHeader}>
+              <div className={styles.chipTableCell}></div>
+              <div className={styles.chipTableCell}>Default</div>
+              <div className={styles.chipTableCell}>Primary</div>
+              <div className={styles.chipTableCell}>Secondary</div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Large</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Default label="LargeDefault" size="large" />
+                </Component>
+                <Component>
+                  <ChipButton.Default label="LargeDefault" size="large" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Primary label="LargePrimary" size="large" />
+                </Component>
+                <Component>
+                  <ChipButton.Primary label="LargePrimary" size="large" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Secondary label="LargeSecondary" size="large" />
+                </Component>
+                <Component>
+                  <ChipButton.Secondary label="LargeSecondary" size="large" disabled />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Medium</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Default label="MediumDefault" size="medium" />
+                </Component>
+                <Component>
+                  <ChipButton.Default label="MediumDefault" size="medium" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Primary label="MediumPrimary" size="medium" />
+                </Component>
+                <Component>
+                  <ChipButton.Primary label="MediumPrimary" size="medium" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Secondary label="MediumSecondary" size="medium" />
+                </Component>
+                <Component>
+                  <ChipButton.Secondary label="MediumSecondary" size="medium" disabled />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Small</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Default label="SmallDefault" size="small" />
+                </Component>
+                <Component>
+                  <ChipButton.Default label="SmallDefault" size="small" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Primary label="SmallPrimary" size="small" />
+                </Component>
+                <Component>
+                  <ChipButton.Primary label="SmallPrimary" size="small" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Secondary label="SmallSecondary" size="small" />
+                </Component>
+                <Component>
+                  <ChipButton.Secondary label="SmallSecondary" size="small" disabled />
+                </Component>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.chipTable}>
+            <div className={styles.chipTableHeader}>
+              <div className={styles.chipTableCell}></div>
+              <div className={styles.chipTableCell}>Outline</div>
+              <div className={styles.chipTableCell}>Ghost</div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Large</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Outline label="LargeOutline" size="large" />
+                </Component>
+                <Component>
+                  <ChipButton.Outline label="LargeOutline" size="large" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Ghost label="LargeGhost" size="large" />
+                </Component>
+                <Component>
+                  <ChipButton.Ghost label="LargeGhost" size="large" disabled />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Medium</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Outline label="MediumOutline" size="medium" />
+                </Component>
+                <Component>
+                  <ChipButton.Outline label="MediumOutline" size="medium" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Ghost label="MediumGhost" size="medium" />
+                </Component>
+                <Component>
+                  <ChipButton.Ghost label="MediumGhost" size="medium" disabled />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Small</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Outline label="SmallOutline" size="small" />
+                </Component>
+                <Component>
+                  <ChipButton.Outline label="SmallOutline" size="small" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Ghost label="SmallGhost" size="small" />
+                </Component>
+                <Component>
+                  <ChipButton.Ghost label="SmallGhost" size="small" disabled />
+                </Component>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="chip-button-icon" className={styles.section}>
+        <h2 className={styles.sectionTitle}>ChipButton w/ Icon</h2>
+        <div className={styles.buttonTableContainer}>
+          <div className={styles.chipTable}>
+            <div className={styles.chipTableHeader}>
+              <div className={styles.chipTableCell}></div>
+              <div className={styles.chipTableCell}>Default</div>
+              <div className={styles.chipTableCell}>Primary</div>
+              <div className={styles.chipTableCell}>Secondary</div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Large</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Default label="LargeDefault" size="large" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Default label="LargeDefault" size="large" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Primary label="LargePrimary" size="large" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Primary label="LargePrimary" size="large" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Secondary label="LargeSecondary" size="large" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Secondary
+                    label="LargeSecondary"
+                    size="large"
+                    icon="message"
+                    disabled
+                  />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Medium</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Default label="MediumDefault" size="medium" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Default label="MediumDefault" size="medium" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Primary label="MediumPrimary" size="medium" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Primary label="MediumPrimary" size="medium" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Secondary label="MediumSecondary" size="medium" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Secondary
+                    label="MediumSecondary"
+                    size="medium"
+                    icon="message"
+                    disabled
+                  />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Small</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Default label="SmallDefault" size="small" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Default label="SmallDefault" size="small" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Primary label="SmallPrimary" size="small" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Primary label="SmallPrimary" size="small" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Secondary label="SmallSecondary" size="small" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Secondary
+                    label="SmallSecondary"
+                    size="small"
+                    icon="message"
+                    disabled
+                  />
+                </Component>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.chipTable}>
+            <div className={styles.chipTableHeader}>
+              <div className={styles.chipTableCell}></div>
+              <div className={styles.chipTableCell}>Outline</div>
+              <div className={styles.chipTableCell}>Ghost</div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Large</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Outline label="LargeOutline" size="large" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Outline label="LargeOutline" size="large" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Ghost label="LargeGhost" size="large" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Ghost label="LargeGhost" size="large" icon="message" disabled />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Medium</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Outline label="MediumOutline" size="medium" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Outline label="MediumOutline" size="medium" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Ghost label="MediumGhost" size="medium" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Ghost label="MediumGhost" size="medium" icon="message" disabled />
+                </Component>
+              </div>
+            </div>
+            <div className={styles.chipTableRow}>
+              <div className={styles.chipTableCell}>Small</div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Outline label="SmallOutline" size="small" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Outline label="SmallOutline" size="small" icon="message" disabled />
+                </Component>
+              </div>
+              <div className={styles.chipTableCell}>
+                <Component>
+                  <ChipButton.Ghost label="SmallGhost" size="small" icon="message" />
+                </Component>
+                <Component>
+                  <ChipButton.Ghost label="SmallGhost" size="small" icon="message" disabled />
+                </Component>
+              </div>
             </div>
           </div>
         </div>
