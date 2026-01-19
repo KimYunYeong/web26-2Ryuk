@@ -146,6 +146,7 @@ export class ChatService {
         content,
         nickname: senderInfo.nickname,
         profile_image: senderInfo.profile_image || '',
+        role: senderInfo.role,
         create_date: createDate,
       };
 
