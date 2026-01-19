@@ -57,4 +57,5 @@ jobs:
         working-directory: fe
         env:
           NEXT_PUBLIC_API_URL: http://localhost
+          NEXT_PUBLIC_API_SERVER_URL: http://localhost:4000
         run: pnpm build
