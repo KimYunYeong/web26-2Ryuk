@@ -37,8 +37,8 @@ export class GlobalChatService implements ChatChannel {
 
     if (this.connectPromise) return this.connectPromise;
 
-    const wsUrl =
-      process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const wsUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!wsUrl) throw Error(`환경변수가 없습니다: NEXT_PUBLIC_API_URL`);
 
     this.registerEventHandlers();
     WebSocketService.connect(wsUrl);
