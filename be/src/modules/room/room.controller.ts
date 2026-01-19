@@ -2,18 +2,17 @@ import {
   Body,
   Controller,
   Delete,
-  Headers,
   Param,
   Get,
   Patch,
   Post,
   HttpException,
-  UnauthorizedException,
   HttpStatus,
   Query,
   Logger,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 import {
   RoomRequestDto,
   RoomCreateResponseDto,
@@ -27,34 +26,22 @@ import {
 } from './dto/room.dto';
 import { RoomService } from './room.service';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
-import { LOG, logMessage } from '@src/common/utils/log-messages';
+import { AuthGuard } from '@src/modules/auth/auth.guard';
 
 @Controller('rooms')
 export class RoomController {
   private readonly logger = new Logger(RoomController.name);
 
-  constructor(
-    private readonly roomService: RoomService,
-    private readonly authService: MockAuthService,
-  ) {}
+  constructor(private readonly roomService: RoomService) {}
 
   /**
    * 대화방 생성
    */
   @Post()
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('대화방이 성공적으로 생성되었습니다.')
-  async createRoom(
-    @Headers('authorization') authHeader: string,
-    @Body() dto: RoomRequestDto,
-  ): Promise<RoomCreateResponseDto> {
-    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
-
-    const token = authHeader.replace('Bearer ', '');
-    const payload = this.authService.verifyMockToken(token);
-
-    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-
-    const userId = payload.userId;
+  async createRoom(@Req() req, @Body() dto: RoomRequestDto): Promise<RoomCreateResponseDto> {
+    const userId = req.user.id;
 
     return await this.roomService.createRoom(userId, dto);
   }
@@ -63,20 +50,14 @@ export class RoomController {
    * 대화방 수정
    */
   @Patch(':roomId')
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('대화방이 성공적으로 수정되었습니다.')
   async updateRoom(
-    @Headers('authorization') authHeader: string,
+    @Req() req,
     @Param('roomId') roomId: string,
     @Body() dto: RoomRequestDto,
   ): Promise<RoomCreateResponseDto> {
-    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
-
-    const token = authHeader.replace('Bearer ', '');
-    const payload = this.authService.verifyMockToken(token);
-
-    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-
-    const userId = payload.userId;
+    const userId = req.user.id;
 
     return await this.roomService.updateRoom(userId, roomId, dto);
   }
@@ -85,19 +66,10 @@ export class RoomController {
    * 대화방 삭제
    */
   @Delete(':roomId')
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('대화방이 성공적으로 삭제되었습니다.')
-  async deleteRoom(
-    @Headers('authorization') authHeader: string,
-    @Param('roomId') roomId: string,
-  ): Promise<RoomDeleteResponseDto> {
-    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
-
-    const token = authHeader.replace('Bearer ', '');
-    const payload = this.authService.verifyMockToken(token);
-
-    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-
-    const userId = payload.userId;
+  async deleteRoom(@Req() req, @Param('roomId') roomId: string): Promise<RoomDeleteResponseDto> {
+    const userId = req.user.id;
 
     return await this.roomService.deleteRoom(userId, roomId);
   }
@@ -153,19 +125,11 @@ export class RoomController {
    * 대화방 입장 정보 조회
    */
   @Get(':id/join')
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('방 입장 정보 조회에 성공 했습니다.')
-  async getRoomJoinInfo(
-    @Headers('authorization') authHeader: string,
-    @Param('id') roomId: string,
-  ): Promise<RoomJoinInfoResponseDto> {
-    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
+  async getRoomJoinInfo(@Req() req, @Param('id') roomId: string): Promise<RoomJoinInfoResponseDto> {
+    const userId = req.user.id;
 
-    const token = authHeader.replace('Bearer ', '');
-    const payload = this.authService.verifyMockToken(token);
-
-    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-
-    const userId = payload.userId;
     return await this.roomService.getRoomJoinInfo(userId, roomId);
   }
 
@@ -181,26 +145,12 @@ export class RoomController {
    * 방 입장 가능 여부 검증
    */
   @Post(':id/validate-join')
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('입장 가능한 방입니다.')
-  async validateJoin(
-    @Param('id') roomId: string,
-    @Body() dto: JoinRoomRequestDto,
-    @Headers('authorization') authHeader?: string,
-  ): Promise<RoomJoinDto> {
-    if (!authHeader) {
-      logMessage(this.logger, LOG.ROOM.UNAUTH_API_ACCESS_JOIN(roomId));
-      throw new UnauthorizedException('인증이 필요합니다.');
-    }
+  async validateJoin(@Req() req, @Param('id') roomId: string, @Body() dto: JoinRoomRequestDto): Promise<RoomJoinDto> {
+    const userId = req.user.id;
 
-    const token = authHeader.replace('Bearer ', '');
-    const payload = this.authService.verifyMockToken(token);
-
-    if (!payload) {
-      logMessage(this.logger, LOG.ROOM.INVALID_TOKEN_API_JOIN(roomId));
-      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-    }
-
-    await this.roomService.validateJoinRoom(roomId, payload.userId, dto.password);
+    await this.roomService.validateJoinRoom(roomId, userId, dto.password);
 
     return { room_id: roomId };
   }

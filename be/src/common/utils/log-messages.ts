@@ -264,6 +264,14 @@ export const LOG = {
       level: 'warn',
     }),
   },
+
+  // 게임 관련
+  GAME: {
+    RECRUIT_STARTED: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 모집 시작: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+  },
 } as const;
 
 /**
