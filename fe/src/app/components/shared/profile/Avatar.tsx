@@ -7,9 +7,10 @@ import { AvatarProps } from './type';
 import CSSUtil from '@/utils/css';
 
 const DEFAULT_AVATAR = Paths.images('default_profile');
-const DEFAULT_THEMES = ['primary', 'secondary', 'default', 'success', 'warning'];
+const DEFAULT_THEMES = ['primary', 'secondary', 'success', 'warning'];
 
-function getThemeIndex(nickname: string) {
+function getThemeIndex(nickname?: string) {
+  if (!nickname) return 0;
   let hash = 0;
   for (let i = 0; i < nickname.length; i++) {
     hash = (hash * 31 + nickname.charCodeAt(i)) >>> 0;
@@ -26,6 +27,7 @@ function Avatar({ nickname, profileImage, isActive, onClick }: AvatarProps) {
     styles[DEFAULT_THEMES[index]],
   );
   const src = profileImage || DEFAULT_AVATAR;
+  const char = nickname?.slice(0, 1) ?? '';
 
   return (
     <div className={className} onClick={onClick}>
@@ -41,7 +43,7 @@ function Avatar({ nickname, profileImage, isActive, onClick }: AvatarProps) {
           }}
         />
       ) : (
-        <span>{nickname.slice(0, 1)}</span>
+        <div className={styles.nickname}>{char}</div>
       )}
     </div>
   );

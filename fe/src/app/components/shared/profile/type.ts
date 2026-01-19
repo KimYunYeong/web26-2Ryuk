@@ -4,7 +4,7 @@ export interface ProfileProps {
 }
 
 export interface AvatarProps {
-  nickname: string;
+  nickname?: string;
   profileImage?: string;
   isActive?: boolean;
   onClick?: () => void;
