@@ -1,10 +1,9 @@
 'use client';
 
-import Avatar from '@/app/components/shared/profile/Avatar';
 import HostBadge from '@/app/components/shared/badge/HostBadge';
 import * as Chip from '@/app/components/shared/chip/Chip';
 import styles from './myReadyStatusCard.module.css';
-import Profile from '@/app/components/shared/profile/Profile';
+import { ProfileRow } from '@/app/components/shared/profile/Profile';
 import CSSUtil from '@/utils/css';
 
 interface MyReadyStatusCardProps {
@@ -32,7 +31,7 @@ export default function MyReadyStatusCard({
   return (
     <div className={className}>
       <div className={styles.header}>
-        <Profile nickname={nickname} profileImage={profileImage} />
+        <ProfileRow nickname={nickname} profileImage={profileImage} />
         {isHost && <HostBadge />}
         <Chip.Primary label="나" size="small" />
       </div>

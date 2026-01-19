@@ -24,7 +24,7 @@ import RadioButton from '@/app/components/shared/radioButton/RadioButton';
 import ComponentRelations from '@/app/components/helpers/ComponentRelations';
 import Avatar from '@/app/components/shared/profile/Avatar';
 import AvatarCount from '@/app/components/shared/profile/AvatarCount';
-import Profile from '@/app/components/shared/profile/Profile';
+import { ProfileRow, ProfileColumn } from '@/app/components/shared/profile/Profile';
 import Avatars from '@/app/components/shared/profile/Avatars';
 import profilesMock from '@/mocks/data/profiles.json';
 import Paths from '@/app/shared/path';
@@ -1486,15 +1486,21 @@ export default function SharedComponents() {
           <div className={styles.iconRow}>
             <div className={styles.circleItem}>
               <Component>
-                <Profile nickname="강하늘" />
+                <ProfileRow nickname="강하늘" />
               </Component>
-              <span className={styles.iconLabel}>Default</span>
+              <span className={styles.iconLabel}>Row (default)</span>
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Profile nickname="강하늘" profileImage={Paths.images('default_profile')} />
+                <ProfileRow nickname="강하늘" profileImage={Paths.images('default_profile')} />
               </Component>
-              <span className={styles.iconLabel}>With Avatar</span>
+              <span className={styles.iconLabel}>Row + Avatar</span>
+            </div>
+            <div className={styles.circleItem}>
+              <Component>
+                <ProfileColumn nickname="강하늘" profileImage={Paths.images('default_profile')} />
+              </Component>
+              <span className={styles.iconLabel}>Column + Avatar</span>
             </div>
           </div>
         </div>
