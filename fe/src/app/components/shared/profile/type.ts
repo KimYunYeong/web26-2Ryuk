@@ -16,6 +16,6 @@ export interface AvatarCountProps {
 }
 
 export interface AvatarsProps {
-  profiles: { nickname: string; profileImage: string }[];
+  profiles: { nickname: string; profileImage?: string }[];
   viewCount?: number;
 }

@@ -27,6 +27,7 @@ import AvatarCount from '@/app/components/shared/profile/AvatarCount';
 import Profile from '@/app/components/shared/profile/Profile';
 import Avatars from '@/app/components/shared/profile/Avatars';
 import profilesMock from '@/mocks/data/profiles.json';
+import Paths from '@/app/shared/path';
 
 export default function SharedComponents() {
   const iconList = IconUtil.extractNames('icons.svg');
@@ -1373,13 +1374,13 @@ export default function SharedComponents() {
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Avatar nickname="강하늘" profileImage="https://i.pravatar.cc/150?img=1" />
+                <Avatar nickname="강하늘" />
               </Component>
               <span className={styles.iconLabel}>Default</span>
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Avatar nickname="강하늘" profileImage="https://i.pravatar.cc/150?img=2" isActive />
+                <Avatar nickname="강하늘" isActive />
               </Component>
               <span className={styles.iconLabel}>Active</span>
             </div>
@@ -1399,12 +1400,7 @@ export default function SharedComponents() {
         <div className={styles.showcaseBlock}>
           <div className={styles.circleItem}>
             <Component>
-              <Avatars
-                profiles={profilesMock.map(({ nickname, profileImage }) => ({
-                  nickname,
-                  profileImage,
-                }))}
-              />
+              <Avatars profiles={profilesMock.map(({ nickname }) => ({ nickname }))} />
             </Component>
             <span className={styles.iconLabel}>Avatars</span>
           </div>
@@ -1424,7 +1420,7 @@ export default function SharedComponents() {
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Profile nickname="강하늘" profileImage={profilesMock[0]?.profileImage} />
+                <Profile nickname="강하늘" profileImage={Paths.images('default_profile')} />
               </Component>
               <span className={styles.iconLabel}>With Avatar</span>
             </div>

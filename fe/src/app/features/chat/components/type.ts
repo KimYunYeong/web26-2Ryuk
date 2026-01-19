@@ -17,7 +17,7 @@ export interface ChatBubbleProps {
   sender: {
     role: string;
     nickname: string;
-    profileImage: string | null;
+    profileImage?: string | null;
     isMe: boolean;
   };
   timestamp: Date;

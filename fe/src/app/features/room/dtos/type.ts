@@ -1,13 +1,13 @@
 export interface ParticipantData {
   userId: string;
   nickname: string;
-  profileImage: string;
+  profileImage?: string;
 }
 
 export interface ParticipantDetailData {
   userId: string;
   nickname: string;
-  profileImage: string;
+  profileImage?: string;
   role: string;
   isMicOn: boolean;
   isAudioOn: boolean;

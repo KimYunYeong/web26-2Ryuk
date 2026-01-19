@@ -42,7 +42,6 @@ export default function FeatureComponents() {
                   sender={{
                     role: 'user',
                     nickname: '상대방',
-                    profileImage: 'https://i.pravatar.cc/150?img=1',
                     isMe: false,
                   }}
                   message="Their Message"
@@ -60,7 +59,6 @@ export default function FeatureComponents() {
                   sender={{
                     role: 'user',
                     nickname: '나',
-                    profileImage: 'https://i.pravatar.cc/150?img=2',
                     isMe: true,
                   }}
                   message="My Message"
@@ -162,20 +160,11 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <div className={styles.cardColumn}>
             <Component fullWidth>
-              <VoiceParticipantCard
-                nickname="강하늘"
-                profileImage="https://i.pravatar.cc/150?img=3"
-                isMe
-                active
-                micOn
-                speakerOn
-                volume={60}
-              />
+              <VoiceParticipantCard nickname="강하늘" isMe active micOn speakerOn volume={60} />
             </Component>
             <Component fullWidth>
               <VoiceParticipantCard
                 nickname="박철수"
-                profileImage="https://i.pravatar.cc/150?img=4"
                 isHost
                 active={false}
                 micOn
@@ -351,22 +340,18 @@ export default function FeatureComponents() {
                     {
                       userId: '1',
                       nickname: 'User1',
-                      profileImage: 'https://i.pravatar.cc/150?img=1',
                     },
                     {
                       userId: '2',
                       nickname: 'User2',
-                      profileImage: 'https://i.pravatar.cc/150?img=2',
                     },
                     {
                       userId: '3',
                       nickname: 'User3',
-                      profileImage: 'https://i.pravatar.cc/150?img=3',
                     },
                     {
                       userId: '4',
                       nickname: 'User4',
-                      profileImage: 'https://i.pravatar.cc/150?img=4',
                     },
                   ]}
                 />
