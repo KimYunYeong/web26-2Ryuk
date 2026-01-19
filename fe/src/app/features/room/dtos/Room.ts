@@ -24,7 +24,7 @@ export class RoomConverter {
           nickname: p.nickname,
           profileImage: p.profile_image,
         })) ?? [],
-      createDate: new Date(dto.create_date),
+      createDate: dto.create_date ? new Date(dto.create_date) : undefined,
     };
   }
   static toDto(data: RoomData<ParticipantData>): RoomDto {
