@@ -26,6 +26,7 @@ import {
   ParticipantDto,
   RoomListResponseDto,
   RoomJoinInfoResponseDto,
+  GlobalChatRecentMessageDto,
 } from './dto/room.dto';
 import { toUuid } from '@src/common/utils/user-id';
 import { ROOM_TYPE, RoomType } from './room.type';
@@ -638,6 +639,10 @@ export class RoomService implements OnModuleInit {
    * 방 상세 조회
    */
   async getRoom(roomId: string): Promise<RoomReadResponseDto> {
+    if (!(await this.roomExists(roomId))) {
+      throw new NotFoundException('존재하지 않는 방입니다.');
+    }
+
     const roomData = await this.redisClient.hGetAll(`room:${roomId}`);
     const tags = await this.redisClient.sMembers(`room:${roomId}:tags`);
 
@@ -738,15 +743,7 @@ export class RoomService implements OnModuleInit {
   }
 
   // 글로벌 채팅 최신 메시지 조회 (최대 30개)
-  async getGlobalChatRecents(roomId: string): Promise<
-    Array<{
-      sender_id: string;
-      content: string;
-      nickname: string;
-      profile_image: string;
-      create_date: string;
-    }>
-  > {
+  async getGlobalChatRecents(roomId: string): Promise<GlobalChatRecentMessageDto[]> {
     try {
       const recentsKey = `room:${roomId}:recents`;
       const messages = await this.redisClient.lRange(recentsKey, 0, -1);

@@ -94,6 +94,19 @@ export class RoomController {
   }
 
   /**
+   * 내가 참여 중인 로컬 방 조회
+   * GET /api/rooms/me
+   */
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiResponseMessage('참여 중인 방 조회에 성공 했습니다.')
+  async getMyCurrentRoom(@Req() req): Promise<{ roomId: string | null }> {
+    const userId = req.user.id;
+    const roomId = await this.roomService.getUserLocalRoom(userId);
+    return { roomId };
+  }
+
+  /**
    * 로컬 방 상세 -> GET /api/rooms/:id
    */
   @Get(':id')

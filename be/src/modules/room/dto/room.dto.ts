@@ -209,6 +209,9 @@ export class RoomSearchQueryDto {
   keyword?: string;
 }
 
+/**
+ * 방 입장 정보 응답 DTO
+ */
 export class RoomJoinInfoResponseDto {
   @IsString()
   id: string;
@@ -228,4 +231,27 @@ export class RoomJoinInfoResponseDto {
 
   @IsBoolean()
   is_member: boolean;
+}
+
+/**
+ * 글로벌 채팅 최신 메시지 DTO
+ */
+export class GlobalChatRecentMessageDto {
+  @IsString()
+  sender_id: string;
+
+  @IsString()
+  content: string;
+
+  @IsString()
+  nickname: string;
+
+  @IsString()
+  profile_image: string;
+
+  @IsString()
+  role: string;
+
+  @IsString()
+  create_date: string;
 }

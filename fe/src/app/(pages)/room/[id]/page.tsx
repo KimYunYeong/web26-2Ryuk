@@ -35,13 +35,12 @@ export default function RoomPage() {
   const hasInitialized = useRef(false);
   const [isHost, setIsHost] = useState<boolean>(false);
 
-  // 방 입장 정보 조회 및 권한 체크
+  // BE 응답 기준 방 입장 정보·상세 조회
   useEffect(() => {
-    // React Strict Mode에서 중복 실행 방지
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    (async () => {
+    const syncFromBe = async () => {
       if (!userId) {
         showErrorToast('로그인 후 이용해주세요.');
         goHome();
@@ -50,35 +49,39 @@ export default function RoomPage() {
 
       if (!roomId) return;
 
-      // 방 입장 정보 조회
-      const roomJoinInfoDto = await roomService.getRoomJoinInfo(roomId);
-      const roomJoinInfoData = RoomConverter.toJoinInfoData(roomJoinInfoDto);
-      setRoomJoinInfoData(roomJoinInfoData);
+      try {
+        const roomJoinInfoDto = await roomService.getRoomJoinInfo(roomId);
+        const roomJoinInfoData = RoomConverter.toJoinInfoData(roomJoinInfoDto);
+        setRoomJoinInfoData(roomJoinInfoData);
 
-      // 방 정보 조회 (호스트 여부 확인용)
-      const roomDto = await roomService.getRoom(roomId);
-      const roomData = RoomConverter.toData(roomDto);
-      roomStore.getState().setRoomData(roomData);
-      setIsHost(roomData.hostId === userId);
+        const roomDto = await roomService.getRoom(roomId);
+        const roomData = RoomConverter.toData(roomDto);
+        roomStore.getState().setRoomData(roomData);
+        setIsHost(roomData.hostId === userId);
 
-      // 멤버가 아니고 비밀방인 경우 비밀번호 인증 모달 표시 (입장 시도 안 함)
-      if (!roomJoinInfoData.isMember && roomJoinInfoData.isPrivate) {
-        setShowPasswordAuth(true);
-        return; // 비밀번호 입력 대기
-      }
+        if (!roomJoinInfoData.isMember && roomJoinInfoData.isPrivate) {
+          setShowPasswordAuth(true);
+          return;
+        }
 
-      // 멤버가 아니고 공개방인 경우 방 입장
-      if (!roomJoinInfoData.isMember) {
-        await roomService.validateJoin(roomId);
+        if (!roomJoinInfoData.isMember) {
+          await roomService.validateJoin(roomId);
+          await roomChatService.subscribe(roomId);
+          showSuccessToast('방에 입장했습니다!');
+          return;
+        }
+
         await roomChatService.subscribe(roomId);
-        showSuccessToast('방에 입장했습니다!');
-        return;
+      } catch {
+        roomStore.getState().leaveRoom();
+        roomChatService.clearSubscriptionOnly();
+        goHome();
       }
+    };
 
-      // 멤버인 경우 (호스트 포함) WebSocket 구독
-      await roomChatService.subscribe(roomId);
-      return;
-    })();
+    const unsubInvalidated = roomChatService.onRoomInvalidated(goHome);
+    syncFromBe();
+    return () => unsubInvalidated();
   }, []);
 
   const handlePasswordConfirm = async (password: string) => {

@@ -36,9 +36,42 @@
 
 .titleContainer {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.titleRow {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--body-2);
+  color: var(--secondary);
+}
+
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status.connected .onlineDot {
+  background: var(--success);
+}
+
+.status.disconnected .onlineDot {
+  background: var(--warning);
+}
+
+.status.disconnected .connectionStatus {
+  color: var(--warning);
 }
 
 .title {

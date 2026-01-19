@@ -15,7 +15,6 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 
 @UseFilters(new WsExceptionFilter()) // 필터
 @WebSocketGateway({ namespace: '/' })
@@ -42,7 +41,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly roomService: RoomService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-    private readonly mockAuthService: MockAuthService,
   ) {}
 
   /**
@@ -131,23 +129,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
           // Redis 상태 복구
           await this.roomService.joinRoom(userId, roomId);
 
-          // 참여자 수 업데이트 및 브로드캐스트
-          const mockUser = this.mockAuthService.getMockUserById(userId);
+          // 클라이언트에게 직접 room:join ACK 전송
           const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
-
-          if (!mockUser) continue;
-
-          // 참여자 알림 전송
-          await this.roomService.notifyUserJoined(
-            this.server,
-            roomId,
-            {
-              userId,
-              nickname: mockUser.nickname,
-              profile_image: mockUser.profile_image,
-            },
-            currentParticipants,
-          );
+          client.emit('room:join', { roomId, current_participants: currentParticipants });
         }
 
         // 세션 복구 완료 후 세션 정보 삭제
@@ -254,15 +238,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // 글로벌 룸 입장 시 최신 메시지 전송
+  // 글로벌 룸 입장 시 최신 메시지 및 참여자 수 전송
   private async sendGlobalChatRecents(client: Socket, roomId: string, userId: string | null): Promise<void> {
     try {
-      const recents = await this.roomService.getGlobalChatRecents(roomId);
+      const [recents, currentParticipants] = await Promise.all([
+        this.roomService.getGlobalChatRecents(roomId),
+        this.roomService.getCurrentParticipants(roomId),
+      ]);
 
       const messages = recents.map((msg) => ({
         message: msg.content,
         sender: {
-          sender_id: msg.sender_id,
+          role: msg.role,
           nickname: msg.nickname,
           profile_image: msg.profile_image,
           is_me: userId ? msg.sender_id === userId : false,
@@ -272,6 +259,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.emit('chat:global:recents', {
         messages,
+        current_participants: currentParticipants,
       });
 
       this.logger.debug(

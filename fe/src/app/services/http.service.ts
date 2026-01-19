@@ -1,8 +1,7 @@
 import IS from '@/utils/is';
 import { ApiResponse } from '@/app/features/room/services/type';
 import { showErrorToast } from '@/app/components/shared/toast/useToast';
-import useNavigation, { goHome } from '../hooks/useNavigation';
-import { useRouter } from 'next/navigation';
+import { goHome } from '../hooks/useNavigation';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 const UUID_PATTERN = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';

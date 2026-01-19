@@ -1,7 +1,13 @@
-interface ParticipantData {
+export interface ParticipantData {
   userId: string;
   nickname: string;
-  profileImage: string;
+  profileImage?: string;
+}
+
+export interface ParticipantDetailData {
+  userId: string;
+  nickname: string;
+  profileImage?: string;
   role: string;
   isMicOn: boolean;
   isAudioOn: boolean;
@@ -9,43 +15,37 @@ interface ParticipantData {
   joinDate: Date;
 }
 
-export interface SimpleParticipant {
-  userId: string;
-  nickname: string;
-  profileImage: string;
-}
-
-export interface RoomData {
+export interface RoomData<T> {
   id: string;
-  title: string;
-  tags: string[];
-  hostId: string;
+  title?: string;
+  tags?: string[];
+  hostId?: string;
   password?: string;
-  currentParticipants: number;
-  maxParticipants: number;
-  isMicAvailable: boolean;
-  isPrivate: boolean;
-  participants: SimpleParticipant[];
-  createDate: Date;
+  currentParticipants?: number;
+  maxParticipants?: number;
+  isMicAvailable?: boolean;
+  isPrivate?: boolean;
+  participants: T[];
+  createDate?: Date;
 }
 
 export interface ParticipantDto {
   user_id: string;
   nickname: string;
-  profile_image: string;
+  profile_image?: string;
 }
 
 export interface RoomDto {
   id: string;
-  title: string;
-  tags: string[];
-  host_id: string;
-  current_participants: number;
-  max_participants: number;
-  is_mic_available: boolean;
-  is_private: boolean;
-  participants: ParticipantDto[];
-  create_date: string;
+  title?: string;
+  tags?: string[];
+  host_id?: string;
+  current_participants?: number;
+  max_participants?: number;
+  is_mic_available?: boolean;
+  is_private?: boolean;
+  participants?: ParticipantDto[];
+  create_date?: string;
 }
 
 export interface RoomEditData {
@@ -83,7 +83,7 @@ export interface RoomJoinInfoData {
 }
 
 export interface RoomsListData {
-  rooms: RoomData[];
+  rooms: RoomData<ParticipantData>[];
 }
 
 export interface RoomsListDto {

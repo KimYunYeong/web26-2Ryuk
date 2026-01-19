@@ -21,6 +21,7 @@ export const componentRelations: ComponentRelation[] = [
   { id: 'icon', title: 'Icon', category: 'shared' },
   { id: 'iconcircle', title: 'IconCircle', category: 'shared', children: ['icon'] },
   { id: 'chip', title: 'Chip', category: 'shared', children: ['icon'] },
+  { id: 'chip-button', title: 'ChipButton', category: 'shared', children: ['icon'] },
   { id: 'status-chip', title: 'StatusChip', category: 'shared', children: ['chip'] },
   { id: 'toggle-chip', title: 'ToggleChip', category: 'shared', children: ['chip'] },
   { id: 'textfield', title: 'Textfield', category: 'shared' },
@@ -159,6 +160,12 @@ export const componentRelations: ComponentRelation[] = [
     children: ['chip', 'icon', 'icon-button'],
   },
   {
+    id: 'voice-participant-card',
+    title: 'VoiceParticipantCard',
+    category: 'feature',
+    children: ['avatar', 'slider', 'chip', 'icon-button'],
+  },
+  {
     id: 'realtime-rooms',
     title: 'RealtimeRoomsSection',
     category: 'feature',
@@ -208,6 +215,7 @@ export const sharedSections = [
   { id: 'icon-button', title: 'IconButton' },
   { id: 'text-button', title: 'TextButton' },
   { id: 'text-button-icon', title: 'TextButton w/ Icon' },
+  { id: 'chip-button', title: 'ChipButton' },
   { id: 'go-back-button', title: 'GoBackButton' },
   { id: 'text-field', title: 'Textfield' },
   { id: 'search-form', title: 'SearchForm' },
@@ -251,6 +259,7 @@ export const featureSections = [
   { id: 'room-update-modal', title: 'RoomUpdateModal' },
   { id: 'room-card', title: 'RoomCard' },
   { id: 'room-info', title: 'RoomInfo' },
+  { id: 'voice-participant-card', title: 'VoiceParticipantCard' },
   { id: 'realtime-rooms', title: 'RealtimeRoomsSection' },
 ];
 

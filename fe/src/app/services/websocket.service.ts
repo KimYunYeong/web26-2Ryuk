@@ -43,10 +43,7 @@ export class WebSocketService {
     // 연결 완료 Promise 생성
     const socket = this.socket;
     this.connectPromise = new Promise<void>((resolve) => {
-      if (socket.connected) {
-        resolve();
-        return;
-      }
+      if (socket.connected) return resolve();
 
       const connectHandler = () => {
         socket.off('connect', connectHandler);
@@ -173,20 +170,14 @@ export class WebSocketService {
       if (!this.socket) {
         // socket이 생성될 때까지 대기 후 등록
         const checkAndRegister = () => {
-          if (!this.socket) {
-            setTimeout(checkAndRegister, 10);
-            return;
-          }
+          if (!this.socket) return setTimeout(checkAndRegister, 10);
           registerListener();
         };
         checkAndRegister();
         return;
       }
 
-      // Chrome에서 이벤트 리스너가 제대로 등록되도록
-      // socket이 연결된 상태에서만 등록하도록 보장
       if (!this.socket.connected) {
-        // 연결 완료 후 등록
         const connectHandler = () => {
           this.socket?.off('connect', connectHandler);
           this.socket?.on(event, callback);
@@ -195,7 +186,6 @@ export class WebSocketService {
         return;
       }
 
-      // Chrome에서 중복 등록 방지를 위해 먼저 제거 후 등록
       this.socket.off(event, callback);
       this.socket.on(event, callback);
       if (event === 'connect' && this.socket.connected) callback();

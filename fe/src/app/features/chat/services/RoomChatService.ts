@@ -1,4 +1,4 @@
-import { ChatReceiveData } from '@/app/features/chat/dtos/type';
+import { ChatReceiveData, ChatReceiveDto } from '@/app/features/chat/dtos/type';
 import { WebSocketService } from '@/app/services/websocket.service';
 import { ChatConverter } from '@/app/features/chat/dtos/Chat';
 import { roomStore } from '@/app/features/room/stores/room';
@@ -8,26 +8,12 @@ import {
   RoomJoinedBroadcastDto,
   RoomLeftAckDto,
   RoomLeftBroadcastDto,
+  MessageCallback,
+  ConnectionCallback,
 } from './type';
+import { WS_EVENTS } from '@/app/services/events';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
-import IS from '@/utils/is';
-
-// WebSocket 수신 DTO
-interface RoomChatReceiveDto {
-  roomId: string;
-  userId: string;
-  message: string;
-  timestamp: string;
-  sender?: {
-    role: string;
-    nickname: string;
-    profile_image: string | null;
-    is_me: boolean;
-  };
-}
-
-type MessageCallback = (message: ChatReceiveData) => void;
-type ConnectionCallback = (connected: boolean) => void;
+import { authStore } from '@/app/features/user/stores/auth';
 
 /**
  * RoomChat 클라이언트 서비스
@@ -36,6 +22,7 @@ type ConnectionCallback = (connected: boolean) => void;
 export class RoomChatService {
   private messageCallbacks: Set<MessageCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
+  private roomInvalidatedCallbacks: Set<() => void> = new Set();
   private isSubscribed = false;
   private messages: ChatReceiveData[] = [];
   private currentRoomId: string | null = null;
@@ -46,55 +33,70 @@ export class RoomChatService {
    * @param roomId 방 ID
    */
   async subscribe(roomId: string): Promise<void> {
+    const isMyRoom = this.currentRoomId === roomId;
+    const isConnected = WebSocketService.isConnected();
+
+    // 다른 대화방 소속 중
+    if (this.isSubscribed && !isMyRoom) this.unsubscribe();
+
+    // 동일 대화방 소속 중
+    if (this.isSubscribed && isMyRoom && isConnected) return this.registerEventHandlers();
+
     try {
-      // 이미 구독 중이면 재구독 (다른 방으로 이동한 경우)
-      if (this.isSubscribed && this.currentRoomId !== roomId) {
-        this.unsubscribe();
-      }
-
-      // 같은 방이면 재구독 불필요
-      if (this.isSubscribed && this.currentRoomId === roomId) return;
-
       // GlobalChatService를 통해 연결 보장
       await globalChatService.ensureConnected();
 
-      // Chrome에서 이벤트 리스너가 제대로 등록되도록
-      // WebSocket이 완전히 연결된 상태인지 확인
+      // WebSocket 연결 확인
       const socket = WebSocketService.getSocket();
-      if (!socket || !socket.connected) {
-        // 연결 완료까지 대기
-        await new Promise<void>((resolve) => {
-          if (socket?.connected) {
-            resolve();
-            return;
-          }
-          const connectHandler = () => {
-            socket?.off('connect', connectHandler);
-            resolve();
-          };
-          socket?.on('connect', connectHandler);
-        });
+      if (!socket) return;
+
+      if (!socket.connected) {
+        await new Promise<void>((resolve) => socket.once(WS_EVENTS.CONNECT, resolve));
       }
 
       this.currentRoomId = roomId;
+      const ackState = { received: false };
+      this.registerEventHandlers(() => {
+        ackState.received = true;
+      });
 
-      // 이벤트 핸들러 등록 (연결 완료 후)
-      this.registerEventHandlers();
-
-      // Chrome에서 이벤트 리스너 등록이 완료될 때까지 약간의 지연
+      // 이벤트 리스너 등록 완료 대기
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // 방 입장 요청 (연결 보장 후 이벤트 전송)
+      // 방 입장 요청
       await globalChatService.joinRoom(roomId);
 
-      // 연결 상태는 이미 연결되어 있으므로 true로 설정
-      this.notifyConnection(true);
+      // room:join ACK 대기 (최대 2초). ACK 없으면 isSubscribed 미설정·연결 false
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          if (!ackState.received) this.notifyConnection(false);
+          resolve();
+        }, 2000);
 
-      this.isSubscribed = true;
-    } catch (error) {
-      console.error('[RoomChatService] 구독 실패:', error);
+        const ackHandler = (data: RoomJoinedAckDto) => {
+          if (data.roomId !== roomId || ackState.received) return;
+          ackState.received = true;
+          clearTimeout(timeout);
+          WebSocketService.off(WS_EVENTS.ROOM_JOIN, ackHandler);
+          if (data.current_participants != null) {
+            roomStore.getState().updateRoomData({
+              currentParticipants: data.current_participants,
+            });
+          }
+          this.notifyConnection(true);
+          resolve();
+        };
+
+        WebSocketService.on(WS_EVENTS.ROOM_JOIN, ackHandler);
+      });
+
+      if (ackState.received) {
+        this.isSubscribed = true;
+        this.notifyConnection(true);
+      }
+    } catch (e) {
       this.notifyConnection(false);
-      throw error;
+      throw e;
     }
   }
 
@@ -102,152 +104,129 @@ export class RoomChatService {
    * room:joined 이벤트 핸들러에서 호출
    */
   onRoomJoined(roomId: string): void {
-    if (this.currentRoomId === roomId) {
-      // room store 업데이트
-      if (typeof window !== 'undefined') {
-        roomStore.getState().setJoined(true);
-      }
-    }
+    if (this.currentRoomId !== roomId) return;
+
+    roomStore.getState().setJoined(true);
+    this.notifyConnection(true);
   }
 
   /**
    * WebSocket 이벤트 핸들러 등록
-   * (이미 연결된 세션에 이벤트 리스너만 등록)
+   * @param onRoomJoinAck subscribe에서 ACK 대기 중일 때, ACK 수신 시 호출
    */
-  private registerEventHandlers(): void {
+  private registerEventHandlers(onRoomJoinAck?: () => void): void {
     // 기존 핸들러 제거
     this.removeEventHandlers();
 
-    // room:join ACK 핸들러 (방 입장 성공)
+    // 소켓 끊김 시 연결 상태만 false
+    const disconnectHandler = () => this.notifyConnection(false);
+    this.eventHandlers.set(WS_EVENTS.DISCONNECT, disconnectHandler);
+    WebSocketService.on(WS_EVENTS.DISCONNECT, disconnectHandler);
+
+    // 소켓 재연결 시 같은 방이면 무조건 room:join 전송
+    const connectHandler = () => {
+      if (this.isSubscribed && this.currentRoomId && WebSocketService.isConnected()) {
+        WebSocketService.send(WS_EVENTS.ROOM_JOIN, { room_id: this.currentRoomId });
+      }
+    };
+    this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
+    WebSocketService.on(WS_EVENTS.CONNECT, connectHandler);
+
+    // room:join ACK 핸들러 (방 입장 성공, 참여자 수 반영)
     const joinAckHandler = (data: RoomJoinedAckDto) => {
-      if (data.roomId === this.currentRoomId) {
-        this.onRoomJoined(data.roomId);
+      if (data.roomId !== this.currentRoomId) return;
+      onRoomJoinAck?.();
+      if (data.current_participants != null) {
+        roomStore.getState().updateRoomData({
+          currentParticipants:
+            typeof data.current_participants === 'number'
+              ? data.current_participants
+              : parseInt(String(data.current_participants), 10),
+        });
       }
+      this.onRoomJoined(data.roomId);
+      this.notifyConnection(true);
     };
-    this.eventHandlers.set('room:join', joinAckHandler);
-    WebSocketService.on('room:join', joinAckHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_JOIN, joinAckHandler);
+    WebSocketService.on(WS_EVENTS.ROOM_JOIN, joinAckHandler);
 
-    // room:joined 브로드캐스트 핸들러 (다른 사용자 입장)
+    // room:joined 브로드캐스트 핸들러
     const joinedBroadcastHandler = (data: RoomJoinedBroadcastDto) => {
-      if (data.roomId === this.currentRoomId) {
-        if (typeof window !== 'undefined') {
-          // 자신의 입장인지 확인 (authStore에서 userId 가져오기)
-          let currentUserId: string | null = null;
-          try {
-            const { authStore } = require('@/app/features/user/stores/auth');
-            currentUserId = authStore.getState().userId;
-          } catch {
-            // authStore를 가져올 수 없으면 무시
-          }
+      if (data.roomId !== this.currentRoomId) return;
 
-          // 다른 사용자 입장인 경우에만 toast 표시
-          if (!currentUserId || data.user.id !== currentUserId) {
-            toastStore.getState().showInfoToast(`${data.user.nickname}님이 입장했습니다.`);
-          }
+      const currentUserId = authStore.getState().userId;
+      const isOtherUser = !currentUserId || data.user.id !== currentUserId;
 
-          roomStore.getState().updateRoomData({
-            currentParticipants: parseInt(data.current_participants, 10),
-          });
-        }
+      if (isOtherUser) {
+        toastStore.getState().showInfoToast(`${data.user.nickname}님이 입장했습니다.`);
+        roomStore.getState().addParticipant({
+          userId: data.user.id,
+          nickname: data.user.nickname,
+          profileImage: data.user.profile_image || '',
+        });
       }
+
+      roomStore.getState().updateRoomData({
+        currentParticipants: parseInt(data.current_participants, 10),
+      });
     };
-    this.eventHandlers.set('room:joined', joinedBroadcastHandler);
-    WebSocketService.on('room:joined', joinedBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_JOINED, joinedBroadcastHandler);
+    WebSocketService.on(WS_EVENTS.ROOM_JOINED, joinedBroadcastHandler);
 
     // room:leave ACK 핸들러 (방 퇴장 성공)
     const leaveAckHandler = (data: RoomLeftAckDto) => {
       // ACK는 특별한 처리가 필요 없을 수 있음
     };
-    this.eventHandlers.set('room:leave', leaveAckHandler);
-    WebSocketService.on('room:leave', leaveAckHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
+    WebSocketService.on(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
 
     // room:left 브로드캐스트 핸들러 (다른 사용자 퇴장)
     const leftBroadcastHandler = (data: RoomLeftBroadcastDto) => {
-      if (data.roomId === this.currentRoomId) {
-        if (typeof window !== 'undefined') {
-          // 자신의 퇴장인지 확인 (authStore에서 userId 가져오기)
-          let currentUserId: string | null = null;
-          try {
-            const { authStore } = require('@/app/features/user/stores/auth');
-            currentUserId = authStore.getState().userId;
-          } catch {
-            // authStore를 가져올 수 없으면 무시
-          }
+      if (data.roomId !== this.currentRoomId) return;
 
-          // 다른 사용자 퇴장인 경우에만 toast 표시
-          if (!currentUserId || data.userId !== currentUserId) {
-            toastStore.getState().showInfoToast('사용자가 퇴장했습니다.');
-            // 참여자 목록에서 제거
-            roomStore.getState().removeParticipant(data.userId);
-          }
+      const currentUserId = authStore.getState().userId;
+      const isOtherUser = !currentUserId || data.userId !== currentUserId;
 
-          roomStore.getState().updateRoomData({
-            currentParticipants: parseInt(data.current_participants, 10),
-          });
-        }
+      if (isOtherUser) {
+        toastStore.getState().showInfoToast('사용자가 퇴장했습니다.');
+        roomStore.getState().removeParticipant(data.userId);
       }
+
+      roomStore.getState().updateRoomData({
+        currentParticipants: parseInt(data.current_participants, 10),
+      });
     };
-    this.eventHandlers.set('room:left', leftBroadcastHandler);
-    WebSocketService.on('room:left', leftBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_LEFT, leftBroadcastHandler);
+    WebSocketService.on(WS_EVENTS.ROOM_LEFT, leftBroadcastHandler);
 
     // chat:room:new-message 핸들러
-    const messageHandler = (dto: RoomChatReceiveDto) => this.handleRoomMessage(dto);
-    this.eventHandlers.set('chat:room:new-message', messageHandler);
-    WebSocketService.on('chat:room:new-message', messageHandler);
+    const messageHandler = (dto: ChatReceiveDto) => this.handleRoomMessage(dto);
+    this.eventHandlers.set(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
+    WebSocketService.on(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
 
     // error 핸들러
     const errorHandler = (error: any) => this.handleError(error);
-    this.eventHandlers.set('error', errorHandler);
-    WebSocketService.on('error', errorHandler);
+    this.eventHandlers.set(WS_EVENTS.ERROR, errorHandler);
+    WebSocketService.on(WS_EVENTS.ERROR, errorHandler);
   }
 
   /**
    * 등록된 이벤트 핸들러 제거
    */
   private removeEventHandlers(): void {
-    this.eventHandlers.forEach((handler, event) => {
-      WebSocketService.off(event, handler);
-    });
+    this.eventHandlers.forEach((handler, event) => WebSocketService.off(event, handler));
     this.eventHandlers.clear();
   }
 
   /**
    * 방 채팅 메시지 수신 이벤트 핸들러
+   * Dto를 받아서 Converter를 통해 Data로 변환
    */
-  private handleRoomMessage(dto: RoomChatReceiveDto): void {
-    // 현재 방의 메시지만 처리
-    if (dto.roomId !== this.currentRoomId) return;
+  private handleRoomMessage(dto: ChatReceiveDto): void {
+    if (!dto.room_id || dto.room_id !== this.currentRoomId) return;
+    if (!dto.sender) return;
 
-    // sender 정보가 없으면 기본값 사용
-    let senderInfo = dto.sender;
-    if (!senderInfo) {
-      // authStore에서 현재 userId 가져오기
-      let currentUserId: string | null = null;
-      if (!IS.undefined(window)) {
-        try {
-          const { authStore } = require('@/app/features/user/stores/auth');
-          currentUserId = authStore.getState().userId;
-        } catch {
-          // authStore를 가져올 수 없으면 무시
-        }
-      }
-
-      senderInfo = {
-        role: 'USER',
-        nickname: dto.userId,
-        profile_image: null,
-        is_me: currentUserId === dto.userId,
-      };
-    }
-
-    // ChatReceiveDto 형식으로 변환
-    const chatReceiveDto = {
-      message: dto.message,
-      sender: senderInfo,
-      timestamp: dto.timestamp,
-    };
-
-    const chatData = ChatConverter.toReceiveData(chatReceiveDto);
+    const chatData = ChatConverter.toReceiveData(dto);
     this.messages.push(chatData);
     this.notifyMessage(chatData);
   }
@@ -257,6 +236,28 @@ export class RoomChatService {
    */
   private handleError(error: any): void {
     console.error('[RoomChatService] WebSocket error:', error);
+    roomStore.getState().leaveRoom();
+    this.clearSubscriptionOnly();
+    this.roomInvalidatedCallbacks.forEach((cb) => cb());
+  }
+
+  /**
+   * BE 기준 방 소속이 아니게 된 경우, 구독만 정리
+   */
+  clearSubscriptionOnly(): void {
+    this.removeEventHandlers();
+    this.isSubscribed = false;
+    this.currentRoomId = null;
+    this.messages = [];
+    this.notifyConnection(false);
+  }
+
+  /**
+   * BE가 방 소속이 아니라고 했을 때 호출할 콜백 등록
+   */
+  onRoomInvalidated(callback: () => void): () => void {
+    this.roomInvalidatedCallbacks.add(callback);
+    return () => this.roomInvalidatedCallbacks.delete(callback);
   }
 
   /**
@@ -265,32 +266,17 @@ export class RoomChatService {
   unsubscribe(): void {
     if (!this.isSubscribed) return;
 
-    try {
-      // 이벤트 핸들러 제거
-      this.removeEventHandlers();
+    this.removeEventHandlers();
+    roomStore.getState().leaveRoom();
 
-      // room store 초기화
-      if (typeof window !== 'undefined') {
-        roomStore.getState().leaveRoom();
-      }
-
-      // 방 퇴장 요청 (WebSocket 이벤트 전송)
-      if (this.currentRoomId && WebSocketService.isConnected()) {
-        WebSocketService.send('room:leave', { room_id: this.currentRoomId });
-      }
-
-      this.isSubscribed = false;
-      this.currentRoomId = null;
-      this.messages = [];
-      this.notifyConnection(false);
-    } catch (error) {
-      console.error('[RoomChatService] 구독 해제 실패:', error);
-      // 에러가 발생해도 상태는 초기화
-      this.isSubscribed = false;
-      this.currentRoomId = null;
-      this.messages = [];
-      this.notifyConnection(false);
+    if (this.currentRoomId && WebSocketService.isConnected()) {
+      WebSocketService.send(WS_EVENTS.ROOM_LEAVE, { room_id: this.currentRoomId });
     }
+
+    this.isSubscribed = false;
+    this.currentRoomId = null;
+    this.messages = [];
+    this.notifyConnection(false);
   }
 
   /**
@@ -298,18 +284,11 @@ export class RoomChatService {
    * @param message 전송할 메시지
    */
   sendMessage(message: string): void {
-    if (!this.isSubscribed || !this.currentRoomId) {
-      console.error('[RoomChatService] Not subscribed to any room');
-      return;
-    }
+    if (!this.isSubscribed || !this.currentRoomId) return;
+    if (!WebSocketService.isConnected()) return;
 
-    if (!WebSocketService.isConnected()) {
-      console.error('[RoomChatService] WebSocket is not connected');
-      return;
-    }
-
-    WebSocketService.send('chat:room:send', {
-      roomId: this.currentRoomId,
+    WebSocketService.send(WS_EVENTS.CHAT_ROOM_SEND, {
+      room_id: this.currentRoomId,
       message,
     });
   }

@@ -72,7 +72,6 @@ export const authStore = create<AuthStore>()(
           }
         } catch (e) {
           console.warn('[Auth] initialize failed', e);
-          // ❗ 토큰은 유지 (자동 로그아웃 안 함)
           set({ isAuthenticated: false, user: null });
         }
       },
@@ -80,7 +79,6 @@ export const authStore = create<AuthStore>()(
       /* ---------- login ---------- */
       login: async (userId: string) => {
         const data = await UserService.mockLogin(userId);
-        console.log('data', data);
 
         const user: User = {
           id: data.user.id,
@@ -137,10 +135,7 @@ export const authStore = create<AuthStore>()(
           const parsed = e.newValue ? JSON.parse(e.newValue) : null;
           const next = parsed?.state;
 
-          if (!next?.token) {
-            authStore.getState().logout();
-            return;
-          }
+          if (!next?.token) return authStore.getState().logout();
 
           if (next.token !== authStore.getState().token) {
             authStore.setState({

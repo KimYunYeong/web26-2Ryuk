@@ -5,6 +5,8 @@ import { globalChatService } from '@/app/features/chat/services/GlobalChatServic
 import { ChatReceiveData } from '@/app/features/chat/dtos/type';
 import { authStore, type AuthStore } from '@/app/features/user/stores/auth';
 import ChatPanel from './ChatPanel';
+import { Position } from '@/app/components/shared/floatingWidget/type';
+import { PANEL_CONFIG } from './type';
 
 /**
  * GlobalChat 클라이언트 컴포넌트
@@ -14,6 +16,20 @@ export default function GlobalChatPanel() {
   const [chats, setChats] = useState<ChatReceiveData[]>([]);
   const [currentParticipants, setCurrentParticipants] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
+
+  const getInitialPosition = (): Position => {
+    if (typeof window === 'undefined') return PANEL_CONFIG.DEFAULT_POSITION;
+    const x = window.innerWidth - PANEL_CONFIG.WIDTH - PANEL_CONFIG.OFFSET;
+    const y =
+      window.innerHeight -
+      PANEL_CONFIG.HEIGHT -
+      PANEL_CONFIG.OFFSET -
+      PANEL_CONFIG.HEIGHT -
+      PANEL_CONFIG.GAP;
+    return { x, y };
+  };
+
+  const [initialPosition] = useState<Position>(getInitialPosition());
 
   // WebSocket 연결 및 구독
   useEffect(() => {
@@ -69,6 +85,7 @@ export default function GlobalChatPanel() {
       onMessageSubmit={handleMessageSubmit}
       isConnected={isConnected}
       disabled={!isConnected || !isAuthenticated}
+      initialPosition={initialPosition}
     />
   );
 }

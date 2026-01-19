@@ -21,6 +21,7 @@ import Modal from '@/app/components/shared/modal/Modal';
 import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
 import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
+import VoiceParticipantCard from '@/app/features/room/components/chat/VoiceParticipantCard';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import Dialog from '@/app/components/shared/dialog/Dialog';
 import Paths from '@/app/shared/path';
@@ -41,7 +42,6 @@ export default function FeatureComponents() {
                   sender={{
                     role: 'user',
                     nickname: '상대방',
-                    profileImage: 'https://i.pravatar.cc/150?img=1',
                     isMe: false,
                   }}
                   message="Their Message"
@@ -59,7 +59,6 @@ export default function FeatureComponents() {
                   sender={{
                     role: 'user',
                     nickname: '나',
-                    profileImage: 'https://i.pravatar.cc/150?img=2',
                     isMe: true,
                   }}
                   message="My Message"
@@ -151,6 +150,31 @@ export default function FeatureComponents() {
                 <AudioControlButtons initialMicState={false} initialSpeakerState={false} />
               </Component>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="voice-participant-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>VoiceParticipantCard</h2>
+        <ComponentRelations componentId="voice-participant-card" />
+        <div className={styles.showcaseBlock}>
+          <div className={styles.cardColumn}>
+            <Component fullWidth>
+              <VoiceParticipantCard nickname="강하늘" isMe active micOn speakerOn volume={60} />
+            </Component>
+            <Component fullWidth>
+              <VoiceParticipantCard
+                nickname="박철수"
+                isHost
+                active={false}
+                micOn
+                speakerOn
+                volume={45}
+              />
+            </Component>
+            <Component fullWidth>
+              <VoiceParticipantCard nickname="김지영" micOn={false} speakerOn volume={20} />
+            </Component>
           </div>
         </div>
       </section>
@@ -316,22 +340,18 @@ export default function FeatureComponents() {
                     {
                       userId: '1',
                       nickname: 'User1',
-                      profileImage: 'https://i.pravatar.cc/150?img=1',
                     },
                     {
                       userId: '2',
                       nickname: 'User2',
-                      profileImage: 'https://i.pravatar.cc/150?img=2',
                     },
                     {
                       userId: '3',
                       nickname: 'User3',
-                      profileImage: 'https://i.pravatar.cc/150?img=3',
                     },
                     {
                       userId: '4',
                       nickname: 'User4',
-                      profileImage: 'https://i.pravatar.cc/150?img=4',
                     },
                   ]}
                 />
