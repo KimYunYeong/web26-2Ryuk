@@ -70,6 +70,9 @@ export class GameService {
       throw new ForbiddenException('방장만 게임 모집을 시작할 수 있습니다.');
     }
 
+    // 방장도 참가자 명단에 추가
+    await this.addParticipant(roomId, toUuid(userId));
+
     // 해당 방의 모든 참여자에게 브로드캐스트
     server.to(roomId).emit('game:recruit', {
       is_game_recruiting: true,
