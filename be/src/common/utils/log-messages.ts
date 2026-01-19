@@ -279,6 +279,10 @@ export const LOG = {
       message: `게임 상태 조회 실패: roomId=${roomId}, error=${error}`,
       level: 'error',
     }),
+    LEAVE: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 참가 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
   },
 } as const;
 

@@ -9,6 +9,7 @@ import {
   NotFoundException,
   OnModuleInit,
   HttpStatus,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -43,7 +44,7 @@ export class RoomService implements OnModuleInit {
   constructor(
     @Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    private readonly gameService: GameService,
+    @Inject(forwardRef(() => GameService)) private readonly gameService: GameService,
   ) {}
 
   onModuleInit() {
@@ -155,7 +156,8 @@ export class RoomService implements OnModuleInit {
     await this.redisClient.del(`room:${roomId}:members:${uuid}`);
     await this.redisClient.sRem(`user:${uuid}:rooms`, roomId);
 
-    // TODO: 게임 참가자 목록에서도 제거 (게임 중일 경우)
+    // 게임 참가자 목록에서도 제거 (게임 중일 경우)
+    await this.gameService.leaveGame(roomId, userId);
 
     // 참여자 수 감소
     await this.updateCurrentParticipants(roomId);

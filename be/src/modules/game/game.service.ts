@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Server } from 'socket.io';
@@ -40,7 +40,7 @@ export class GameService {
   private readonly logger = new Logger(GameService.name);
 
   constructor(
-    private readonly roomService: RoomService,
+    @Inject(forwardRef(() => RoomService)) private readonly roomService: RoomService,
     @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
   ) {}
@@ -282,5 +282,18 @@ export class GameService {
       },
       participant_count: participantCount.toString(),
     });
+  }
+
+  /**
+   * 게임 참가 취소
+   */
+  async leaveGame(roomId: string, userId: string): Promise<void> {
+    const playerKey = this.getParticipantKey(roomId, userId);
+    const exists = await this.redisClient.exists(playerKey);
+
+    if (exists) {
+      await this.redisClient.del(playerKey);
+      logMessage(this.logger, LOG.GAME.LEAVE(roomId, userId));
+    }
   }
 }
