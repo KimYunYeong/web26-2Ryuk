@@ -32,7 +32,7 @@ export interface RoomData<T> {
 export interface ParticipantDto {
   user_id: string;
   nickname: string;
-  profile_image: string;
+  profile_image?: string;
 }
 
 export interface RoomDto {
