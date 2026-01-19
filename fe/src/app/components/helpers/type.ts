@@ -160,6 +160,12 @@ export const componentRelations: ComponentRelation[] = [
     children: ['chip', 'icon', 'icon-button'],
   },
   {
+    id: 'voice-participant-card',
+    title: 'VoiceParticipantCard',
+    category: 'feature',
+    children: ['avatar', 'slider', 'chip', 'icon-button'],
+  },
+  {
     id: 'realtime-rooms',
     title: 'RealtimeRoomsSection',
     category: 'feature',
@@ -253,6 +259,7 @@ export const featureSections = [
   { id: 'room-update-modal', title: 'RoomUpdateModal' },
   { id: 'room-card', title: 'RoomCard' },
   { id: 'room-info', title: 'RoomInfo' },
+  { id: 'voice-participant-card', title: 'VoiceParticipantCard' },
   { id: 'realtime-rooms', title: 'RealtimeRoomsSection' },
 ];
 
