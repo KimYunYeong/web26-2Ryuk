@@ -18,6 +18,7 @@ import { roomStore, RoomStore } from '../stores/room';
 import { useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
+import { loadingStore } from '@/app/features/loading/stores/loading';
 
 export default function RealtimeRoomsSection() {
   const { isDesktop } = useResponsive();
@@ -28,6 +29,7 @@ export default function RealtimeRoomsSection() {
   const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
   const roomId = roomStore((state: RoomStore) => state.roomId);
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
+  const { show, hide } = loadingStore();
 
   useEffect(() => {
     (async () => {
@@ -44,16 +46,21 @@ export default function RealtimeRoomsSection() {
   };
 
   const handleSubmit = async (data: RoomEditData) => {
-    const roomDto = RoomConverter.editToDto(data);
-    const createdRoom = await roomService.createRoom(roomDto);
-    closeModal('room-creation');
+    const roomDto = RoomConverter.toEditDto(data);
+    show();
+    try {
+      const createdRoom = await roomService.createRoom(roomDto);
+      closeModal('room-creation');
 
-    // 호스트가 방을 만든 직후 Socket.io room에 참여하도록 구독
-    await roomChatService.subscribe(createdRoom.id);
+      // 호스트가 방을 만든 직후 Socket.io room에 참여하도록 구독
+      await roomChatService.subscribe(createdRoom.id);
 
-    goToRoom(createdRoom.id);
-    setRoom(createdRoom.id);
-    setRoomData(RoomConverter.toData(createdRoom));
+      goToRoom(createdRoom.id);
+      setRoom(createdRoom.id);
+      setRoomData(RoomConverter.toData(createdRoom));
+    } finally {
+      hide();
+    }
   };
 
   return (
