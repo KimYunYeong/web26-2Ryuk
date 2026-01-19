@@ -98,16 +98,10 @@ export class RoomController {
    * GET /api/rooms/me
    */
   @Get('me')
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('참여 중인 방 조회에 성공 했습니다.')
-  async getMyCurrentRoom(@Headers('authorization') authHeader: string): Promise<{ roomId: string | null }> {
-    if (!authHeader) throw new UnauthorizedException('인증이 필요합니다.');
-
-    const token = authHeader.replace('Bearer ', '');
-    const payload = this.authService.verifyMockToken(token);
-
-    if (!payload) throw new UnauthorizedException('유효하지 않은 토큰입니다.');
-
-    const userId = payload.userId;
+  async getMyCurrentRoom(@Req() req): Promise<{ roomId: string | null }> {
+    const userId = req.user.id;
     const roomId = await this.roomService.getUserLocalRoom(userId);
     return { roomId };
   }
