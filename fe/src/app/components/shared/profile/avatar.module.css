@@ -44,7 +44,6 @@
 .avatar.warning .nickname {
   background: var(--warning-bg);
   color: var(--warning);
-
 }
 
 .avatar img {

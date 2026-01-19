@@ -810,6 +810,78 @@ export default function SharedComponents() {
         </div>
       </section>
 
+      <section id="success-variants" className={styles.section}>
+        <h2 className={styles.sectionTitle}>Success Variants</h2>
+        <div className={styles.iconRow}>
+          <Component>
+            <TextButton.SuccessPrimary text="Success Primary" size="medium" />
+          </Component>
+          <Component>
+            <TextButton.SuccessSecondary text="Success Secondary" size="medium" />
+          </Component>
+          <Component>
+            <Chip.SuccessPrimary label="Success Primary" size="medium" />
+          </Component>
+          <Component>
+            <Chip.SuccessSecondary label="Success Secondary" size="medium" />
+          </Component>
+          <Component>
+            <IconCircle.SuccessPrimary name="send" size="medium" />
+          </Component>
+          <Component>
+            <IconCircle.SuccessSecondary name="send" size="medium" />
+          </Component>
+        </div>
+      </section>
+
+      <section id="warning-variants" className={styles.section}>
+        <h2 className={styles.sectionTitle}>Warning Variants</h2>
+        <div className={styles.iconRow}>
+          <Component>
+            <TextButton.WarningPrimary text="Warning Primary" size="medium" />
+          </Component>
+          <Component>
+            <TextButton.WarningSecondary text="Warning Secondary" size="medium" />
+          </Component>
+          <Component>
+            <Chip.WarningPrimary label="Warning Primary" size="medium" />
+          </Component>
+          <Component>
+            <Chip.WarningSecondary label="Warning Secondary" size="medium" />
+          </Component>
+          <Component>
+            <IconCircle.WarningPrimary name="send" size="medium" />
+          </Component>
+          <Component>
+            <IconCircle.WarningSecondary name="send" size="medium" />
+          </Component>
+        </div>
+      </section>
+
+      <section id="error-variants" className={styles.section}>
+        <h2 className={styles.sectionTitle}>Error Variants</h2>
+        <div className={styles.iconRow}>
+          <Component>
+            <TextButton.ErrorPrimary text="Error Primary" size="medium" />
+          </Component>
+          <Component>
+            <TextButton.ErrorSecondary text="Error Secondary" size="medium" />
+          </Component>
+          <Component>
+            <Chip.ErrorPrimary label="Error Primary" size="medium" />
+          </Component>
+          <Component>
+            <Chip.ErrorSecondary label="Error Secondary" size="medium" />
+          </Component>
+          <Component>
+            <IconCircle.ErrorPrimary name="send" size="medium" />
+          </Component>
+          <Component>
+            <IconCircle.ErrorSecondary name="send" size="medium" />
+          </Component>
+        </div>
+      </section>
+
       <section id="chip-button" className={styles.section}>
         <h2 className={styles.sectionTitle}>ChipButton</h2>
         <ComponentRelations componentId="chip-button" />
