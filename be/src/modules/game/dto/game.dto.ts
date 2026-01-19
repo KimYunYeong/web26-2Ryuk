@@ -13,3 +13,16 @@ export class GameJoinDto {
   @IsUUID()
   room_id: string;
 }
+
+export interface GameInfoDto {
+  id: string;
+  title: string;
+  type: string;
+  description: string;
+  min_participants: number;
+  max_participants: number;
+}
+
+export class GameListResponseDto {
+  games: GameInfoDto[];
+}

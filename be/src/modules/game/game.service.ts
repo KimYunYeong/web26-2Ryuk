@@ -46,6 +46,19 @@ export class GameService {
   ) {}
 
   /**
+   * 전체 게임 목록 조회
+   */
+  async getAllGames() {
+    try {
+      const games = await this.gameRepository.find();
+      return { games };
+    } catch (error) {
+      this.logger.error('게임 목록 조회 중 오류 발생', error.stack);
+      throw error;
+    }
+  }
+
+  /**
    * 게임 모집 시작
    * @param server Socket.io 서버 인스턴스
    * @param roomId 방 ID
