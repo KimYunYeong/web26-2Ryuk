@@ -85,31 +85,10 @@ export class RoomGateway {
       if (isInRoom) {
         logMessage(this.logger, LOG.ROOM.ALREADY_IN(userId, dto.room_id));
 
-        // Redis에는 참여 중이지만 Socket.io room에 참여하지 않았을 수 있으므로
-        // Socket.io room에 참여하도록 보장
+        // Redis에는 참여 중이지만 Socket.io room에 참여하지 않았을 수 있으므로 재참여만
         client.join(dto.room_id);
-        client.emit('room:join', { roomId: dto.room_id });
-
-        // 이미 참여 중이어도 다른 사용자에게 브로드캐스트를 보내야 함
-        // (예: 호스트가 방을 만든 직후 다른 사용자가 입장하는 경우)
-        const user = await this.authService.getUserById(userId);
         const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
-
-        // Redis adapter를 사용하는 경우 room 참여가 전파되는 데 시간이 걸릴 수 있으므로
-        // 약간의 지연을 두고 브로드캐스트 전송
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        await this.roomService.notifyUserJoined(
-          this.server,
-          dto.room_id,
-          {
-            userId,
-            nickname: user.nickname,
-            profile_image: user.profile_image,
-          },
-          currentParticipants,
-        );
-
+        client.emit('room:join', { roomId: dto.room_id, current_participants: currentParticipants });
         return;
       }
 
@@ -136,8 +115,8 @@ export class RoomGateway {
       // Socket.io room에 참여
       client.join(dto.room_id);
 
-      // 클라이언트에 입장 성공 알림 (ACK)
-      client.emit('room:join', { roomId: dto.room_id });
+      // 클라이언트에 입장 성공 알림 (ACK, 참여자 수 포함)
+      client.emit('room:join', { roomId: dto.room_id, current_participants: currentParticipants });
 
       // 브로드캐스트: 사용자 정보 및 현재 참여자 수 조회
       // Service를 통해 MySQL에서 사용자 정보 조회

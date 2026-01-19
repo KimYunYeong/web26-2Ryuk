@@ -39,7 +39,41 @@ export class ChatGateway {
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
   ) {}
 
-  // 글로벌 채팅 메시지 수신 및 브로드캐스트 (인증되지 않은 사용자는 수신만)
+  @SubscribeMessage('chat:global:join')
+  async handleGlobalChatJoin(@ConnectedSocket() client: Socket) {
+    try {
+      const globalRoomId = GLOBAL_ROOM_ID;
+      if (!globalRoomId) return;
+
+      const userId = (client.data.userId as string) ?? null;
+      const [recents, currentParticipants] = await Promise.all([
+        this.roomService.getGlobalChatRecents(globalRoomId),
+        this.roomService.getCurrentParticipants(globalRoomId),
+      ]);
+
+      const messages = recents.map((msg) => ({
+        message: msg.content,
+        sender: {
+          role: msg.role,
+          nickname: msg.nickname,
+          profile_image: msg.profile_image,
+          is_me: userId ? msg.sender_id === userId : false,
+        },
+        timestamp: msg.create_date,
+      }));
+
+      client.emit('chat:global:recents', { messages, current_participants: currentParticipants });
+      client.emit('chat:global:participants-updated', {
+        roomId: globalRoomId,
+        current_participants: currentParticipants,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.WS.GLOBAL_CHAT_HANDLE_ERROR(errorMessage));
+    }
+  }
+
+  // 글로벌 채팅 메시지 수신 및 브로드캐스트
   @SubscribeMessage('chat:global:send')
   async handleGlobalChat(@ConnectedSocket() client: Socket, @MessageBody() dto: GlobalChatSendDto) {
     try {
