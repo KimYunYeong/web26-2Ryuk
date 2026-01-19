@@ -29,6 +29,7 @@ import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import { GameConverter } from '@/app/features/game/dtos/Game';
 import gamesMock from '@/mocks/data/games.json';
+import MyReadyStatusCard from '@/app/features/room/components/MyReadyStatusCard';
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toData);
@@ -424,6 +425,22 @@ export default function FeatureComponents() {
               <EmptyGameCard />
             </Component>
           </div>
+        </div>
+      </section>
+
+      <section id="my-ready-status-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>MyReadyStatusCard</h2>
+        <ComponentRelations componentId="my-ready-status-card" />
+        <div className={styles.chatRow}>
+          <Component fullWidth>
+            <MyReadyStatusCard nickname="강하늘" isHost isReady={false} />
+          </Component>
+          <Component fullWidth>
+            <MyReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+          </Component>
+          <Component fullWidth>
+            <MyReadyStatusCard nickname="박철수" isHost={false} isReady />
+          </Component>
         </div>
       </section>
 
