@@ -3,7 +3,7 @@ import { ChatReceiveDto, ChatReceiveData, ChatSendDto, ChatSendData } from './ty
 export const ChatConverter = {
   /**
    * WebSocket 수신 DTO를 ChatReceiveData로 변환
-   * @param dto WebSocket 이벤트에서 받은 DTO (snake_case)
+   * @param dto WebSocket 이벤트에서 받은 DTO
    */
   toReceiveData(dto: ChatReceiveDto): ChatReceiveData {
     return {
@@ -16,6 +16,7 @@ export const ChatConverter = {
         isMe: dto.sender.is_me,
       },
       timestamp: new Date(dto.timestamp),
+      roomId: dto.room_id,
     };
   },
 
@@ -33,6 +34,8 @@ export const ChatConverter = {
         is_me: data.sender.isMe,
       },
       timestamp: data.timestamp.toISOString(),
+      room_id: data.roomId,
+      user_id: undefined,
     };
   },
 
@@ -41,18 +44,14 @@ export const ChatConverter = {
    * @param data ChatSendData
    */
   toSendDto(data: ChatSendData): ChatSendDto {
-    return {
-      message: data.message,
-    };
+    return { message: data.message };
   },
 
   /**
-   * 메시지 문자열을 ChatSendData로 변환
-   * @param message 전송할 메시지
+   * ChatSendDto를 ChatSendData로 변환
+   * @param dto ChatSendDto
    */
-  toSendData(message: string): ChatSendData {
-    return {
-      message,
-    };
+  toSendData(dto: ChatSendDto): ChatSendData {
+    return { message: dto.message };
   },
 };

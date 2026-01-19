@@ -1,4 +1,4 @@
-// WebSocket 채팅 메시지 수신 DTO (snake_case)
+// WebSocket 채팅 메시지 수신 DTO
 export interface ChatReceiveDto {
   message: string;
   sender: {
@@ -8,31 +8,27 @@ export interface ChatReceiveDto {
     is_me: boolean;
   };
   timestamp: string;
+  room_id?: string;
+  user_id?: string;
 }
 
-// WebSocket 채팅 메시지 전송 DTO (snake_case)
-export interface ChatSendDto {
-  message: string;
-}
-
-// WebSocket 채팅 메시지 수신 데이터 (camelCase, Date 변환)
+// WebSocket 채팅 메시지 수신 데이터
 export interface ChatReceiveData {
-  // 채팅 고유 아이디 (클라이언트에서 생성)
   id: string;
-
-  // 채팅 메시지
   message: string;
-
-  // 발신자 정보
   sender: {
     role: string;
     nickname: string;
     profileImage: string | null;
     isMe: boolean;
   };
-
-  // 메시지 작성 시간
   timestamp: Date;
+  roomId?: string;
+}
+
+// WebSocket 채팅 메시지 전송 DTO
+export interface ChatSendDto {
+  message: string;
 }
 
 // WebSocket 채팅 메시지 전송 데이터
