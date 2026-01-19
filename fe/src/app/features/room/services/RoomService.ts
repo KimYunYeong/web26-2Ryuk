@@ -8,7 +8,6 @@ import {
 } from '@/app/features/room/dtos/type';
 import { authStore } from '@/app/features/user/stores/auth';
 import { ApiResponse, IdDto } from './type';
-import { showErrorToast } from '@/app/components/shared/toast/useToast';
 
 export class RoomService {
   async getRooms(): Promise<RoomsListDto> {
@@ -24,6 +23,14 @@ export class RoomService {
     const response = await HttpService.get<ApiResponse<RoomsListDto>>(uri);
     if (!response.success) throw new Error(response.message);
     return { rooms: response.data?.rooms || [] };
+  }
+
+  async getMyCurrentRoom(): Promise<{ roomId: string | null }> {
+    const uri = '/api/rooms/me';
+    const token = authStore.getState().token || undefined;
+    const response = await HttpService.get<ApiResponse<{ roomId: string | null }>>(uri, token);
+    if (!response.success) throw new Error(response.message);
+    return { roomId: response.data?.roomId ?? null };
   }
 
   async getRoom(roomId: string): Promise<RoomDto> {
