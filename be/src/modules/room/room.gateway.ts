@@ -10,6 +10,7 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -57,7 +58,7 @@ export class RoomGateway {
     // 인증 확인
     if (!isAuthenticated || !userId) {
       logMessage(this.logger, LOG.ROOM.UNAUTH_JOIN(client.id));
-      client.emit('error', { message: '로그인이 필요합니다.' });
+      client.emit('error', createWsError('UNAUTHORIZED', '로그인이 필요합니다.'));
       return;
     }
 
@@ -68,7 +69,7 @@ export class RoomGateway {
       // 방 존재 여부 및 타입 확인
       if (roomType === null) {
         logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.room_id));
-        client.emit('error', { message: '존재하지 않는 방입니다.' });
+        client.emit('error', createWsError('NOT_FOUND', '존재하지 않는 방입니다.'));
         return;
       }
 
@@ -76,7 +77,7 @@ export class RoomGateway {
       const canJoin = await this.roomService.canUserJoinRoom(userId, dto.room_id);
       if (!canJoin) {
         logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.room_id));
-        client.emit('error', { message: '방 입장 권한이 없습니다.' });
+        client.emit('error', createWsError('FORBIDDEN', '방 입장 권한이 없습니다.'));
         return;
       }
 
@@ -119,7 +120,8 @@ export class RoomGateway {
 
       if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
         logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, dto.room_id, '방 정원 초과'));
-        client.emit('error', { message: '방 정원이 초과되었습니다.' });
+        client.emit('error', createWsError('FORBIDDEN', '방 정원이 초과되었습니다.'));
+        return;
       }
 
       // 기존 로컬 방 자동 퇴장 처리 (방 이동)
@@ -160,31 +162,15 @@ export class RoomGateway {
 
       logMessage(this.logger, LOG.ROOM.JOIN(userId, dto.room_id));
     } catch (error) {
-      // ValidationPipe 에러 처리
-      if (error instanceof BadRequestException) {
-        const errorResponse = error.getResponse();
-        const message =
-          typeof errorResponse === 'object' && errorResponse !== null && 'message' in errorResponse
-            ? Array.isArray(errorResponse.message)
-              ? errorResponse.message.join(', ')
-              : errorResponse.message
-            : '입력값이 올바르지 않습니다.';
-
-        try {
-          client.emit('error', { message: String(message) });
-        } catch (emitError) {
-          this.logger.warn('에러 메시지 전송 실패', emitError);
-        }
-        return;
-      }
-
-      // Redis 연결 문제나 예상치 못한 에러 발생 시 처리
+      // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
       logMessage(this.logger, LOG.WS.ROOM_JOIN_HANDLE_ERROR(errorMessage, errorStack));
 
+      const errorResponse = createWsErrorResponse(error, '방 입장 처리 중 문제가 발생했습니다.');
       try {
-        client.emit('error', { message: '방 입장 처리 중 문제가 발생했습니다.' });
+        client.emit('error', errorResponse);
+        return;
       } catch (emitError) {
         // emit 실패 시 무시
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -205,7 +191,7 @@ export class RoomGateway {
       // 권한 검증: 인증되지 않은 사용자는 방 퇴장 불가능
       if (!isAuthenticated || !userId) {
         logMessage(this.logger, LOG.ROOM.UNAUTH_LEAVE(client.id));
-        client.emit('error', { message: '인증이 필요합니다.' });
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -213,7 +199,7 @@ export class RoomGateway {
       const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (!isInRoom) {
         logMessage(this.logger, LOG.ROOM.NOT_IN(userId, dto.room_id));
-        client.emit('error', { message: '해당 방에 참여하지 않았습니다.' });
+        client.emit('error', createWsError('NOT_FOUND', '해당 방에 참여하지 않았습니다.'));
         return;
       }
 
@@ -225,31 +211,15 @@ export class RoomGateway {
 
       logMessage(this.logger, LOG.ROOM.LEAVE(userId, dto.room_id));
     } catch (error) {
-      // ValidationPipe 에러 처리
-      if (error instanceof BadRequestException) {
-        const errorResponse = error.getResponse();
-        const message =
-          typeof errorResponse === 'object' && errorResponse !== null && 'message' in errorResponse
-            ? Array.isArray(errorResponse.message)
-              ? errorResponse.message.join(', ')
-              : errorResponse.message
-            : '입력값이 올바르지 않습니다.';
-
-        try {
-          client.emit('error', { message: String(message) });
-        } catch (emitError) {
-          this.logger.warn('에러 메시지 전송 실패', emitError);
-        }
-        return;
-      }
-
-      // 기타 에러 처리
+      // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
       logMessage(this.logger, LOG.WS.ROOM_LEAVE_HANDLE_ERROR(errorMessage, errorStack));
 
+      const errorResponse = createWsErrorResponse(error, '방 퇴장 처리 중 문제가 발생했습니다.');
       try {
-        client.emit('error', { message: '방 퇴장 처리 중 문제가 발생했습니다.' });
+        client.emit('error', errorResponse);
+        return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
       }
