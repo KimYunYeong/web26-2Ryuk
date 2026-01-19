@@ -1,11 +1,12 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, BadRequestException, UseFilters, UsePipes } from '@nestjs/common';
+import { Logger, UseFilters, UsePipes } from '@nestjs/common';
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { ValidationPipe } from '@nestjs/common';
 import { GameService } from './game.service';
-import { GameRecruitDto } from './dto/game-recruit.dto';
+import { GameRecruitDto } from './dto/game.dto';
+import { GameJoinDto } from './dto/game.dto';
 import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
 @UseFilters(new WsExceptionFilter())
@@ -55,6 +56,34 @@ export class GameGateway {
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorResponse = createWsErrorResponse(error, '게임 모집 중 문제가 발생했습니다.');
+      try {
+        client.emit('error', errorResponse);
+        return;
+      } catch (emitError) {
+        this.logger.warn('에러 메시지 전송 실패', emitError);
+      }
+    }
+  }
+
+  /**
+   * 게임 참가
+   */
+  @SubscribeMessage('game:join')
+  async handleGameJoin(@ConnectedSocket() client: Socket, @MessageBody() dto: GameJoinDto) {
+    try {
+      const userId = client.data.userId;
+      const isAuthenticated = client.data.authenticated;
+
+      if (!isAuthenticated || !userId) {
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        return;
+      }
+
+      const payload = await this.gameService.joinGame(this.server, dto.room_id, userId);
+
+      client.emit('game:join', payload);
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '게임 참가 중 문제가 발생했습니다.');
       try {
         client.emit('error', errorResponse);
         return;
