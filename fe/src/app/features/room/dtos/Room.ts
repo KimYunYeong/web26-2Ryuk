@@ -5,10 +5,10 @@ import {
   RoomEditData,
   RoomJoinInfoDto,
   RoomJoinInfoData,
-  SimpleParticipant,
+  ParticipantData,
 } from './type';
 export class RoomConverter {
-  static toData(dto: RoomDto): RoomData {
+  static toData(dto: RoomDto): RoomData<ParticipantData> {
     return {
       id: dto.id,
       title: dto.title,
@@ -18,15 +18,16 @@ export class RoomConverter {
       maxParticipants: dto.max_participants,
       isMicAvailable: dto.is_mic_available,
       isPrivate: dto.is_private,
-      participants: dto.participants.map((p) => ({
-        userId: p.user_id,
-        nickname: p.nickname,
-        profileImage: p.profile_image,
-      })),
+      participants:
+        dto.participants?.map((p) => ({
+          userId: p.user_id,
+          nickname: p.nickname,
+          profileImage: p.profile_image,
+        })) ?? [],
       createDate: new Date(dto.create_date),
     };
   }
-  static toDto(data: RoomData): RoomDto {
+  static toDto(data: RoomData<ParticipantData>): RoomDto {
     return {
       id: data.id,
       title: data.title,
@@ -41,11 +42,11 @@ export class RoomConverter {
         nickname: p.nickname,
         profile_image: p.profileImage,
       })),
-      create_date: data.createDate.toISOString(),
+      create_date: data.createDate?.toISOString(),
     };
   }
 
-  static editToDto(data: RoomEditData): RoomEditDto {
+  static toEditDto(data: RoomEditData): RoomEditDto {
     return {
       title: data.title,
       tags: data.tags,
@@ -55,7 +56,8 @@ export class RoomConverter {
       is_private: data.isPrivate,
     };
   }
-  static editToData(dto: RoomEditDto): RoomEditData {
+
+  static toEditData(dto: RoomEditDto): RoomEditData {
     return {
       title: dto.title,
       tags: dto.tags,

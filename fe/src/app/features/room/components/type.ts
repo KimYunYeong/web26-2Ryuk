@@ -1,13 +1,13 @@
-import { RoomEditData, RoomData } from '../dtos/type';
+import { RoomEditData, RoomData, ParticipantData } from '../dtos/type';
 
-export interface RoomCardProps extends RoomData {}
+export interface RoomCardProps extends RoomData<ParticipantData> {}
 
 export interface RoomGridProps {
-  rooms: RoomData[];
+  rooms: RoomData<ParticipantData>[];
 }
 
 export interface RealtimeRoomsSectionProps {
-  rooms?: RoomData[];
+  rooms?: RoomData<ParticipantData>[];
   onSearch?: (query: string) => void;
 }
 
@@ -32,6 +32,7 @@ export interface RoomInfoProps {
   isMicAvailable: boolean;
   isPrivate: boolean;
   onEditClick?: () => void;
+  isConnected?: boolean;
 }
 
 export interface LeaveRoomButtonProps {
