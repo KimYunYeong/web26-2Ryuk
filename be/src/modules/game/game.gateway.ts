@@ -92,4 +92,40 @@ export class GameGateway {
       }
     }
   }
+
+  /**
+   * 게임 나가기
+   */
+  @SubscribeMessage('game:leave')
+  async handleGameLeave(@ConnectedSocket() client: Socket, @MessageBody() dto: GameJoinDto) {
+    try {
+      const userId = client.data.userId;
+      const isAuthenticated = client.data.authenticated;
+
+      if (!isAuthenticated || !userId) {
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        return;
+      }
+
+      // 게임 참가 취소 처리
+      await this.gameService.leaveGame(dto.room_id, userId);
+
+      // 남은 참여자 수 계산
+      const participantCount = await this.gameService.getParticipantCount(dto.room_id);
+
+      // 브로드캐스트
+      this.server.to(dto.room_id).emit('game:leave', {
+        left_user_id: userId,
+        participant_count: participantCount,
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '게임 나가기 중 문제가 발생했습니다.');
+      try {
+        client.emit('error', errorResponse);
+        return;
+      } catch (emitError) {
+        this.logger.warn('에러 메시지 전송 실패', emitError);
+      }
+    }
+  }
 }

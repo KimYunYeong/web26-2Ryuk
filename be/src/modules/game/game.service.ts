@@ -287,16 +287,23 @@ export class GameService {
     });
   }
 
+  async getParticipantCount(roomId: string): Promise<number> {
+    const pattern = `room:${roomId}:game:players:*`;
+    const keys = await this.redisClient.keys(pattern);
+    return keys.length;
+  }
+
   /**
    * 게임 참가 취소
    */
   async leaveGame(roomId: string, userId: string): Promise<void> {
-    const playerKey = this.getParticipantKey(roomId, userId);
+    const uuid = toUuid(userId);
+    const playerKey = this.getParticipantKey(roomId, uuid);
     const exists = await this.redisClient.exists(playerKey);
 
     if (exists) {
       await this.redisClient.del(playerKey);
-      logMessage(this.logger, LOG.GAME.LEAVE(roomId, userId));
+      logMessage(this.logger, LOG.GAME.LEAVE(roomId, uuid));
     }
   }
 }
