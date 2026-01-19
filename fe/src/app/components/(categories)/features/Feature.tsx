@@ -29,7 +29,9 @@ import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import { GameConverter } from '@/app/features/game/dtos/Game';
 import gamesMock from '@/mocks/data/games.json';
-import MyReadyStatusCard from '@/app/features/room/components/MyReadyStatusCard';
+import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
+import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
+import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toData);
@@ -440,6 +442,38 @@ export default function FeatureComponents() {
           </Component>
           <Component fullWidth>
             <MyReadyStatusCard nickname="박철수" isHost={false} isReady />
+          </Component>
+        </div>
+      </section>
+
+      <section id="other-ready-status-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>OtherReadyStatusCard</h2>
+        <ComponentRelations componentId="other-ready-status-card" />
+        <div className={styles.chatRow}>
+          <Component fullWidth>
+            <OtherReadyStatusCard nickname="강하늘" isHost isReady />
+          </Component>
+          <Component fullWidth>
+            <OtherReadyStatusCard nickname="김영희" isHost={false} isReady />
+          </Component>
+          <Component fullWidth>
+            <OtherReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="other-ready-status-card-grid" className={styles.section}>
+        <h2 className={styles.sectionTitle}>OtherReadyStatusCardGrid</h2>
+        <ComponentRelations componentId="other-ready-status-card-grid" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <OtherReadyStatusCardGrid
+              participants={[
+                { nickname: '강하늘', isHost: true, isReady: true },
+                { nickname: '김영희', isHost: false, isReady: true },
+                { nickname: '김지영', isHost: false, isReady: false },
+              ]}
+            />
           </Component>
         </div>
       </section>

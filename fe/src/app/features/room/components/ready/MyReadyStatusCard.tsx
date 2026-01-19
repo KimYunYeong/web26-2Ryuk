@@ -2,16 +2,10 @@
 
 import HostBadge from '@/app/components/shared/badge/HostBadge';
 import * as Chip from '@/app/components/shared/chip/Chip';
-import styles from './myReadyStatusCard.module.css';
+import styles from './readyStatusCard.module.css';
 import { ProfileRow } from '@/app/components/shared/profile/Profile';
 import CSSUtil from '@/utils/css';
-
-interface MyReadyStatusCardProps {
-  nickname: string;
-  profileImage?: string;
-  isHost: boolean;
-  isReady: boolean;
-}
+import { MyReadyStatusCardProps } from '@/app/features/room/components/type';
 
 export default function MyReadyStatusCard({
   nickname,
@@ -20,7 +14,7 @@ export default function MyReadyStatusCard({
   isReady,
 }: MyReadyStatusCardProps) {
   const className = CSSUtil.buildCls(
-    styles.card,
+    styles.myCard,
     isHost && styles.isHost,
     !isHost && isReady && styles.ready,
   );
@@ -31,7 +25,9 @@ export default function MyReadyStatusCard({
   return (
     <div className={className}>
       <div className={styles.header}>
-        <ProfileRow nickname={nickname} profileImage={profileImage} />
+        <div className={styles.profile}>
+          <ProfileRow nickname={nickname} profileImage={profileImage} />
+        </div>
         {isHost && <HostBadge />}
         <Chip.Primary label="나" size="small" />
       </div>
