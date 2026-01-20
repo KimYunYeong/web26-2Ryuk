@@ -299,6 +299,10 @@ export const LOG = {
       message: `게임 참가 취소: roomId=${roomId}, userId=${userId}`,
       level: 'log',
     }),
+    CLOSE: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 모집 닫기: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
   },
 } as const;
 
