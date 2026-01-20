@@ -236,6 +236,29 @@ export class GameService {
   }
 
   /**
+   * 게임 참가자 준비 해제 처리
+   */
+  async unreadyGame(server: Server, roomId: string, userId: string): Promise<void> {
+    const playerKey = this.getParticipantKey(roomId, userId);
+    const exists = await this.redisClient.exists(playerKey);
+
+    if (!exists) {
+      throw new NotFoundException('게임 참가자 정보를 찾을 수 없습니다.');
+    }
+
+    await this.redisClient.hSet(playerKey, 'is_ready', '0');
+
+    // 준비 해제 브로드캐스트
+    const unreadyBroadcast: GameReadyBroadcastDto = {
+      player_id: userId,
+      is_ready: false,
+    };
+    server.to(roomId).emit('game:unready', unreadyBroadcast);
+
+    logMessage(this.logger, LOG.GAME.UNREADY(roomId, userId));
+  }
+
+  /**
    * 게임 참가 취소
    */
   async leaveGame(roomId: string, userId: string): Promise<void> {
