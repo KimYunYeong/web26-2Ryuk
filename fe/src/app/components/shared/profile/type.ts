@@ -1,6 +1,9 @@
+export type ProfileVariant = 'row' | 'column';
+
 export interface ProfileProps {
   nickname: string;
   profileImage?: string;
+  variant: ProfileVariant;
 }
 
 export interface AvatarProps {

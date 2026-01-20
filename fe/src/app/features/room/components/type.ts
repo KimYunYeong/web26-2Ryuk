@@ -44,3 +44,16 @@ export interface DeleteRoomButtonProps {
   modalId: string;
   handleClick?: () => void;
 }
+
+export interface MyReadyStatusCardProps {
+  nickname: string;
+  profileImage?: string;
+  isHost: boolean;
+  isReady: boolean;
+}
+export interface OtherReadyStatusCardProps {
+  nickname: string;
+  profileImage?: string;
+  isHost: boolean;
+  isReady: boolean;
+}

@@ -171,6 +171,18 @@ export const componentRelations: ComponentRelation[] = [
     category: 'feature',
     children: ['room-card', 'search-form', 'iconcircle', 'text-button'],
   },
+  {
+    id: 'game-card',
+    title: 'GameCard',
+    category: 'feature',
+    children: ['icon', 'text-button'],
+  },
+  {
+    id: 'game-card-grid',
+    title: 'GameCardGrid',
+    category: 'feature',
+    children: ['game-card'],
+  },
 
   // Sprite Components
   { id: 'logo-image', title: 'LogoImage', category: 'sprite' },
@@ -261,6 +273,8 @@ export const featureSections = [
   { id: 'room-info', title: 'RoomInfo' },
   { id: 'voice-participant-card', title: 'VoiceParticipantCard' },
   { id: 'realtime-rooms', title: 'RealtimeRoomsSection' },
+  { id: 'game-card', title: 'GameCard' },
+  { id: 'game-card-grid', title: 'GameCardGrid' },
 ];
 
 export const spriteSections = [

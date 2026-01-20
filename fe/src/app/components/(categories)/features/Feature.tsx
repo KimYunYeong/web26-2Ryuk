@@ -25,8 +25,17 @@ import VoiceParticipantCard from '@/app/features/room/components/chat/VoiceParti
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import Dialog from '@/app/components/shared/dialog/Dialog';
 import Paths from '@/app/shared/path';
+import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
+import GameCardGrid from '@/app/features/game/components/GameCardGrid';
+import { GameConverter } from '@/app/features/game/dtos/Game';
+import gamesMock from '@/mocks/data/games.json';
+import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
+import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
+import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
 
 export default function FeatureComponents() {
+  const sampleGames = gamesMock.map(GameConverter.toData);
+
   return (
     <>
       <section id="chat-bubble" className={styles.section}>
@@ -158,11 +167,11 @@ export default function FeatureComponents() {
         <h2 className={styles.sectionTitle}>VoiceParticipantCard</h2>
         <ComponentRelations componentId="voice-participant-card" />
         <div className={styles.showcaseBlock}>
-          <div className={styles.cardColumn}>
-            <Component fullWidth>
+          <div className={styles.cardRow}>
+            <Component>
               <VoiceParticipantCard nickname="강하늘" isMe active micOn speakerOn volume={60} />
             </Component>
-            <Component fullWidth>
+            <Component>
               <VoiceParticipantCard
                 nickname="박철수"
                 isHost
@@ -172,7 +181,7 @@ export default function FeatureComponents() {
                 volume={45}
               />
             </Component>
-            <Component fullWidth>
+            <Component>
               <VoiceParticipantCard nickname="김지영" micOn={false} speakerOn volume={20} />
             </Component>
           </div>
@@ -393,6 +402,88 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <RealtimeRoomsSection />
+          </Component>
+        </div>
+      </section>
+
+      <section id="game-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>GameCard</h2>
+        <ComponentRelations componentId="game-card" />
+        <div className={styles.chatRow}>
+          <div className={styles.showcaseBlock}>
+            <Component fullWidth>
+              <GameCard
+                id="3f1c8c6a-7a4a-4a6c-9b7e-0b5c7f3a9f21"
+                title="비커 채우기"
+                description="제한 시간 동안 스페이스바를 빠르게 연타하여 비커를 채우세요!"
+                type="competition"
+                min_participants={1}
+                max_participants={10}
+              />
+            </Component>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <Component fullWidth>
+              <EmptyGameCard />
+            </Component>
+          </div>
+        </div>
+      </section>
+
+      <section id="my-ready-status-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>MyReadyStatusCard</h2>
+        <ComponentRelations componentId="my-ready-status-card" />
+        <div className={styles.chatRow}>
+          <Component fullWidth>
+            <MyReadyStatusCard nickname="강하늘" isHost isReady={false} />
+          </Component>
+          <Component fullWidth>
+            <MyReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+          </Component>
+          <Component fullWidth>
+            <MyReadyStatusCard nickname="박철수" isHost={false} isReady />
+          </Component>
+        </div>
+      </section>
+
+      <section id="other-ready-status-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>OtherReadyStatusCard</h2>
+        <ComponentRelations componentId="other-ready-status-card" />
+        <div className={styles.chatRow}>
+          <Component fullWidth>
+            <OtherReadyStatusCard nickname="강하늘" isHost isReady />
+          </Component>
+          <Component fullWidth>
+            <OtherReadyStatusCard nickname="김영희" isHost={false} isReady />
+          </Component>
+          <Component fullWidth>
+            <OtherReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="other-ready-status-card-grid" className={styles.section}>
+        <h2 className={styles.sectionTitle}>OtherReadyStatusCardGrid</h2>
+        <ComponentRelations componentId="other-ready-status-card-grid" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <OtherReadyStatusCardGrid
+              participants={[
+                { nickname: '강하늘', isHost: true, isReady: true },
+                { nickname: '김영희', isHost: false, isReady: true },
+                { nickname: '김지영', isHost: false, isReady: false },
+              ]}
+            />
+          </Component>
+        </div>
+      </section>
+
+      <section id="game-card-grid" className={styles.section}>
+        <h2 className={styles.sectionTitle}>GameCardGrid</h2>
+        <ComponentRelations componentId="game-card-grid" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <GameCardGrid games={sampleGames} viewRows={2} viewColumns={4} />
           </Component>
         </div>
       </section>

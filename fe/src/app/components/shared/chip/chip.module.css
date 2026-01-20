@@ -73,9 +73,39 @@
   color: var(--primary-1);
 }
 
+.chip.success-primary {
+  background: var(--success);
+  color: var(--neutral-1);
+}
+
+.chip.warning-primary {
+  background: var(--warning);
+  color: var(--neutral-1);
+}
+
+.chip.error-primary {
+  background: var(--error);
+  color: var(--neutral-1);
+}
+
 .chip.secondary {
   background: var(--primary-3);
   color: var(--primary-6);
+}
+
+.chip.success-secondary {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.chip.warning-secondary {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.chip.error-secondary {
+  background: var(--error-bg);
+  color: var(--error);
 }
 
 .chip.outline {
@@ -95,41 +125,37 @@
   padding: 0;
   border: none;
   background: transparent;
-  cursor: pointer;
-}
-
-.chipButton:focus-visible {
-  outline: 2px solid var(--primary-5);
-  outline-offset: 2px;
 }
 
 .chipButton:disabled {
   cursor: not-allowed;
 }
 
-.chipButton:hover:not(:disabled) .chip.primary {
-  background: var(--primary-7);
-}
-
-.chipButton:active:not(:disabled) .chip.primary {
-  background: var(--primary-9);
-}
-
-.chipButton:disabled .chip.primary {
+.chipButton:disabled .chip.primary,
+.chipButton:disabled .chip.success-primary,
+.chipButton:disabled .chip.warning-primary,
+.chipButton:disabled .chip.error-primary {
   background: var(--neutral-4);
   color: var(--neutral-3);
 }
 
-.chipButton:hover:not(:disabled) .chip.secondary {
-  background: var(--primary-4);
-}
-
-.chipButton:active:not(:disabled) .chip.secondary {
-  background: var(--primary-5);
-}
-
-.chipButton:disabled .chip.secondary {
+.chipButton:disabled .chip.secondary,
+.chipButton:disabled .chip.success-secondary,
+.chipButton:disabled .chip.warning-secondary,
+.chipButton:disabled .chip.error-secondary,
+.chipButton:disabled .chip.default {
   background: var(--neutral-3);
+  color: var(--neutral-4);
+}
+
+.chipButton:disabled .chip.outline {
+  background: var(--neutral-2);
+  color: var(--neutral-4);
+  box-shadow: inset 0 0 0 2px var(--neutral-3);
+}
+
+.chipButton:disabled .chip.ghost {
+  background: transparent;
   color: var(--neutral-4);
 }
 
