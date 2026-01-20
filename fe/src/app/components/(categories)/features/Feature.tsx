@@ -28,6 +28,7 @@ import Paths from '@/app/shared/path';
 import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
+import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
 import { GameConverter } from '@/app/features/game/dtos/Game';
 import gamesMock from '@/mocks/data/games.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
@@ -510,6 +511,32 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <GameCardGrid games={sampleGames} viewRows={2} viewColumns={4} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="game-ready-modal" className={styles.section}>
+        <h2 className={styles.sectionTitle}>GameReadyModalContent</h2>
+        <ComponentRelations componentId="game-ready-modal" />
+        <div className={styles.showcaseBlock}>
+          <Component>
+            <TextButton.Primary
+              modalId="game-ready-modal"
+              text="게임 준비 모달 열기"
+              size="medium"
+            />
+            <Modal id="game-ready-modal">
+              <GameReadyModalContent
+                myStatus={{ nickname: '강하늘', isHost: true, isReady: false }}
+                participants={[
+                  { nickname: '박철수', isHost: false, isReady: true },
+                  { nickname: '김영희', isHost: false, isReady: true },
+                  { nickname: '김지영', isHost: false, isReady: false },
+                ]}
+                selectedGame={sampleGames[0]}
+                maxParticipants={4}
+              />
+            </Modal>
           </Component>
         </div>
       </section>
