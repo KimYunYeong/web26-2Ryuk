@@ -16,11 +16,13 @@ import {
   GameHostDto,
   GamePlayerDto,
   GameReadyBroadcastDto,
+  GameStartBroadcastDto,
 } from './dto/game-response.dto';
 
 @Injectable()
 export class GameService {
   private readonly logger = new Logger(GameService.name);
+  private readonly GAME_START_DELAY_MS = 3000;
 
   constructor(
     @Inject(forwardRef(() => RoomService)) private readonly roomService: RoomService,
@@ -256,6 +258,55 @@ export class GameService {
     server.to(roomId).emit('game:unready', unreadyBroadcast);
 
     logMessage(this.logger, LOG.GAME.UNREADY(roomId, userId));
+  }
+
+  /**
+   * 게임 시작 브로드캐스트 (3초 지연 시작 시간 전달)
+   */
+  async startGame(server: Server, roomId: string, userId: string): Promise<string> {
+    const roomExists = await this.roomService.roomExists(roomId);
+    if (!roomExists) {
+      throw new NotFoundException('존재하지 않는 방입니다.');
+    }
+
+    const isInRoom = await this.roomService.isUserInRoom(userId, roomId);
+    if (!isInRoom) {
+      throw new ForbiddenException('해당 방에 참여하지 않았습니다.');
+    }
+
+    const isHost = await this.roomService.isHost(userId, roomId);
+    if (!isHost) {
+      throw new ForbiddenException('방장만 게임을 시작할 수 있습니다.');
+    }
+
+    const selectedGame = await this.getSelectedGame(roomId);
+    if (!selectedGame) {
+      throw new NotFoundException('선택된 게임이 없습니다.');
+    }
+
+    const [readyCount] = await Promise.all([this.getReadyParticipantCount(roomId)]);
+
+    // 최소 인원 이상이어야 게임 시작 가능
+    const minParticipants = parseInt(selectedGame.min_participants, 10);
+    if (!isNaN(minParticipants) && readyCount < minParticipants) {
+      throw new ForbiddenException('게임 최소 인원 조건을 충족하지 못했습니다.');
+    }
+
+    const startTime = this.clientStartTimeIso();
+
+    // 시작 시각 및 모집 상태 캐싱: 더 이상 게임 참가 불가
+    await this.redisClient.hSet(this.getGameKey(roomId), { start_time: startTime, is_recruiting: '0' });
+
+    const broadcast: GameStartBroadcastDto = { start_time: startTime };
+    server.to(roomId).emit('game:start', broadcast);
+
+    logMessage(this.logger, LOG.GAME.START(roomId, userId, startTime));
+
+    return startTime;
+  }
+
+  private clientStartTimeIso(): string {
+    return new Date(Date.now() + this.GAME_START_DELAY_MS).toISOString();
   }
 
   /**

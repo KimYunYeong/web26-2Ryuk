@@ -80,3 +80,8 @@ export class GameReadyBroadcastDto {
   player_id: string;
   is_ready: boolean;
 }
+
+// 게임 시작 브로드캐스트
+export class GameStartBroadcastDto {
+  start_time: string;
+}
