@@ -7,6 +7,11 @@ import { ChatService } from './chat.service';
 import { RoomService } from '@src/modules/room/room.service';
 import { AuthService } from '@src/modules/auth/auth.service';
 import { GlobalChatSendDto, RoomChatSendDto } from './dto/chat-message.dto';
+import {
+  GlobalChatRecentMessageDto,
+  GlobalChatRecentsResponseDto,
+  GlobalChatParticipantsUpdatedResponseDto,
+} from './dto/chat-response.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
@@ -52,7 +57,7 @@ export class ChatGateway {
         this.roomService.getCurrentParticipants(globalRoomId),
       ]);
 
-      const messages = recents.map((msg) => ({
+      const messages: GlobalChatRecentMessageDto[] = recents.map((msg) => ({
         message: msg.content,
         sender: {
           role: msg.role,
@@ -63,11 +68,11 @@ export class ChatGateway {
         timestamp: msg.create_date,
       }));
 
-      client.emit('chat:global:recents', { messages, current_participants: currentParticipants });
-      client.emit('chat:global:participants-updated', {
-        roomId: globalRoomId,
-        current_participants: currentParticipants,
-      });
+      const recentsResponse = new GlobalChatRecentsResponseDto(messages, currentParticipants);
+      client.emit('chat:global:recents', recentsResponse);
+
+      const participantsResponse = new GlobalChatParticipantsUpdatedResponseDto(globalRoomId, currentParticipants);
+      client.emit('chat:global:participants-updated', participantsResponse);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.GLOBAL_CHAT_HANDLE_ERROR(errorMessage));

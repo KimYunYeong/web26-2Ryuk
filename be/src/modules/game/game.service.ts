@@ -8,32 +8,14 @@ import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { toUuid } from '@src/common/utils/user-id';
 import { Game } from './game.entity';
-
-interface GameParticipant {
-  user_id: string;
-  nickname: string;
-  profile_image: string;
-  is_ready: boolean;
-  score?: string;
-  rank?: string;
-}
-
-interface GameInfoPayload {
-  id: string;
-  title: string;
-  description?: string;
-  type: string;
-  min_participants: string;
-  max_participants: string;
-}
-
-interface GameJoinAckPayload {
-  current_players: string;
-  max_players: string;
-  host: { nickname: string; profile_image: string };
-  players: Array<{ nickname: string; profile_image: string; is_ready: boolean }>;
-  game?: GameInfoPayload;
-}
+import {
+  GameListResponseDto,
+  GameParticipantDto,
+  GameInfoPayloadDto,
+  GameJoinAckResponseDto,
+  GameHostDto,
+  GamePlayerDto,
+} from './dto/game-response.dto';
 
 @Injectable()
 export class GameService {
@@ -48,7 +30,7 @@ export class GameService {
   /**
    * 전체 게임 목록 조회
    */
-  async getAllGames() {
+  async getAllGames(): Promise<GameListResponseDto> {
     try {
       const games = await this.gameRepository.find();
       return { games };
@@ -97,7 +79,7 @@ export class GameService {
   /**
    * 게임 참가 처리 및 상태 반환
    */
-  async joinGame(server: Server, roomId: string, userId: string): Promise<GameJoinAckPayload> {
+  async joinGame(server: Server, roomId: string, userId: string): Promise<GameJoinAckResponseDto> {
     const uuid = toUuid(userId);
 
     logMessage(this.logger, LOG.GAME.JOIN_REQUEST(roomId, uuid));
@@ -122,25 +104,23 @@ export class GameService {
       this.getSelectedGame(roomId),
     ]);
 
-    // TODO: 방장이 게임 모집할 때 방장도 참가자 명단에 추가해줘야함!
     const currentPlayers = participants.length;
 
     const hostProfile = this.extractHostProfile(roomInfo.host_id, participants, roomInfo.participants);
 
-    const ackPayload: GameJoinAckPayload = {
-      current_players: currentPlayers.toString(),
-      max_players: roomInfo.current_participants.toString(),
-      host: hostProfile,
-      players: participants.map((participant) => ({
-        nickname: participant.nickname,
-        profile_image: participant.profile_image,
-        is_ready: participant.is_ready,
-      })),
-    };
+    const players: GamePlayerDto[] = participants.map((participant) => ({
+      nickname: participant.nickname,
+      profile_image: participant.profile_image,
+      is_ready: participant.is_ready,
+    }));
 
-    if (selectedGame) {
-      ackPayload.game = selectedGame;
-    }
+    const ackPayload = new GameJoinAckResponseDto(
+      currentPlayers,
+      roomInfo.current_participants,
+      hostProfile,
+      players,
+      selectedGame,
+    );
 
     // 새로 추가된 경우에만 브로드캐스트
     if (wasAdded) {
@@ -177,13 +157,13 @@ export class GameService {
     return false;
   }
 
-  private async getGameParticipants(roomId: string): Promise<GameParticipant[]> {
+  private async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
 
     if (!keys.length) return [];
 
-    const participants: GameParticipant[] = [];
+    const participants: GameParticipantDto[] = [];
 
     for (const key of keys) {
       const userId = key.replace(`room:${roomId}:game:players:`, '');
@@ -204,9 +184,9 @@ export class GameService {
 
   private extractHostProfile(
     hostId: string,
-    participants: GameParticipant[],
+    participants: GameParticipantDto[],
     roomParticipants?: Array<{ user_id: string; nickname: string; profile_image: string }>,
-  ): { nickname: string; profile_image: string } {
+  ): GameHostDto {
     const host =
       participants.find((participant) => participant.user_id === hostId) ||
       roomParticipants?.find((participant) => participant.user_id === hostId);
@@ -221,7 +201,7 @@ export class GameService {
     return `room:${roomId}:game`;
   }
 
-  private async getSelectedGame(roomId: string): Promise<GameInfoPayload | undefined> {
+  private async getSelectedGame(roomId: string): Promise<GameInfoPayloadDto | undefined> {
     try {
       const gameKey = this.getGameKey(roomId);
       // 우선 Redis에서 조회
@@ -284,7 +264,7 @@ export class GameService {
     roomId: string,
     userId: string,
     participantCount: number,
-    participants: GameParticipant[],
+    participants: GameParticipantDto[],
   ): Promise<void> {
     const joinedParticipant = participants.find((participant) => participant.user_id === userId);
 

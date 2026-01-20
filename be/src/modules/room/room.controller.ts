@@ -13,17 +13,14 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { RoomRequestDto, JoinRoomRequestDto, RoomJoinDto, RoomSearchQueryDto } from './dto/room.dto';
 import {
-  RoomRequestDto,
   RoomCreateResponseDto,
   RoomDeleteResponseDto,
-  JoinRoomRequestDto,
-  RoomJoinDto,
   RoomListResponseDto,
-  RoomSearchQueryDto,
   RoomReadResponseDto,
   RoomJoinInfoResponseDto,
-} from './dto/room.dto';
+} from './dto/room-response.dto';
 import { RoomService } from './room.service';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
 import { AuthGuard } from '@src/modules/auth/auth.guard';
