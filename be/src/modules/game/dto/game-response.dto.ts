@@ -74,3 +74,9 @@ export class GameJoinAckResponseDto {
     }
   }
 }
+
+// 게임 준비 완료 브로드캐스트
+export class GameReadyBroadcastDto {
+  player_id: string;
+  is_ready: boolean;
+}

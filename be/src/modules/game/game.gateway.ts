@@ -5,7 +5,7 @@ import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { ValidationPipe } from '@nestjs/common';
 import { GameService } from './game.service';
-import { GameRecruitDto, GameJoinDto, GameSelectDto } from './dto/game.dto';
+import { GameRoomIdDto, GameSelectDto } from './dto/game.dto';
 import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
 @UseFilters(new WsExceptionFilter())
@@ -34,7 +34,7 @@ export class GameGateway {
    * 게임 플레이어 모집
    */
   @SubscribeMessage('game:recruit')
-  async handleGameRecruit(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRecruitDto) {
+  async handleGameRecruit(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
@@ -68,7 +68,7 @@ export class GameGateway {
    * 게임 참가
    */
   @SubscribeMessage('game:join')
-  async handleGameJoin(@ConnectedSocket() client: Socket, @MessageBody() dto: GameJoinDto) {
+  async handleGameJoin(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
@@ -80,6 +80,7 @@ export class GameGateway {
 
       const payload = await this.gameService.joinGame(this.server, dto.room_id, userId);
 
+      // 요청한 클라이언트에게 응답 전송
       client.emit('game:join', payload);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 참가 중 문제가 발생했습니다.');
@@ -106,9 +107,35 @@ export class GameGateway {
         return;
       }
 
-      const payload = await this.gameService.selectGame(this.server, dto.room_id, userId, dto.game_id);
+      await this.gameService.selectGame(this.server, dto.room_id, userId, dto.game_id);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 선택 중 문제가 발생했습니다.');
+      try {
+        client.emit('error', errorResponse);
+        return;
+      } catch (emitError) {
+        this.logger.warn('에러 메시지 전송 실패', emitError);
+      }
+    }
+  }
+
+  /**
+   * 게임 준비 완료
+   */
+  @SubscribeMessage('game:ready')
+  async handleGameReady(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
+    try {
+      const userId = client.data.userId;
+      const isAuthenticated = client.data.authenticated;
+
+      if (!isAuthenticated || !userId) {
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        return;
+      }
+
+      await this.gameService.readyGame(this.server, dto.room_id, userId);
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '게임 준비 중 문제가 발생했습니다.');
       try {
         client.emit('error', errorResponse);
         return;
@@ -122,7 +149,7 @@ export class GameGateway {
    * 게임 나가기
    */
   @SubscribeMessage('game:leave')
-  async handleGameLeave(@ConnectedSocket() client: Socket, @MessageBody() dto: GameJoinDto) {
+  async handleGameLeave(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
