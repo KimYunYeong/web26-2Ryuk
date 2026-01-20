@@ -3,7 +3,7 @@
 import styles from './header.module.css';
 import { Logo } from '@/app/components/sprite/logo/Logo';
 import { OutlineIconButton } from '@/app/components/shared/icon/IconButton';
-import Profile from '@/app/components/shared/profile/Profile';
+import { ProfileRow } from '@/app/components/shared/profile/Profile';
 import LoginButton from '@/app/components/shared/button/LoginButton';
 import { authStore, type AuthStore } from '@/app/features/user/stores/auth';
 import useNavigation from '@/app/hooks/useNavigation';
@@ -30,7 +30,7 @@ export default function Header() {
           {isLoggedIn && (
             <>
               <div className={styles.separator} />
-              <Profile nickname={user.nickname} profileImage={user.profileImage} />
+              <ProfileRow nickname={user.nickname} profileImage={user.profileImage} />
             </>
           )}
         </div>

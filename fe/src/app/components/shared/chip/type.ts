@@ -1,4 +1,15 @@
-export type ChipVariant = 'primary' | 'secondary' | 'outline' | 'default' | 'ghost';
+export type ChipVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'default'
+  | 'ghost'
+  | 'success-primary'
+  | 'success-secondary'
+  | 'warning-primary'
+  | 'warning-secondary'
+  | 'error-primary'
+  | 'error-secondary';
 export type ChipSize = 'small' | 'medium' | 'large';
 export type ChipButtonVariant = ChipVariant;
 

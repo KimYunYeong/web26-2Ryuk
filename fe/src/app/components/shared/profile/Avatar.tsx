@@ -18,7 +18,7 @@ function getThemeIndex(nickname?: string) {
   return hash % DEFAULT_THEMES.length;
 }
 
-function Avatar({ nickname, profileImage, isActive, onClick }: AvatarProps) {
+export default function Avatar({ nickname, profileImage, isActive, onClick }: AvatarProps) {
   const index = getThemeIndex(nickname);
 
   const className = CSSUtil.buildCls(
@@ -48,5 +48,3 @@ function Avatar({ nickname, profileImage, isActive, onClick }: AvatarProps) {
     </div>
   );
 }
-
-export default Avatar;

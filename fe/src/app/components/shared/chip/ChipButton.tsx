@@ -1,6 +1,7 @@
 import styles from './chip.module.css';
 import { ChipButtonProps } from './type';
 import { ChipBase } from './Chip';
+import CSSUtil from '@/utils/css';
 
 function ChipButtonBase({
   variant,
@@ -12,10 +13,12 @@ function ChipButtonBase({
   type = 'button',
   modalId,
 }: ChipButtonProps) {
+  const className = CSSUtil.buildCls(styles.chipButton, 'clickable');
+
   return (
     <button
       type={type}
-      className={styles.chipButton}
+      className={className}
       onClick={onClick}
       disabled={disabled}
       modal-id={modalId}
