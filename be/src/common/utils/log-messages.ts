@@ -275,6 +275,10 @@ export const LOG = {
       message: `게임 참가 요청: roomId=${roomId}, userId=${userId}`,
       level: 'debug',
     }),
+    SELECT: (roomId: string, userId: string, gameId: string): LogMessage => ({
+      message: `게임 선택: roomId=${roomId}, userId=${userId}, gameId=${gameId}`,
+      level: 'log',
+    }),
     GAME_STATE_FETCH_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `게임 상태 조회 실패: roomId=${roomId}, error=${error}`,
       level: 'error',

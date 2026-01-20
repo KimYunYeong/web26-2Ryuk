@@ -13,3 +13,15 @@ export class GameJoinDto {
   @IsUUID()
   room_id: string;
 }
+
+export class GameSelectDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  room_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  game_id: string;
+}

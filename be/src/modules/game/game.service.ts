@@ -12,6 +12,7 @@ import {
   GameListResponseDto,
   GameParticipantDto,
   GameInfoPayloadDto,
+  GameSelectBroadcastDto,
   GameJoinAckResponseDto,
   GameHostDto,
   GamePlayerDto,
@@ -74,6 +75,62 @@ export class GameService {
     });
 
     logMessage(this.logger, LOG.GAME.RECRUIT_STARTED(roomId, userId));
+  }
+
+  /**
+   * 게임 선택 및 브로드캐스트
+   */
+  async selectGame(server: Server, roomId: string, userId: string, gameId: string): Promise<GameInfoPayloadDto> {
+    const uuid = toUuid(userId);
+
+    const roomExists = await this.roomService.roomExists(roomId);
+    if (!roomExists) {
+      throw new NotFoundException('존재하지 않는 방입니다.');
+    }
+
+    const isInRoom = await this.roomService.isUserInRoom(userId, roomId);
+    if (!isInRoom) {
+      throw new ForbiddenException('해당 방에 참여하지 않았습니다.');
+    }
+
+    const isHost = await this.roomService.isHost(userId, roomId);
+    if (!isHost) {
+      throw new ForbiddenException('방장만 게임을 선택할 수 있습니다.');
+    }
+
+    // db에서 게임 정보 조회
+    const game = await this.gameRepository.findOne({ where: { id: gameId } });
+    if (!game) {
+      throw new NotFoundException('존재하지 않는 게임입니다.');
+    }
+
+    const broadcastPayload: GameInfoPayloadDto = {
+      id: game.id,
+      title: game.title,
+      description: game.description || '',
+      type: game.type,
+      min_participants: game.min_participants?.toString() || '',
+      max_participants: game.max_participants?.toString() || '',
+    };
+
+    // Redis에 선택된 게임 정보 저장
+    // Redis는 인덱스 시그니처가 있는 단순 객체를 요구하므로 별도 캐시용 DTO 사용
+    const cachePayload = {
+      id: broadcastPayload.id,
+      title: broadcastPayload.title,
+      description: broadcastPayload.description || '',
+      type: broadcastPayload.type,
+      min_participants: broadcastPayload.min_participants,
+      max_participants: broadcastPayload.max_participants,
+    };
+    await this.redisClient.hSet(this.getGameKey(roomId), cachePayload);
+
+    const roomBroadcast: GameSelectBroadcastDto = { game: broadcastPayload };
+    server.to(roomId).emit('game:select', roomBroadcast);
+
+    logMessage(this.logger, LOG.GAME.SELECT(roomId, uuid, gameId));
+
+    return broadcastPayload;
   }
 
   /**
@@ -204,54 +261,22 @@ export class GameService {
   private async getSelectedGame(roomId: string): Promise<GameInfoPayloadDto | undefined> {
     try {
       const gameKey = this.getGameKey(roomId);
-      // 우선 Redis에서 조회
+      // Redis에서 조회만 수행 (selectGame에서 이미 저장됨)
       const gameData = await this.redisClient.hGetAll(gameKey);
       if (!gameData || Object.keys(gameData).length === 0) return undefined;
-
-      // Redis에 id가 없다면 선택된 게임이 없는 것으로 간주 -> undefined
       if (!gameData.id) return undefined;
 
-      // 선택된 게임의 모든 필드가 존재하는지 확인
-      const hasAllFields =
-        Boolean(gameData.title) &&
-        Boolean(gameData.type) &&
-        Boolean(gameData.min_participants) &&
-        Boolean(gameData.max_participants);
-
-      // 모든 필드가 존재하면 선택된 게임 정보 반환
-      if (hasAllFields) {
-        return {
-          id: gameData.id,
-          title: gameData.title,
-          description: gameData.description,
-          type: gameData.type,
-          min_participants: gameData.min_participants,
-          max_participants: gameData.max_participants,
-        };
-      }
-
-      // 캐시 불완전 시 MySQL에서 보강 후 Redis에 다시 저장
-      const dbGame = await this.gameRepository.findOne({ where: { id: gameData.id } });
-      if (!dbGame) return undefined;
-
-      // MySQL에서 조회한 게임 정보를 Redis에 저장
-      await this.redisClient.hSet(gameKey, {
-        id: dbGame.id,
-        title: dbGame.title,
-        description: dbGame.description || '',
-        type: dbGame.type,
-        min_participants: dbGame.min_participants?.toString() || '',
-        max_participants: dbGame.max_participants?.toString() || '',
-      });
-
-      return {
-        id: dbGame.id,
-        title: dbGame.title,
-        description: dbGame.description || '',
-        type: dbGame.type,
-        min_participants: dbGame.min_participants?.toString() || '',
-        max_participants: dbGame.max_participants?.toString() || '',
+      // Redis에 저장된 게임 정보 반환
+      const gamePayload: GameInfoPayloadDto = {
+        id: gameData.id,
+        title: gameData.title,
+        description: gameData.description || '',
+        type: gameData.type,
+        min_participants: gameData.min_participants || '',
+        max_participants: gameData.max_participants || '',
       };
+
+      return gamePayload;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.GAME.GAME_STATE_FETCH_ERROR(roomId, errorMessage));
