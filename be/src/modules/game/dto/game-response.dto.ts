@@ -94,3 +94,10 @@ export class GameCloseBroadcastDto {
     this.is_game_recruiting = isGameRecruiting;
   }
 }
+
+// 게임 실시간 상태 브로드캐스트
+export class GameRealtimeBroadcastDto {
+  highest_score: string;
+  average_score: string;
+  ranks: string[];
+}

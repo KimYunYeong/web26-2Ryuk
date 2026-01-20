@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsNumberString } from 'class-validator';
 
 export class GameRoomIdDto {
   @IsString()
@@ -17,4 +17,15 @@ export class GameSelectDto {
   @IsNotEmpty()
   @IsUUID()
   game_id: string;
+}
+
+export class GameRealtimeInputDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  room_id: string;
+
+  @IsNumberString()
+  @IsNotEmpty()
+  delta: string;
 }

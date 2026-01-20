@@ -5,7 +5,7 @@ import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { ValidationPipe } from '@nestjs/common';
 import { GameService } from './game.service';
-import { GameRoomIdDto, GameSelectDto } from './dto/game.dto';
+import { GameRoomIdDto, GameSelectDto, GameRealtimeInputDto } from './dto/game.dto';
 import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
 @UseFilters(new WsExceptionFilter())
@@ -250,6 +250,34 @@ export class GameGateway {
       });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 나가기 중 문제가 발생했습니다.');
+      try {
+        client.emit('error', errorResponse);
+        return;
+      } catch (emitError) {
+        this.logger.warn('에러 메시지 전송 실패', emitError);
+      }
+    }
+  }
+
+  /**
+   * 게임 실시간 입력 처리
+   * - 클라이언트로부터 100ms 주기로 쓰로틀된 입력 받음
+   * - 서버에서 300ms 주기로 배치하여 브로드캐스트
+   */
+  @SubscribeMessage('game:realtime')
+  async handleGameRealtime(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRealtimeInputDto) {
+    try {
+      const userId = client.data.userId;
+      const isAuthenticated = client.data.authenticated;
+
+      if (!isAuthenticated || !userId) {
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        return;
+      }
+
+      await this.gameService.handleRealtimeInput(this.server, dto.room_id, userId, dto.delta);
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '게임 실시간 입력 처리 중 문제가 발생했습니다.');
       try {
         client.emit('error', errorResponse);
         return;

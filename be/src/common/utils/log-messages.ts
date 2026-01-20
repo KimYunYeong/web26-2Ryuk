@@ -303,6 +303,22 @@ export const LOG = {
       message: `게임 모집 닫기: roomId=${roomId}, userId=${userId}`,
       level: 'log',
     }),
+    REALTIME_INPUT: (roomId: string, userId: string, delta: string): LogMessage => ({
+      message: `게임 실시간 입력: roomId=${roomId}, userId=${userId}, delta=${delta}`,
+      level: 'debug',
+    }),
+    REALTIME_INPUT_ERROR: (roomId: string, userId: string, error: string): LogMessage => ({
+      message: `게임 실시간 입력 처리 실패: roomId=${roomId}, userId=${userId}, error=${error}`,
+      level: 'error',
+    }),
+    REALTIME_BROADCAST: (roomId: string, highestScore: number, averageScore: string, ranks: string[]): LogMessage => ({
+      message: `게임 실시간 상태 브로드캐스트: roomId=${roomId}, highest_score=${highestScore}, average_score=${averageScore}, ranks_count=${ranks.length}`,
+      level: 'debug',
+    }),
+    REALTIME_BROADCAST_STOPPED: (roomId: string): LogMessage => ({
+      message: `게임 실시간 브로드캐스트 중지: roomId=${roomId}`,
+      level: 'log',
+    }),
   },
 } as const;
 
