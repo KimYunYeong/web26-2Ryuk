@@ -85,3 +85,12 @@ export class GameReadyBroadcastDto {
 export class GameStartBroadcastDto {
   start_time: string;
 }
+
+// 게임 닫기 브로드캐스트
+export class GameCloseBroadcastDto {
+  is_game_recruiting: boolean;
+
+  constructor(isGameRecruiting: boolean) {
+    this.is_game_recruiting = isGameRecruiting;
+  }
+}

@@ -198,7 +198,33 @@ export class GameGateway {
   }
 
   /**
-   * 게임 나가기
+   * 게임 모집 닫기 (방장)
+   */
+  @SubscribeMessage('game:close')
+  async handleGameClose(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
+    try {
+      const userId = client.data.userId;
+      const isAuthenticated = client.data.authenticated;
+
+      if (!isAuthenticated || !userId) {
+        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        return;
+      }
+
+      await this.gameService.closeGame(this.server, dto.room_id, userId);
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '게임 모집 닫기 중 문제가 발생했습니다.');
+      try {
+        client.emit('error', errorResponse);
+        return;
+      } catch (emitError) {
+        this.logger.warn('에러 메시지 전송 실패', emitError);
+      }
+    }
+  }
+
+  /**
+   * 게임 나가기 (참가자)
    */
   @SubscribeMessage('game:leave')
   async handleGameLeave(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {

@@ -17,6 +17,7 @@ import {
   GamePlayerDto,
   GameReadyBroadcastDto,
   GameStartBroadcastDto,
+  GameCloseBroadcastDto,
 } from './dto/game-response.dto';
 
 @Injectable()
@@ -307,6 +308,47 @@ export class GameService {
 
   private clientStartTimeIso(): string {
     return new Date(Date.now() + this.GAME_START_DELAY_MS).toISOString();
+  }
+
+  /**
+   * 게임 모집 닫기 (방장 전용)
+   */
+  async closeGame(server: Server, roomId: string, userId: string): Promise<void> {
+    // 방 존재 여부 확인
+    const roomExists = await this.roomService.roomExists(roomId);
+    if (!roomExists) {
+      throw new NotFoundException('존재하지 않는 방입니다.');
+    }
+
+    // 사용자가 방에 참여 중인지 확인
+    const isInRoom = await this.roomService.isUserInRoom(userId, roomId);
+    if (!isInRoom) {
+      throw new ForbiddenException('해당 방에 참여하지 않았습니다.');
+    }
+
+    // 방장만 게임 모집 닫기 가능
+    const isHost = await this.roomService.isHost(userId, roomId);
+    if (!isHost) {
+      throw new ForbiddenException('방장만 게임 모집을 닫을 수 있습니다.');
+    }
+
+    // Redis에서 게임 모집 상태를 0으로 변경
+    const gameKey = this.getGameKey(roomId);
+    await this.redisClient.hSet(gameKey, 'is_recruiting', '0');
+
+    // 게임 정보 삭제
+    await this.redisClient.del(gameKey);
+    // 참가자 명단 삭제
+    const pattern = `room:${roomId}:game:players:*`;
+    const keys = await this.redisClient.keys(pattern);
+    if (keys.length > 0) {
+      await this.redisClient.del(keys);
+    }
+
+    // 해당 방의 모든 참여자에게 브로드캐스트
+    server.to(roomId).emit('game:participant:close', new GameCloseBroadcastDto(false));
+
+    logMessage(this.logger, LOG.GAME.CLOSE(roomId, userId));
   }
 
   /**
