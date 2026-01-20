@@ -95,6 +95,10 @@ export const LOG = {
       message: `로그아웃 처리 중 에러 발생: ${error}`,
       level: 'error',
     }),
+    VOICE_HANDLE_ERROR: (error: string, stack?: string): LogMessage => ({
+      message: `Voice Gateway 처리 중 에러 발생: ${error}${stack ? `\n${stack}` : ''}`,
+      level: 'error',
+    }),
   },
 
   // 채팅 관련
@@ -281,6 +285,30 @@ export const LOG = {
     }),
     LEAVE: (roomId: string, userId: string): LogMessage => ({
       message: `게임 참가 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+  },
+
+  // 음성 관련
+  VOICE: {
+    CREATING_WORKER: {
+      message: `mediasoup Worker 생성 중...`,
+      level: 'log',
+    },
+    WORKER_CREATED: (pid: number): LogMessage => ({
+      message: `Mediasoup Worker 생성: pid=${pid}`,
+      level: 'log',
+    }),
+    WORKER_DIED: {
+      message: `Mediasoup Worker가 예기치 않게 종료됨`,
+      level: 'error',
+    },
+    ROUTER_CREATED: (routerId: string, roomId: string): LogMessage => ({
+      message: `Mediasoup Router 생성: roomId=${roomId}, routerId=${routerId}`,
+      level: 'log',
+    }),
+    ROUTER_CLOSED: (routerId: string, roomId: string): LogMessage => ({
+      message: `Mediasoup Router 종료: roomId=${roomId}, routerId: ${routerId}`,
       level: 'log',
     }),
   },
