@@ -6,7 +6,6 @@ import { RedisClientType } from 'redis';
 import { RoomService } from '@src/modules/room/room.service';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
-import { toUuid } from '@src/common/utils/user-id';
 import { Game } from './game.entity';
 import {
   GameListResponseDto,
@@ -16,6 +15,7 @@ import {
   GameJoinAckResponseDto,
   GameHostDto,
   GamePlayerDto,
+  GameReadyBroadcastDto,
 } from './dto/game-response.dto';
 
 @Injectable()
@@ -71,7 +71,11 @@ export class GameService {
     await this.redisClient.hSet(gameKey, 'is_recruiting', '1');
 
     // 방장도 참가자 명단에 추가
-    await this.addParticipant(roomId, toUuid(userId));
+    await this.addParticipant(roomId, userId);
+
+    // 방장도 게임 준비 완료 상태로 설정
+    const hostParticipantKey = this.getParticipantKey(roomId, userId);
+    await this.redisClient.hSet(hostParticipantKey, 'is_ready', '1');
 
     // 해당 방의 모든 참여자에게 브로드캐스트
     server.to(roomId).emit('game:recruit', {
@@ -85,8 +89,6 @@ export class GameService {
    * 게임 선택 및 브로드캐스트
    */
   async selectGame(server: Server, roomId: string, userId: string, gameId: string): Promise<GameInfoPayloadDto> {
-    const uuid = toUuid(userId);
-
     const roomExists = await this.roomService.roomExists(roomId);
     if (!roomExists) {
       throw new NotFoundException('존재하지 않는 방입니다.');
@@ -132,7 +134,7 @@ export class GameService {
     const roomBroadcast: GameSelectBroadcastDto = { game: broadcastPayload };
     server.to(roomId).emit('game:select', roomBroadcast);
 
-    logMessage(this.logger, LOG.GAME.SELECT(roomId, uuid, gameId));
+    logMessage(this.logger, LOG.GAME.SELECT(roomId, userId, gameId));
 
     return broadcastPayload;
   }
@@ -141,10 +143,6 @@ export class GameService {
    * 게임 참가 처리 및 상태 반환
    */
   async joinGame(server: Server, roomId: string, userId: string): Promise<GameJoinAckResponseDto> {
-    const uuid = toUuid(userId);
-
-    logMessage(this.logger, LOG.GAME.JOIN_REQUEST(roomId, uuid));
-
     // 방 존재 여부
     const isRoomExists = await this.roomService.roomExists(roomId);
     if (!isRoomExists) {
@@ -163,7 +161,7 @@ export class GameService {
     }
 
     // 게임 참가자 명단에 추가
-    const wasAdded = await this.addParticipant(roomId, uuid);
+    const wasAdded = await this.addParticipant(roomId, userId);
 
     const [roomInfo, participants, selectedGame] = await Promise.all([
       this.roomService.getRoom(roomId),
@@ -191,10 +189,48 @@ export class GameService {
 
     // 새로 추가된 경우에만 브로드캐스트
     if (wasAdded) {
-      await this.broadcastGameJoin(server, roomId, uuid, currentPlayers, participants);
+      await this.broadcastGameJoin(server, roomId, userId, currentPlayers, participants);
     }
 
+    logMessage(this.logger, LOG.GAME.JOIN_REQUEST(roomId, userId));
+
     return ackPayload;
+  }
+
+  /**
+   * 게임 참가자 준비 완료 처리
+   */
+  async readyGame(server: Server, roomId: string, userId: string): Promise<void> {
+    const playerKey = this.getParticipantKey(roomId, userId);
+    const exists = await this.redisClient.exists(playerKey);
+
+    if (!exists) {
+      throw new NotFoundException('게임 참가자 정보를 찾을 수 없습니다.');
+    }
+
+    await this.redisClient.hSet(playerKey, 'is_ready', '1');
+
+    // 준비 완료 브로드캐스트
+    const readyBroadcast: GameReadyBroadcastDto = {
+      player_id: userId,
+      is_ready: true,
+    };
+    server.to(roomId).emit('game:ready', readyBroadcast);
+
+    logMessage(this.logger, LOG.GAME.READY(roomId, userId));
+  }
+
+  /**
+   * 게임 참가 취소
+   */
+  async leaveGame(roomId: string, userId: string): Promise<void> {
+    const playerKey = this.getParticipantKey(roomId, userId);
+    const exists = await this.redisClient.exists(playerKey);
+
+    if (exists) {
+      await this.redisClient.del(playerKey);
+      logMessage(this.logger, LOG.GAME.LEAVE(roomId, userId));
+    }
   }
 
   private getParticipantKey(roomId: string, userId: string): string {
@@ -224,6 +260,7 @@ export class GameService {
     return false;
   }
 
+  // 게임 참여자 조회
   private async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
@@ -321,6 +358,9 @@ export class GameService {
     });
   }
 
+  /**
+   * 게임 참가자 수 조회
+   */
   async getParticipantCount(roomId: string): Promise<number> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
@@ -328,16 +368,21 @@ export class GameService {
   }
 
   /**
-   * 게임 참가 취소
+   * 게임 준비 완료한 참가자 수 조회
    */
-  async leaveGame(roomId: string, userId: string): Promise<void> {
-    const uuid = toUuid(userId);
-    const playerKey = this.getParticipantKey(roomId, uuid);
-    const exists = await this.redisClient.exists(playerKey);
+  async getReadyParticipantCount(roomId: string): Promise<number> {
+    const pattern = `room:${roomId}:game:players:*`;
+    const keys = await this.redisClient.keys(pattern);
 
-    if (exists) {
-      await this.redisClient.del(playerKey);
-      logMessage(this.logger, LOG.GAME.LEAVE(roomId, uuid));
+    let readyCount = 0;
+
+    for (const key of keys) {
+      const isReady = await this.redisClient.hGet(key, 'is_ready');
+      if (isReady === '1') {
+        readyCount++;
+      }
     }
+
+    return readyCount;
   }
 }
