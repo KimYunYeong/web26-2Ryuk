@@ -208,6 +208,21 @@ export class GameService {
       throw new NotFoundException('게임 참가자 정보를 찾을 수 없습니다.');
     }
 
+    // 선택된 게임 정보 조회
+    const selectedGame = await this.getSelectedGame(roomId);
+    if (selectedGame) {
+      const maxParticipants = parseInt(selectedGame.max_participants, 10);
+      if (!isNaN(maxParticipants)) {
+        // 현재 준비 완료한 참가자 수 조회 (본인 포함 전)
+        const currentReadyCount = await this.getReadyParticipantCount(roomId);
+
+        // 본인이 준비 완료하면 최대 인원을 초과하는지 확인
+        if (currentReadyCount + 1 > maxParticipants) {
+          throw new ForbiddenException('게임 최대 인원을 초과할 수 없습니다.');
+        }
+      }
+    }
+
     await this.redisClient.hSet(playerKey, 'is_ready', '1');
 
     // 준비 완료 브로드캐스트
