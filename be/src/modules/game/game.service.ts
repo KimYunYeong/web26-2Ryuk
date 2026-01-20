@@ -18,12 +18,15 @@ import {
   GameReadyBroadcastDto,
   GameStartBroadcastDto,
   GameCloseBroadcastDto,
+  GameRealtimeBroadcastDto,
 } from './dto/game-response.dto';
 
 @Injectable()
 export class GameService {
   private readonly logger = new Logger(GameService.name);
   private readonly GAME_START_DELAY_MS = 3000;
+  private readonly REALTIME_BROADCAST_INTERVAL_MS = 300; // 300ms 주기로 상태 브로드캐스트
+  private realtimeBroadcastTimers: Map<string, NodeJS.Timeout> = new Map(); // 방별 브로드캐스트 타이머
 
   constructor(
     @Inject(forwardRef(() => RoomService)) private readonly roomService: RoomService,
@@ -163,7 +166,7 @@ export class GameService {
       throw new ForbiddenException('게임 모집 중이 아닙니다.');
     }
 
-    // 게임 참가자 명단에 추가
+    // 게임 참가자 명단에 추가. 새로 추가된 경우는 true 반환, 기존에 존재했으면 false 반환
     const wasAdded = await this.addParticipant(roomId, userId);
 
     const [roomInfo, participants, selectedGame] = await Promise.all([
@@ -198,6 +201,27 @@ export class GameService {
     logMessage(this.logger, LOG.GAME.JOIN_REQUEST(roomId, userId));
 
     return ackPayload;
+  }
+
+  private async broadcastGameJoin(
+    server: Server,
+    roomId: string,
+    userId: string,
+    participantCount: number,
+    participants: GameParticipantDto[],
+  ): Promise<void> {
+    const joinedParticipant = participants.find((participant) => participant.user_id === userId);
+
+    // 방의 다른 모든 사람에게 브로드캐스트 (본인 제외하지 않음, 전체 브로드캐스트)
+    server.to(roomId).emit('game:joined', {
+      participant: {
+        user_id: joinedParticipant?.user_id || userId,
+        nickname: joinedParticipant?.nickname || '',
+        profile_image: joinedParticipant?.profile_image || '',
+        is_ready: joinedParticipant?.is_ready ?? false,
+      },
+      participant_count: participantCount.toString(),
+    });
   }
 
   /**
@@ -345,6 +369,9 @@ export class GameService {
       await this.redisClient.del(keys);
     }
 
+    // 실시간 브로드캐스트 타이머 정리
+    this.stopRealtimeBroadcast(roomId);
+
     // 해당 방의 모든 참여자에게 브로드캐스트
     server.to(roomId).emit('game:participant:close', new GameCloseBroadcastDto(false));
 
@@ -468,27 +495,6 @@ export class GameService {
     }
   }
 
-  private async broadcastGameJoin(
-    server: Server,
-    roomId: string,
-    userId: string,
-    participantCount: number,
-    participants: GameParticipantDto[],
-  ): Promise<void> {
-    const joinedParticipant = participants.find((participant) => participant.user_id === userId);
-
-    // 방의 다른 모든 사람에게 브로드캐스트 (본인 제외하지 않음, 전체 브로드캐스트)
-    server.to(roomId).emit('game:joined', {
-      participant: {
-        user_id: joinedParticipant?.user_id || userId,
-        nickname: joinedParticipant?.nickname || '',
-        profile_image: joinedParticipant?.profile_image || '',
-        is_ready: joinedParticipant?.is_ready ?? false,
-      },
-      participant_count: participantCount.toString(),
-    });
-  }
-
   /**
    * 게임 참가자 수 조회
    */
@@ -515,5 +521,180 @@ export class GameService {
     }
 
     return readyCount;
+  }
+
+  /**
+   * 게임 실시간 입력 처리
+   * - 클라이언트의 입력을 누적
+   * - 300ms 주기로 배치하여 모든 사용자에게 상태 브로드캐스트
+   *
+   * @param server Socket.io 서버 인스턴스
+   * @param roomId 방 ID
+   * @param userId 사용자 ID
+   * @param delta 누적된 변경 값
+   */
+  async handleRealtimeInput(server: Server, roomId: string, userId: string, delta: string): Promise<void> {
+    try {
+      // 방 존재 여부 확인
+      const roomExists = await this.roomService.roomExists(roomId);
+      if (!roomExists) {
+        throw new NotFoundException('존재하지 않는 방입니다.');
+      }
+
+      // 사용자가 방에 참여 중인지 확인
+      const isInRoom = await this.roomService.isUserInRoom(userId, roomId);
+      if (!isInRoom) {
+        throw new ForbiddenException('해당 방에 참여하지 않았습니다.');
+      }
+
+      // 게임 참가자인지 확인
+      const playerKey = this.getParticipantKey(roomId, userId);
+      const playerExists = await this.redisClient.exists(playerKey);
+      if (!playerExists) {
+        throw new ForbiddenException('게임 참가자가 아닙니다.');
+      }
+
+      // 게임 시작 여부 확인
+      const gameKey = this.getGameKey(roomId);
+      const startTime = await this.redisClient.hGet(gameKey, 'start_time');
+      if (!startTime) {
+        throw new ForbiddenException('게임이 시작되지 않았습니다.');
+      }
+
+      // delta 값 검증
+      const deltaNum = parseInt(delta, 10);
+      if (isNaN(deltaNum) || deltaNum < 0) {
+        throw new Error('Invalid delta value');
+      }
+
+      // 현재 사용자의 점수 업데이트
+      await this.updateParticipantScore(roomId, userId, deltaNum);
+
+      // 300ms 주기 브로드캐스트 스케줄링
+      this.scheduleRealtimeBroadcast(server, roomId);
+
+      logMessage(this.logger, LOG.GAME.REALTIME_INPUT(roomId, userId, delta));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.GAME.REALTIME_INPUT_ERROR(roomId, userId, errorMessage));
+      throw error;
+    }
+  }
+
+  /**
+   * 참가자 점수 업데이트
+   */
+  private async updateParticipantScore(roomId: string, userId: string, deltaDelta: number): Promise<void> {
+    const playerKey = this.getParticipantKey(roomId, userId);
+    const currentScoreStr = await this.redisClient.hGet(playerKey, 'score');
+    const currentScore = parseInt(currentScoreStr || '0', 10);
+    const newScore = currentScore + deltaDelta;
+
+    await this.redisClient.hSet(playerKey, 'score', newScore.toString());
+  }
+
+  /**
+   * 300ms 주기의 브로드캐스트 스케줄링
+   * - 중복 스케줄링 방지
+   * - 한 번 스케줄되면 주기마다 자동으로 상태 브로드캐스트
+   */
+  private scheduleRealtimeBroadcast(server: Server, roomId: string): void {
+    const timerKey = `realtime:${roomId}`;
+
+    // 이미 스케줄된 경우 추가 스케줄링 하지 않음
+    if (this.realtimeBroadcastTimers.has(timerKey)) {
+      return;
+    }
+
+    // 처음 스케줄링 시 타이머 설정
+    const broadcastTimer = setInterval(async () => {
+      try {
+        await this.broadcastRealtimeState(server, roomId);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(`브로드캐스트 중 오류: roomId=${roomId}, error=${errorMessage}`);
+      }
+    }, this.REALTIME_BROADCAST_INTERVAL_MS);
+
+    this.realtimeBroadcastTimers.set(timerKey, broadcastTimer);
+  }
+
+  /**
+   * 실시간 게임 상태 브로드캐스트
+   * - 현재 최고 점수
+   * - 평균 점수
+   * - 현재 랭킹 순서
+   */
+  private async broadcastRealtimeState(server: Server, roomId: string): Promise<void> {
+    try {
+      // 모든 참가자 데이터 조회
+      const participants = await this.getGameParticipants(roomId);
+
+      if (participants.length === 0) {
+        // 게임에 참가자가 없으면 브로드캐스트 중지
+        this.stopRealtimeBroadcast(roomId);
+        return;
+      }
+
+      // 점수 기준 정렬 (내림차순)
+      const sortedByScore = [...participants].sort((a, b) => {
+        const scoreA = parseInt(a.score || '0', 10);
+        const scoreB = parseInt(b.score || '0', 10);
+        return scoreB - scoreA;
+      });
+
+      // 최고 점수 계산
+      const highestScore = parseInt(sortedByScore[0]?.score || '0', 10);
+
+      // 평균 점수 계산
+      const totalScore = participants.reduce((sum, p) => sum + parseInt(p.score || '0', 10), 0);
+      const averageScore = (totalScore / participants.length).toFixed(2);
+
+      // 현재 랭킹 순서 (user_id 배열)
+      const ranks = sortedByScore.map((p) => p.user_id);
+
+      // 랭크 업데이트 (Redis에 저장)
+      await this.updateParticipantRanks(roomId, ranks);
+
+      // 브로드캐스트
+      const broadcast: GameRealtimeBroadcastDto = {
+        highest_score: highestScore.toString(),
+        average_score: averageScore,
+        ranks,
+      };
+
+      server.to(roomId).emit('game:participant:realtime', broadcast);
+
+      logMessage(this.logger, LOG.GAME.REALTIME_BROADCAST(roomId, highestScore, averageScore, ranks));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`실시간 상태 브로드캐스트 실패: roomId=${roomId}, error=${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 참가자 랭크 업데이트
+   */
+  private async updateParticipantRanks(roomId: string, ranks: string[]): Promise<void> {
+    for (let i = 0; i < ranks.length; i++) {
+      const userId = ranks[i];
+      const playerKey = this.getParticipantKey(roomId, userId);
+      await this.redisClient.hSet(playerKey, 'rank', (i + 1).toString());
+    }
+  }
+
+  /**
+   * 실시간 브로드캐스트 타이머 중지
+   */
+  public stopRealtimeBroadcast(roomId: string): void {
+    const timerKey = `realtime:${roomId}`;
+    const timer = this.realtimeBroadcastTimers.get(timerKey);
+
+    if (timer) {
+      clearInterval(timer);
+      this.realtimeBroadcastTimers.delete(timerKey);
+      logMessage(this.logger, LOG.GAME.REALTIME_BROADCAST_STOPPED(roomId));
+    }
   }
 }
