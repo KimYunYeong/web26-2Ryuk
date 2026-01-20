@@ -9,6 +9,7 @@ import {
   NotFoundException,
   OnModuleInit,
   HttpStatus,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -31,6 +32,7 @@ import {
 import { toUuid } from '@src/common/utils/user-id';
 import { ROOM_TYPE, RoomType } from './room.type';
 import { Server } from 'socket.io';
+import { GameService } from '../game/game.service';
 
 @Injectable()
 export class RoomService implements OnModuleInit {
@@ -42,6 +44,7 @@ export class RoomService implements OnModuleInit {
   constructor(
     @Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => GameService)) private readonly gameService: GameService,
   ) {}
 
   onModuleInit() {
@@ -152,6 +155,9 @@ export class RoomService implements OnModuleInit {
     // 방 멤버 목록에서 제거 (Hash), 사용자의 참여 방 목록에서 제거 (Set)
     await this.redisClient.del(`room:${roomId}:members:${uuid}`);
     await this.redisClient.sRem(`user:${uuid}:rooms`, roomId);
+
+    // 게임 참가자 목록에서도 제거 (게임 중일 경우)
+    await this.gameService.leaveGame(roomId, userId);
 
     // 참여자 수 감소
     await this.updateCurrentParticipants(roomId);
