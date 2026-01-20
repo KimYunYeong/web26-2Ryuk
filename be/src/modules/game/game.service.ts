@@ -66,6 +66,10 @@ export class GameService {
       throw new ForbiddenException('방장만 게임 모집을 시작할 수 있습니다.');
     }
 
+    // Redis에 게임 모집 상태 저장
+    const gameKey = this.getGameKey(roomId);
+    await this.redisClient.hSet(gameKey, 'is_recruiting', '1');
+
     // 방장도 참가자 명단에 추가
     await this.addParticipant(roomId, toUuid(userId));
 
@@ -150,6 +154,12 @@ export class GameService {
     const isInRoom = await this.roomService.isUserInRoom(userId, roomId);
     if (!isInRoom) {
       throw new ForbiddenException('해당 방에 참여하지 않았습니다.');
+    }
+
+    // 게임 모집 중인지 확인
+    const isRecruiting = await this.isGameRecruiting(roomId);
+    if (!isRecruiting) {
+      throw new ForbiddenException('게임 모집 중이 아닙니다.');
     }
 
     // 게임 참가자 명단에 추가
@@ -256,6 +266,12 @@ export class GameService {
 
   private getGameKey(roomId: string): string {
     return `room:${roomId}:game`;
+  }
+
+  private async isGameRecruiting(roomId: string): Promise<boolean> {
+    const gameKey = this.getGameKey(roomId);
+    const value = await this.redisClient.hGet(gameKey, 'is_recruiting');
+    return value === '1';
   }
 
   private async getSelectedGame(roomId: string): Promise<GameInfoPayloadDto | undefined> {
