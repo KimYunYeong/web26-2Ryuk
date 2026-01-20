@@ -32,34 +32,10 @@ export class ChatService {
     const timestamp = new Date().toISOString();
 
     // 메시지를 보낸 사용자에게는 is_me: true로 전송
-    const responseToSender: GlobalChatMessageResponseDto = {
-      event: 'chat:global:new-message',
-      data: {
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: true,
-        },
-        timestamp,
-      },
-    };
+    const responseToSender = new GlobalChatMessageResponseDto(message, senderInfo, true, timestamp);
 
     // 다른 사용자들에게는 is_me: false로 전송
-    const responseToOthers: GlobalChatMessageResponseDto = {
-      event: 'chat:global:new-message',
-      data: {
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: false,
-        },
-        timestamp,
-      },
-    };
+    const responseToOthers = new GlobalChatMessageResponseDto(message, senderInfo, false, timestamp);
 
     // 메시지를 보낸 클라이언트에게만 is_me: true로 전송
     server.to(senderSocketId).emit(responseToSender.event, responseToSender.data);
@@ -89,36 +65,10 @@ export class ChatService {
     const timestamp = new Date().toISOString();
 
     // 메시지를 보낸 사용자에게는 is_me: true로 전송
-    const responseToSender: LocalChatMessageResponseDto = {
-      event: 'chat:room:new-message',
-      data: {
-        room_id: roomId,
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: true,
-        },
-        timestamp,
-      },
-    };
+    const responseToSender = new LocalChatMessageResponseDto(roomId, message, senderInfo, true, timestamp);
 
     // 다른 사용자들에게는 is_me: false로 전송
-    const responseToOthers: LocalChatMessageResponseDto = {
-      event: 'chat:room:new-message',
-      data: {
-        room_id: roomId,
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: false,
-        },
-        timestamp,
-      },
-    };
+    const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
 
     // 메시지를 보낸 클라이언트에게만 is_me: true로 전송
     server.to(senderSocketId).emit(responseToSender.event, responseToSender.data);

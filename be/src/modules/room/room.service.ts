@@ -18,8 +18,8 @@ import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
 import { User } from '@src/modules/user/user.entity';
+import { RoomRequestDto } from './dto/room.dto';
 import {
-  RoomRequestDto,
   RoomCreateResponseDto,
   RoomReadResponseDto,
   RoomDeleteResponseDto,
@@ -28,7 +28,7 @@ import {
   RoomListResponseDto,
   RoomJoinInfoResponseDto,
   GlobalChatRecentMessageDto,
-} from './dto/room.dto';
+} from './dto/room-response.dto';
 import { toUuid } from '@src/common/utils/user-id';
 import { ROOM_TYPE, RoomType } from './room.type';
 import { Server } from 'socket.io';
