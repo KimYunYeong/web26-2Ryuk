@@ -311,6 +311,42 @@ export const LOG = {
       message: `Mediasoup Router 종료: roomId=${roomId}, routerId: ${routerId}`,
       level: 'log',
     }),
+    TRANSPORT_CREATED: (transportId: string, roomId: string, producing: boolean): LogMessage => ({
+      message: `WebRTC Transport 생성: transportId=${transportId}, roomId=${roomId}, producing=${producing}`,
+      level: 'log',
+    }),
+    TRANSPORT_CREATE_ERROR: (roomId: string, producing: boolean, error: string): LogMessage => ({
+      message: `WebRTC Transport 생성 실패: roomId=${roomId}, producing=${producing}, error=${error}`,
+      level: 'error',
+    }),
+    TRANSPORT_SET_MAX_BITRATE_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `Transport 최대 비트레이트 설정 실패: roomId=${roomId}, error=${error}`,
+      level: 'warn',
+    }),
+    TRANSPORT_DTLS_FAILED: (transportId: string, dtlsState: string): LogMessage => ({
+      message: `Transport DTLS 연결 실패: transportId=${transportId}, state=${dtlsState}`,
+      level: 'warn',
+    }),
+    TRANSPORT_CONNECTED: (transportId: string): LogMessage => ({
+      message: `WebRTC Transport 연결 성공: transportId=${transportId}`,
+      level: 'log',
+    }),
+    TRANSPORT_ICE_CANDIDATE: (transportId: string, candidate: string): LogMessage => ({
+      message: `ICE 후보 수신: transportId=${transportId}, candidate=${candidate}`,
+      level: 'debug',
+    }),
+    TRANSPORT_CLOSED: (transportId: string): LogMessage => ({
+      message: `WebRTC Transport 종료: transportId=${transportId}`,
+      level: 'log',
+    }),
+    TRANSPORT_NOT_FOUND: (transportId: string): LogMessage => ({
+      message: `WebRTC Transport를 찾을 수 없음: transportId=${transportId}`,
+      level: 'warn',
+    }),
+    TRANSPORT_ROOM_MISMATCH: (transportId: string, actualRoomId: string, requestedRoomId: string): LogMessage => ({
+      message: `Transport 방 불일치: transportId=${transportId}, 실제 방=${actualRoomId}, 요청 방=${requestedRoomId}`,
+      level: 'warn',
+    }),
   },
 } as const;
 
