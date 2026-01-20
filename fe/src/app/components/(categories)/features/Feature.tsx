@@ -27,6 +27,7 @@ import Dialog from '@/app/components/shared/dialog/Dialog';
 import Paths from '@/app/shared/path';
 import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
+import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
 import { GameConverter } from '@/app/features/game/dtos/Game';
 import gamesMock from '@/mocks/data/games.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
@@ -140,7 +141,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Both Active</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState={true} initialSpeakerState={true} />
+                <AudioControlButtons initialMicState initialSpeakerState />
               </Component>
             </div>
           </div>
@@ -148,7 +149,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Mic Muted</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState={false} initialSpeakerState={true} />
+                <AudioControlButtons initialMicState={false} initialSpeakerState />
               </Component>
             </div>
           </div>
@@ -388,9 +389,9 @@ export default function FeatureComponents() {
             <RoomInfo
               title="같이 수다 떨어요~"
               tags={['게임', '친목']}
-              isHost={true}
-              isMicAvailable={true}
-              isPrivate={true}
+              isHost
+              isMicAvailable
+              isPrivate
             />
           </Component>
         </div>
@@ -427,6 +428,31 @@ export default function FeatureComponents() {
               <EmptyGameCard />
             </Component>
           </div>
+        </div>
+      </section>
+
+      <section id="selected-game-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>SelectedGameCard</h2>
+        <ComponentRelations componentId="selected-game-card" />
+        <div className={styles.chatRow}>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Host (with change)</h3>
+            <Component fullWidth>
+              <SelectedGameCard game={sampleGames[0]} isHost />
+            </Component>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Participant</h3>
+            <Component fullWidth>
+              <SelectedGameCard game={sampleGames[0]} />
+            </Component>
+          </div>
+        </div>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>Empty</h3>
+          <Component fullWidth>
+            <SelectedGameCard />
+          </Component>
         </div>
       </section>
 
