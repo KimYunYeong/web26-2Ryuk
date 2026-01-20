@@ -47,9 +47,12 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      MEDIASOUP_ANNOUNCED_IP: 127.0.0.1
     command: pnpm dev
     ports:
       - "4000:4000"
+      - "20000-22000:20000-22000/udp"
+      - "20000-22000:20000-22000/tcp"
     volumes:
       - ./be:/app/be:cached   # 소스만 부분 바인드
       - /app/be/node_modules  # 컨테이너 내 설치본 유지 (호스트 node_modules 가림 방지)
