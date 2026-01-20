@@ -283,6 +283,10 @@ export const LOG = {
       message: `게임 준비 완료: roomId=${roomId}, userId=${userId}`,
       level: 'log',
     }),
+    UNREADY: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 준비 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
     GAME_STATE_FETCH_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `게임 상태 조회 실패: roomId=${roomId}, error=${error}`,
       level: 'error',
