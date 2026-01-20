@@ -135,7 +135,7 @@ export class GameService {
     await this.redisClient.hSet(this.getGameKey(roomId), cachePayload);
 
     const roomBroadcast: GameSelectBroadcastDto = { game: broadcastPayload };
-    server.to(roomId).emit('game:select', roomBroadcast);
+    server.to(roomId).emit('game:participant:select', roomBroadcast);
 
     logMessage(this.logger, LOG.GAME.SELECT(roomId, userId, gameId));
 
@@ -233,7 +233,7 @@ export class GameService {
       player_id: userId,
       is_ready: true,
     };
-    server.to(roomId).emit('game:ready', readyBroadcast);
+    server.to(roomId).emit('game:participant:ready', readyBroadcast);
 
     logMessage(this.logger, LOG.GAME.READY(roomId, userId));
   }
@@ -256,7 +256,7 @@ export class GameService {
       player_id: userId,
       is_ready: false,
     };
-    server.to(roomId).emit('game:unready', unreadyBroadcast);
+    server.to(roomId).emit('game:participant:unready', unreadyBroadcast);
 
     logMessage(this.logger, LOG.GAME.UNREADY(roomId, userId));
   }
@@ -299,7 +299,7 @@ export class GameService {
     await this.redisClient.hSet(this.getGameKey(roomId), { start_time: startTime, is_recruiting: '0' });
 
     const broadcast: GameStartBroadcastDto = { start_time: startTime };
-    server.to(roomId).emit('game:start', broadcast);
+    server.to(roomId).emit('game:participant:start', broadcast);
 
     logMessage(this.logger, LOG.GAME.START(roomId, userId, startTime));
 
