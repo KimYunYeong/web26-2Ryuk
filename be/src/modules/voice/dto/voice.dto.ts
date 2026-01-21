@@ -70,3 +70,11 @@ export class CreateConsumerDto {
   @IsObject()
   rtp_capabilities: RtpCapabilities;
 }
+
+export class ConsumerStateChangeDto {
+  @IsString()
+  room_id: string;
+
+  @IsString()
+  consumer_id: string;
+}

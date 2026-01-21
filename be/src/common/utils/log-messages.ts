@@ -439,6 +439,22 @@ export const LOG = {
       message: `방의 Producer 목록 조회: roomId=${roomId}, count=${count}`,
       level: 'log',
     }),
+    CONSUMER_NOT_FOUND: (consumerId: string): LogMessage => ({
+      message: `메모리에서 Consumer를 찾을 수 없음: consumerId=${consumerId}`,
+      level: 'warn',
+    }),
+    CONSUMER_OWNERSHIP_MISMATCH: (consumerId: string, actualUserId: string, requestedUserId: string): LogMessage => ({
+      message: `Consumer 소유권 불일치: consumerId=${consumerId}, 실제 소유자=${actualUserId}, 요청자=${requestedUserId}`,
+      level: 'warn',
+    }),
+    CONSUMER_PAUSED: (consumerId: string, userId: string): LogMessage => ({
+      message: `Consumer 일시 중지: consumerId=${consumerId}, userId=${userId}`,
+      level: 'log',
+    }),
+    CONSUMER_RESUMED: (consumerId: string, userId: string): LogMessage => ({
+      message: `Consumer 재개: consumerId=${consumerId}, userId=${userId}`,
+      level: 'log',
+    }),
     PRODUCER_NOT_FOUND_REDIS: (producerId: string): LogMessage => ({
       message: `Redis에서 ID "${producerId}"를 가진 Producer를 찾을 수 없습니다.`,
       level: 'warn',

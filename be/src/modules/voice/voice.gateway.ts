@@ -12,6 +12,7 @@ import {
   ProducerStateChangeDto,
   GetProducersDto,
   CreateConsumerDto,
+  ConsumerStateChangeDto,
 } from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { RoomService } from '../room/room.service';
@@ -281,6 +282,48 @@ export class VoiceGateway {
       ack({ data: consumerInfo });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Consumer 생성 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * Consumer 일시 중지
+   */
+  @SubscribeMessage('voice:consumer:pause')
+  async handlePauseConsumer(
+    @MessageBody() data: ConsumerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: unknown) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.pauseConsumer(data.consumer_id, userId);
+
+      ack({ data: { success: true } });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Consumer 일시 중지 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * Consumer 재개
+   */
+  @SubscribeMessage('voice:consumer:resume')
+  async handleResumeConsumer(
+    @MessageBody() data: ConsumerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: unknown) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.resumeConsumer(data.consumer_id, userId);
+
+      ack({ data: { success: true } });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Consumer 재개 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
     }
   }

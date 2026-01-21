@@ -288,6 +288,46 @@ export class VoiceService implements OnModuleInit {
   }
 
   /**
+   * Consumer 객체를 조회하고 소유권을 검증
+   */
+  private async _getAndValidateConsumer(consumerId: string, userId: string): Promise<Consumer> {
+    const consumer = this.consumers.get(consumerId);
+    if (!consumer) {
+      logMessage(this.logger, LOG.VOICE.CONSUMER_NOT_FOUND(consumerId));
+      throw new NotFoundException(LOG.VOICE.CONSUMER_NOT_FOUND(consumerId).message);
+    }
+
+    const consumerData = await this.redisClient.hGetAll(`mediasoup:consumer:${consumerId}`);
+    if (consumerData.consuming_user_id !== userId) {
+      logMessage(
+        this.logger,
+        LOG.VOICE.CONSUMER_OWNERSHIP_MISMATCH(consumerId, consumerData.consuming_user_id, userId),
+      );
+      throw new ForbiddenException(
+        LOG.VOICE.CONSUMER_OWNERSHIP_MISMATCH(consumerId, consumerData.consuming_user_id, userId).message,
+      );
+    }
+    return consumer;
+  }
+
+  /**
+   * Consumer의 일시 중지/재개 상태를 변경
+   */
+  private async _setConsumerPausedState(consumerId: string, userId: string, pause: boolean): Promise<void> {
+    const consumer = await this._getAndValidateConsumer(consumerId, userId);
+
+    if (pause) {
+      await consumer.pause();
+      await this.redisClient.hSet(`mediasoup:consumer:${consumerId}`, 'paused', 'true');
+      logMessage(this.logger, LOG.VOICE.CONSUMER_PAUSED(consumerId, userId));
+    } else {
+      await consumer.resume();
+      await this.redisClient.hSet(`mediasoup:consumer:${consumerId}`, 'paused', 'false');
+      logMessage(this.logger, LOG.VOICE.CONSUMER_RESUMED(consumerId, userId));
+    }
+  }
+
+  /**
    * Producer 객체를 조회하고 소유권을 검증
    */
   private async _getAndValidateProducer(producerId: string, userId: string): Promise<Producer> {
@@ -337,6 +377,22 @@ export class VoiceService implements OnModuleInit {
    */
   async resumeProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
     await this._setProducerPausedState(producerId, userId, false);
+    return { success: true };
+  }
+
+  /**
+   * Consumer를 일시 중지
+   */
+  async pauseConsumer(consumerId: string, userId: string): Promise<{ success: boolean }> {
+    await this._setConsumerPausedState(consumerId, userId, true);
+    return { success: true };
+  }
+
+  /**
+   * Consumer를 재개
+   */
+  async resumeConsumer(consumerId: string, userId: string): Promise<{ success: boolean }> {
+    await this._setConsumerPausedState(consumerId, userId, false);
     return { success: true };
   }
 
