@@ -5,6 +5,7 @@ import { GlobalChatMessageResponseDto, LocalChatMessageResponseDto } from './dto
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
 
 @Injectable()
 export class ChatService {
@@ -33,7 +34,7 @@ export class ChatService {
 
     // 다른 사용자들에게는 is_me: false로 전송
     const responseToOthers = new GlobalChatMessageResponseDto(message, senderInfo, false, timestamp);
-    server.to(roomId).except(senderSocketId).emit('chat:global:new-message', responseToOthers.data);
+    server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.GLOBAL_NEW_MESSAGE, responseToOthers.data);
 
     // 글로벌 채팅 메시지를 Redis에 저장 (최신 30개 유지)
     if (roomId === GLOBAL_ROOM_ID) {
@@ -56,7 +57,7 @@ export class ChatService {
 
     // 다른 사용자들에게는 is_me: false로 전송
     const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
-    server.to(roomId).except(senderSocketId).emit('chat:room:new-message', responseToOthers.data);
+    server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.ROOM_NEW_MESSAGE, responseToOthers.data);
 
     logMessage(this.logger, LOG.CHAT.ROOM_BROADCAST(roomId, userId, message));
   }
