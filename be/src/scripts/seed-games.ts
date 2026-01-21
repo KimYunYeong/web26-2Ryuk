@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { Game, GameType } from '@src/modules/game/game.entity';
 import databaseConfig from '@src/providers/database/database.config';
 import { randomUUID } from 'crypto';
+import { time } from 'console';
 
 /*
 게임 데이터 시드 스크립트
@@ -18,6 +19,7 @@ const mockGames = [
   {
     id: randomUUID(),
     title: '비커 채우기',
+    time: 5,
     description: '제한 시간 동안 스페이스바를 빠르게 연타하여 비커를 채우세요!',
     type: GameType.COMPETITION,
     min_players: 1,
@@ -26,6 +28,7 @@ const mockGames = [
   {
     id: randomUUID(),
     title: '반응 속도 테스트',
+    time: 5,
     description: '화면에 나타나는 신호에 최대한 빨리 반응하세요!',
     type: GameType.COMPETITION,
     min_players: 2,
@@ -66,6 +69,7 @@ async function seedGames() {
       game.type = mockGame.type;
       game.min_players = mockGame.min_players;
       game.max_players = mockGame.max_players;
+      game.time = mockGame.time;
 
       return game;
     });
@@ -79,6 +83,7 @@ async function seedGames() {
       console.log(`${index + 1}. ${game.title} (ID: ${game.id})`);
       console.log(`   - 타입: ${game.type}`);
       console.log(`   - 참가 인원: ${game.min_players} ~ ${game.max_players}명`);
+      console.log(`   - 제한 시간: ${game.time}분`);
       console.log(`   - 설명: ${game.description}\n`);
     });
   } catch (error) {

@@ -14,6 +14,9 @@ export class Game {
   @Column({ type: 'varchar', length: 20 })
   title: string;
 
+  @Column({ type: 'int' })
+  time: number;
+
   @Column({
     type: 'enum',
     enum: GameType,
