@@ -181,18 +181,18 @@ export class GameService {
     const hostProfile = this.extractHostProfile(roomInfo.host_id, participants, roomInfo.participants);
 
     const players: GamePlayerDto[] = participants.map((participant) => ({
+      user_id: participant.user_id,
       nickname: participant.nickname,
       profile_image: participant.profile_image,
       is_ready: participant.is_ready,
     }));
 
-    const ackPayload = new GameJoinAckResponseDto(
-      currentPlayers,
-      roomInfo.current_participants,
-      hostProfile,
-      players,
-      selectedGame,
-    );
+    // max_players는 선택된 게임의 최대 인원을 우선 사용, 없으면 방 최대 인원으로 대체
+    const maxPlayers = selectedGame?.max_participants
+      ? parseInt(selectedGame.max_participants, 10)
+      : roomInfo.max_participants;
+
+    const ackPayload = new GameJoinAckResponseDto(currentPlayers, maxPlayers, hostProfile, players, selectedGame);
 
     // 새로 추가된 경우에만 브로드캐스트
     if (wasAdded) {
@@ -455,6 +455,7 @@ export class GameService {
       roomParticipants?.find((participant) => participant.user_id === hostId);
 
     return {
+      user_id: hostId,
       nickname: host?.nickname || '',
       profile_image: host?.profile_image || '',
     };

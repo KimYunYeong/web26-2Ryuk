@@ -246,7 +246,7 @@ export class GameGateway {
 
       // 브로드캐스트
       this.server.to(dto.room_id).emit(WS_EVENTS_GAME.PARTICIPANT_LEAVE, {
-        left_user_id: userId,
+        user_id: userId,
         participant_count: participantCount,
       });
     } catch (error) {
