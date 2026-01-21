@@ -1,3 +1,5 @@
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
+
 // HTTP data
 
 export type RoomParticipantData = {
@@ -68,6 +70,7 @@ export type RoomJoinData = {
 export type RoomJoinAckData = {
   roomId: string;
   currentParticipants?: number;
+  recents?: ChatReceiveData[];
 };
 
 export type RoomParticipantJoinData = {

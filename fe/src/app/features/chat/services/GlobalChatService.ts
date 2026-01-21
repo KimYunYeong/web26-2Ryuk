@@ -69,11 +69,14 @@ export class GlobalChatService implements ChatChannel {
     if (WebSocketService.isConnected()) this.notifyConnection(true);
 
     // chat:global:join ACK 기반 초기 상태 세팅
-    const ack = (await WebSocketService.request(WS_EVENTS.CHAT_GLOBAL_JOIN, {
-      room_id: 'global-room-001',
-    })) as ChatGlobalJoinAckDto;
+    const joinDataPayload = { roomId: 'global-room-001' };
+    const joinDto = ChatConverter.toGlobalJoinDto(joinDataPayload);
+    const joinAckDto = (await WebSocketService.request(
+      WS_EVENTS.CHAT_GLOBAL_JOIN,
+      joinDto,
+    )) as ChatGlobalJoinAckDto;
 
-    const joinData = ChatConverter.toGlobalJoinAckData(ack);
+    const joinData = ChatConverter.toGlobalJoinAckData(joinAckDto);
     this.messages = joinData.messages;
     this.currentParticipants = joinData.currentParticipants ?? 0;
 

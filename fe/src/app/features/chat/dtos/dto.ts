@@ -19,6 +19,10 @@ export type ChatGlobalJoinAckDto = {
   recents: ChatReceiveDto[];
 };
 
+export type ChatGlobalJoinDto = {
+  room_id: string;
+};
+
 export type ChatGlobalSendDto = {
   message: string;
 };

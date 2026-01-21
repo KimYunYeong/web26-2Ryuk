@@ -31,6 +31,7 @@ import {
   RoomValidateJoinResponseData,
   RoomListData,
 } from './data';
+import { ChatConverter } from '@/app/features/chat/dtos/converter';
 
 // HTTP converters
 export const toData = (dto: RoomDto): RoomData => ({
@@ -66,6 +67,15 @@ export const toCreateDto = (data: RoomCreateRequestData): RoomCreateRequestDto =
 });
 
 export const toUpdateDto = (data: RoomUpdateRequestData): RoomUpdateRequestDto => toCreateDto(data);
+
+export const toRoomJoinInfoDto = (data: RoomJoinInfoData): RoomJoinInfoDto => ({
+  id: data.id,
+  title: data.title,
+  tags: data.tags,
+  is_mic_available: data.isMicAvailable,
+  is_private: data.isPrivate,
+  is_member: data.isMember,
+});
 
 export const toRoomJoinInfoData = (dto: RoomJoinInfoDto): RoomJoinInfoData => ({
   id: dto.id,
@@ -129,6 +139,7 @@ export const toRoomJoinDto = (data: RoomJoinData): RoomJoinDto => ({
 export const toRoomJoinData = (dto: RoomJoinAckDto): RoomJoinAckData => ({
   roomId: dto.room_id,
   currentParticipants: Number(dto.current_participants),
+  recents: dto.recents?.map(ChatConverter.toReceiveData) ?? [],
 });
 
 export const toRoomParticipantJoinData = (
@@ -167,15 +178,8 @@ export const RoomConverter = {
   toUpdateDto,
   toEditDto,
   toEditData,
+  toRoomJoinInfoDto,
   toRoomJoinInfoData,
-  toJoinInfoDto: (data: RoomJoinInfoData): RoomJoinInfoDto => ({
-    id: data.id,
-    title: data.title,
-    tags: data.tags,
-    is_mic_available: data.isMicAvailable,
-    is_private: data.isPrivate,
-    is_member: data.isMember,
-  }),
   toValidateJoinDto,
   toRoomValidateJoinData,
   toMyCurrentData,

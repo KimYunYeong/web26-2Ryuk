@@ -9,10 +9,12 @@ import {
   ChatRoomSendDto,
   ChatRoomSendAckDto,
   GlobalChatRecentsDto,
+  ChatGlobalJoinDto,
 } from './dto';
 import {
   ChatGlobalNewMessageData,
   ChatGlobalParticipantsUpdatedData,
+  ChatGlobalJoinData,
   ChatGlobalSendData,
   ChatGlobalSendAckData,
   ChatReceiveData,
@@ -66,10 +68,10 @@ export const toRoomNewMessageData = (dto: ChatRoomNewMessageDto): ChatRoomNewMes
 export const toReceiveData = (dto: ChatReceiveDto): ChatReceiveData => ({
   message: dto.message,
   sender: {
-    role: dto.sender.role,
-    nickname: dto.sender.nickname,
-    profileImage: dto.sender.profile_image,
-    isMe: dto.sender.is_me,
+    role: dto.sender?.role,
+    nickname: dto.sender?.nickname,
+    profileImage: dto.sender?.profile_image,
+    isMe: dto.sender?.is_me,
   },
   timestamp: new Date(dto.timestamp),
   roomId: dto.room_id,
@@ -85,6 +87,10 @@ export const toGlobalJoinAckData = (dto: ChatGlobalJoinAckDto): ChatGlobalJoinAc
   roomId: dto.room_id,
   messages: dto.recents.map(toReceiveData),
   currentParticipants: Number(dto.current_participants),
+});
+
+export const toGlobalJoinDto = (data: ChatGlobalJoinData): ChatGlobalJoinDto => ({
+  room_id: data.roomId,
 });
 
 export const toRoomSendAckData = (dto: ChatRoomSendAckDto): ChatRoomSendAckData => ({
@@ -136,6 +142,7 @@ export const ChatConverter = {
   toGlobalParticipantsUpdatedData,
   toGlobalChatRecentsData,
   toGlobalJoinAckData,
+  toGlobalJoinDto,
   toRoomSendAckData,
   toGlobalSendAckData,
 };

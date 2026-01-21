@@ -1,6 +1,6 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, Inject, ValidationPipe, BadRequestException, UsePipes, UseFilters } from '@nestjs/common';
+import { Logger, ValidationPipe, BadRequestException, UsePipes, UseFilters, forwardRef, Inject } from '@nestjs/common';
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from './room.service';
@@ -12,6 +12,7 @@ import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
 import { WS_EVENTS_ROOM, WS_EVENTS_ERROR } from '@src/common/constants/ws-events.constant';
+import { ChatService } from '@src/modules/chat/chat.service';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -36,6 +37,7 @@ export class RoomGateway {
   constructor(
     private readonly roomService: RoomService,
     private readonly authService: AuthService,
+    @Inject(forwardRef(() => ChatService)) private readonly chatService: ChatService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
   ) {}
 
@@ -90,7 +92,8 @@ export class RoomGateway {
         // Redis에는 참여 중이지만 Socket.io room에 참여하지 않았을 수 있으므로 재참여만
         client.join(dto.room_id);
         const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
-        return { room_id: dto.room_id, current_participants: currentParticipants };
+        const recents = await this.chatService.getRoomChatRecents(dto.room_id, userId);
+        return { room_id: dto.room_id, current_participants: currentParticipants, recents };
       }
 
       // 정원 확인
@@ -138,8 +141,11 @@ export class RoomGateway {
 
       logMessage(this.logger, LOG.ROOM.JOIN(userId, dto.room_id));
 
-      // 클라이언트에 입장 성공 알림 (ACK, 참여자 수 포함)
-      return { room_id: dto.room_id, current_participants: currentParticipants };
+      // 최근 방 채팅 불러오기
+      const recents = await this.chatService.getRoomChatRecents(dto.room_id, userId);
+
+      // 클라이언트에 입장 성공 알림 (ACK, 참여자 수/최근 메시지 포함)
+      return { room_id: dto.room_id, current_participants: currentParticipants, recents };
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);

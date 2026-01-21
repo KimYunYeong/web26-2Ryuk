@@ -71,7 +71,7 @@ export class GlobalChatRecentMessageDto {
   sender: {
     role: string;
     nickname: string;
-    profile_image: string;
+    profile_image?: string;
     is_me: boolean;
   };
   timestamp: string;

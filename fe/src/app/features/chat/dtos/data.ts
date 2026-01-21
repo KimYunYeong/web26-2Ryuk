@@ -48,3 +48,7 @@ export type GlobalChatRecentsData = {
 export type ChatGlobalJoinAckData = GlobalChatRecentsData & {
   roomId: string;
 };
+
+export type ChatGlobalJoinData = {
+  roomId: string;
+};

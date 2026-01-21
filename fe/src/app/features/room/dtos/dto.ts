@@ -1,3 +1,5 @@
+import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
+
 // HTTP DTOs
 
 export type RoomParticipantDto = {
@@ -64,7 +66,8 @@ export type RoomJoinDto = {
 
 export type RoomJoinAckDto = {
   room_id: string;
-  current_participants?: string;
+  current_participants?: number;
+  recents?: ChatReceiveDto[];
 };
 
 export type RoomParticipantJoinDto = {

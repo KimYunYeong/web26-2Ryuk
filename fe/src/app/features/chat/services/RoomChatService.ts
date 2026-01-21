@@ -4,17 +4,20 @@ import { WebSocketService } from '@/app/services/websocket.service';
 import { ChatConverter } from '@/app/features/chat/dtos/converter';
 import { roomStore } from '@/app/features/room/stores/room';
 import { globalChatService } from './GlobalChatService';
-import { MessageCallback, ConnectionCallback } from './type';
+import { MessageCallback, ConnectionCallback, RecentsCallback } from './type';
 import {
   RoomJoinAckDto,
+  RoomJoinDto,
   RoomParticipantJoinDto,
   RoomLeaveAckDto,
+  RoomLeaveDto,
   RoomParticipantLeaveDto,
 } from '@/app/features/room/dtos/dto';
 import { WS_EVENTS } from '@/app/services/events';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
 import { authStore } from '@/app/features/user/stores/auth';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
+import { RoomJoinData, RoomLeaveData } from '@/app/features/room/dtos/data';
 
 /**
  * RoomChat 클라이언트 서비스
@@ -23,6 +26,7 @@ import { RoomConverter } from '@/app/features/room/dtos/converter';
 export class RoomChatService {
   private messageCallbacks: Set<MessageCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
+  private recentsCallbacks: Set<RecentsCallback> = new Set();
   private roomInvalidatedCallbacks: Set<() => void> = new Set();
   private isSubscribed = false;
   private messages: ChatReceiveData[] = [];
@@ -59,11 +63,21 @@ export class RoomChatService {
       this.registerEventHandlers();
 
       // 방 입장 요청 (ACK 필요 이벤트이므로 request 사용)
-      const ack = (await WebSocketService.request(WS_EVENTS.ROOM_JOIN, {
-        room_id: roomId,
-      })) as RoomJoinAckDto;
+      const joinRequestData: RoomJoinData = { roomId };
+      const joinRequestDto: RoomJoinDto = RoomConverter.toRoomJoinDto(joinRequestData);
+      const joinAckDto = (await WebSocketService.request(
+        WS_EVENTS.ROOM_JOIN,
+        joinRequestDto,
+      )) as RoomJoinAckDto;
 
-      const joinData = RoomConverter.toRoomJoinData(ack);
+      if (!joinAckDto) return;
+      const joinData = RoomConverter.toRoomJoinData(joinAckDto);
+
+      // 최근 메시지 교체
+      if (joinData.recents) {
+        this.messages = [...joinData.recents];
+        this.notifyRecents(this.messages);
+      }
 
       roomStore.getState().setRoom(roomId);
       roomStore.getState().setJoined(true);
@@ -77,19 +91,10 @@ export class RoomChatService {
       this.isSubscribed = true;
       this.notifyConnection(true);
     } catch (e) {
+      console.error(e);
       this.notifyConnection(false);
       throw e;
     }
-  }
-
-  /**
-   * room:joined 이벤트 핸들러에서 호출
-   */
-  onRoomJoined(roomId: string): void {
-    if (this.currentRoomId !== roomId) return;
-
-    roomStore.getState().setJoined(true);
-    this.notifyConnection(true);
   }
 
   /**
@@ -108,9 +113,9 @@ export class RoomChatService {
     const connectHandler = async () => {
       if (this.isSubscribed && this.currentRoomId && WebSocketService.isConnected()) {
         try {
-          await WebSocketService.request(WS_EVENTS.ROOM_JOIN, {
-            room_id: this.currentRoomId,
-          });
+          const reconnectData: RoomJoinData = { roomId: this.currentRoomId };
+          const reconnectDto: RoomJoinDto = RoomConverter.toRoomJoinDto(reconnectData);
+          await WebSocketService.request(WS_EVENTS.ROOM_JOIN, reconnectDto);
         } catch (error) {
           console.error('[RoomChatService] reconnect room:join 실패:', error);
           this.notifyConnection(false);
@@ -243,7 +248,14 @@ export class RoomChatService {
 
     if (this.currentRoomId && WebSocketService.isConnected()) {
       // 백엔드에서 ACK를 반환하므로 request() 사용
-      await WebSocketService.request(WS_EVENTS.ROOM_LEAVE, { room_id: this.currentRoomId });
+      const leaveData: RoomLeaveData = { roomId: this.currentRoomId };
+      const leaveDto: RoomLeaveDto = RoomConverter.toRoomLeaveDto(leaveData);
+      const leaveAckDto = (await WebSocketService.request(
+        WS_EVENTS.ROOM_LEAVE,
+        leaveDto,
+      )) as RoomLeaveAckDto;
+
+      RoomConverter.toRoomLeaveData(leaveAckDto);
     }
 
     this.isSubscribed = false;
@@ -296,6 +308,11 @@ export class RoomChatService {
     return () => this.messageCallbacks.delete(callback);
   }
 
+  onRecents(callback: RecentsCallback): () => void {
+    this.recentsCallbacks.add(callback);
+    return () => this.recentsCallbacks.delete(callback);
+  }
+
   /**
    * 연결 상태 변경 콜백 등록
    */
@@ -316,6 +333,10 @@ export class RoomChatService {
    */
   private notifyMessage(message: ChatReceiveData): void {
     this.messageCallbacks.forEach((callback) => callback(message));
+  }
+
+  private notifyRecents(messages: ChatReceiveData[]): void {
+    this.recentsCallbacks.forEach((callback) => callback(messages));
   }
 
   /**
