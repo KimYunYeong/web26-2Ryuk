@@ -11,6 +11,8 @@ import {
   GlobalChatRecentMessageDto,
   GlobalChatRecentsResponseDto,
   GlobalChatParticipantsUpdatedResponseDto,
+  GlobalChatMessageResponseDto,
+  LocalChatMessageResponseDto,
 } from './dto/chat-response.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -110,8 +112,13 @@ export class ChatGateway {
         profile_image: user.profile_image,
       };
 
-      // 메시지 브로드캐스트 (is_me 구분하여 전송)
+      // 다른 참여자들에게 브로드캐스트
       await this.chatService.broadcastGlobalChat(this.server, globalRoomId, userId, dto.message, senderInfo, client.id);
+
+      // 요청을 보낸 클라이언트에게 응답 반환 (is_me: true)
+      const timestamp = new Date().toISOString();
+      const responseToSender = new GlobalChatMessageResponseDto(dto.message, senderInfo, true, timestamp);
+      return responseToSender.data;
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -160,8 +167,13 @@ export class ChatGateway {
         profile_image: user.profile_image,
       };
 
-      // 메시지 브로드캐스트
+      // 참여자들에게 브로드캐스트
       await this.chatService.broadcastRoomChat(this.server, dto.room_id, userId, dto.message, senderInfo, client.id);
+
+      // 요청을 보낸 클라이언트에게 응답 반환 (is_me: true)
+      const timestamp = new Date().toISOString();
+      const responseToSender = new LocalChatMessageResponseDto(dto.room_id, dto.message, senderInfo, true, timestamp);
+      return responseToSender.data;
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);

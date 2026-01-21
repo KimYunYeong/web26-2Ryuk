@@ -1,6 +1,5 @@
 // 글로벌 채팅 메시지 응답 DTO
 export class GlobalChatMessageResponseDto {
-  event: 'chat:global:new-message' = 'chat:global:new-message';
   data: {
     message: string;
     sender: {
@@ -33,7 +32,6 @@ export class GlobalChatMessageResponseDto {
 
 // 로컬 채팅 메시지 응답 DTO
 export class LocalChatMessageResponseDto {
-  event: 'chat:room:new-message' = 'chat:room:new-message';
   data: {
     room_id: string;
     message: string;

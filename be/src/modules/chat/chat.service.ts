@@ -31,19 +31,9 @@ export class ChatService {
   ): Promise<void> {
     const timestamp = new Date().toISOString();
 
-    // 메시지를 보낸 사용자에게는 is_me: true로 전송
-    const responseToSender = new GlobalChatMessageResponseDto(message, senderInfo, true, timestamp);
-
     // 다른 사용자들에게는 is_me: false로 전송
     const responseToOthers = new GlobalChatMessageResponseDto(message, senderInfo, false, timestamp);
-
-    // 메시지를 보낸 클라이언트에게만 is_me: true로 전송
-    server.to(senderSocketId).emit(responseToSender.event, responseToSender.data);
-    this.logger.debug(`메시지 발신자에게 전송: socketId=${senderSocketId}, is_me=true`);
-
-    // 같은 방의 다른 클라이언트들에게는 is_me: false로 전송
-    server.to(roomId).except(senderSocketId).emit(responseToOthers.event, responseToOthers.data);
-    this.logger.debug(`다른 클라이언트들에게 브로드캐스트: roomId=${roomId}, except=${senderSocketId}, is_me=false`);
+    server.to(roomId).except(senderSocketId).emit('chat:global:new-message', responseToOthers.data);
 
     // 글로벌 채팅 메시지를 Redis에 저장 (최신 30개 유지)
     if (roomId === GLOBAL_ROOM_ID) {
@@ -64,19 +54,9 @@ export class ChatService {
   ): Promise<void> {
     const timestamp = new Date().toISOString();
 
-    // 메시지를 보낸 사용자에게는 is_me: true로 전송
-    const responseToSender = new LocalChatMessageResponseDto(roomId, message, senderInfo, true, timestamp);
-
     // 다른 사용자들에게는 is_me: false로 전송
     const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
-
-    // 메시지를 보낸 클라이언트에게만 is_me: true로 전송
-    server.to(senderSocketId).emit(responseToSender.event, responseToSender.data);
-    this.logger.debug(`메시지 발신자에게 전송: socketId=${senderSocketId}, is_me=true`);
-
-    // 같은 방의 다른 클라이언트들에게는 is_me: false로 전송
-    server.to(roomId).except(senderSocketId).emit(responseToOthers.event, responseToOthers.data);
-    this.logger.debug(`다른 클라이언트들에게 브로드캐스트: roomId=${roomId}, except=${senderSocketId}, is_me=false`);
+    server.to(roomId).except(senderSocketId).emit('chat:room:new-message', responseToOthers.data);
 
     logMessage(this.logger, LOG.CHAT.ROOM_BROADCAST(roomId, userId, message));
   }
