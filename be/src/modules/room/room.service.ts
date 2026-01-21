@@ -711,7 +711,7 @@ export class RoomService implements OnModuleInit {
     // Redis adapter를 사용하는 경우 server.to()가 모든 서버 인스턴스에 브로드캐스트를 전파
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
-    server.to(roomId).emit('room:joined', data);
+    server.to(roomId).emit('room:participant:join', data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserJoined', userInfo.userId, roomClientsCount));
   }
   /**
@@ -732,7 +732,7 @@ export class RoomService implements OnModuleInit {
     // Redis adapter를 사용하는 경우 server.to()가 모든 서버 인스턴스에 브로드캐스트를 전파
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
-    server.to(roomId).emit('room:left', data);
+    server.to(roomId).emit('room:participant:leave', data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserLeft', userId, roomClientsCount));
     logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));
   }

@@ -129,7 +129,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
           // Redis 상태 복구
           await this.roomService.joinRoom(userId, roomId);
 
-          // 클라이언트에게 직접 room:join ACK 전송
+          // 클라이언트에게 직접 room:join 전송 (ACK (X) event push (O))
           const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
           client.emit('room:join', { roomId, current_participants: currentParticipants });
         }
