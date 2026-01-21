@@ -79,10 +79,7 @@ export class GameGateway {
         return;
       }
 
-      const payload = await this.gameService.joinGame(this.server, dto.room_id, userId);
-
-      // 요청한 클라이언트에게 응답 전송
-      return payload;
+      return await this.gameService.joinGame(this.server, dto.room_id, userId);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 참가 중 문제가 발생했습니다.');
       try {

@@ -45,11 +45,57 @@ export class GameInfoPayloadDto {
   type: string;
   min_players: string;
   max_players: string;
+  duration_ms: number;
+
+  constructor(
+    id: string,
+    title: string,
+    description: string,
+    type: string,
+    min_players: string,
+    max_players: string,
+    duration_ms: number,
+  ) {
+    this.id = id;
+    this.title = title;
+    this.description = description || '';
+    this.type = type || '';
+    this.min_players = min_players || '';
+    this.max_players = max_players || '';
+    this.duration_ms = duration_ms || 0;
+  }
+}
+
+// 게임 선택 dto
+export class GameSelectPayloadDto {
+  id: string;
+  title: string;
+  description?: string;
+  type: string;
+  min_players: string;
+  max_players: string;
+
+  constructor(
+    id: string,
+    title: string,
+    description: string,
+    type: string,
+    min_players: string,
+    max_players: string,
+    duration_ms: number,
+  ) {
+    this.id = id;
+    this.title = title;
+    this.description = description || '';
+    this.type = type || '';
+    this.min_players = min_players || '';
+    this.max_players = max_players || '';
+  }
 }
 
 // 게임 선택 브로드캐스트
 export class GameSelectBroadcastDto {
-  game: GameInfoPayloadDto;
+  game: GameSelectPayloadDto;
 }
 
 // 게임 참가 응답
@@ -58,14 +104,14 @@ export class GameJoinAckResponseDto {
   max_players: string;
   host: GameHostDto;
   players: GamePlayerDto[];
-  game?: GameInfoPayloadDto;
+  game?: GameSelectPayloadDto;
 
   constructor(
     currentPlayers: number,
     maxPlayers: number,
     host: GameHostDto,
     players: GamePlayerDto[],
-    game?: GameInfoPayloadDto,
+    game?: GameSelectPayloadDto,
   ) {
     this.current_players = currentPlayers.toString();
     this.max_players = maxPlayers.toString();
@@ -102,4 +148,17 @@ export class GameRealtimeBroadcastDto {
   highest_score: string;
   average_score: string;
   ranks: string[];
+}
+
+// 게임 종료 결과 브로드캐스트
+export class GameResultItemDto {
+  player_id: string;
+  nickname: string;
+  profile_image: string;
+  score: string;
+  rank: number;
+}
+
+export class GameResultBroadcastDto {
+  results: GameResultItemDto[];
 }

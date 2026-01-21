@@ -319,6 +319,13 @@ export const LOG = {
       message: `게임 실시간 브로드캐스트 중지: roomId=${roomId}`,
       level: 'log',
     }),
+    RESULT_BROADCAST: (
+      roomId: string,
+      results: Array<{ player_id: string; score: string; rank: number }>,
+    ): LogMessage => ({
+      message: `게임 결과 브로드캐스트: roomId=${roomId}, participants=${results.length}`,
+      level: 'log',
+    }),
   },
 } as const;
 
