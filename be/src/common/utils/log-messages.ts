@@ -415,6 +415,22 @@ export const LOG = {
       message: `Producer 생성: producerId=${producerId}, transportId=${transportId}, userId=${userId}`,
       level: 'log',
     }),
+    PRODUCER_NOT_FOUND: (producerId: string): LogMessage => ({
+      message: `메모리에서 Producer를 찾을 수 없음: producerId=${producerId}`,
+      level: 'warn',
+    }),
+    PRODUCER_OWNERSHIP_MISMATCH: (producerId: string, actualUserId: string, requestedUserId: string): LogMessage => ({
+      message: `Producer 소유권 불일치: producerId=${producerId}, 실제 소유자=${actualUserId}, 요청자=${requestedUserId}`,
+      level: 'warn',
+    }),
+    PRODUCER_PAUSED: (producerId: string, userId: string): LogMessage => ({
+      message: `Producer 일시 중지: producerId=${producerId}, userId=${userId}`,
+      level: 'log',
+    }),
+    PRODUCER_RESUMED: (producerId: string, userId: string): LogMessage => ({
+      message: `Producer 재개: producerId=${producerId}, userId=${userId}`,
+      level: 'log',
+    }),
   },
 } as const;
 

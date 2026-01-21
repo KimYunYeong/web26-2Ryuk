@@ -258,6 +258,7 @@ export class VoiceService implements OnModuleInit {
         kind,
         transport_id,
         rtp_parameters: JSON.stringify(rtp_parameters),
+        paused: 'false',
       }),
       this.redisClient.sAdd(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
     ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, err)));
@@ -273,6 +274,59 @@ export class VoiceService implements OnModuleInit {
     logMessage(this.logger, LOG.VOICE.PRODUCER_CREATED(producer.id, transport.id, userId));
 
     return producer;
+  }
+
+  /**
+   * Producer 객체를 조회하고 소유권을 검증
+   */
+  private async _getAndValidateProducer(producerId: string, userId: string): Promise<Producer> {
+    const producer = this.producers.get(producerId);
+    if (!producer) {
+      logMessage(this.logger, LOG.VOICE.PRODUCER_NOT_FOUND(producerId));
+      throw new NotFoundException(LOG.VOICE.PRODUCER_NOT_FOUND(producerId).message);
+    }
+
+    const producerData = await this.redisClient.hGetAll(`mediasoup:producer:${producerId}`);
+    if (producerData.user_id !== userId) {
+      logMessage(this.logger, LOG.VOICE.PRODUCER_OWNERSHIP_MISMATCH(producerId, producerData.user_id, userId));
+      throw new ForbiddenException(
+        LOG.VOICE.PRODUCER_OWNERSHIP_MISMATCH(producerId, producerData.user_id, userId).message,
+      );
+    }
+    return producer;
+  }
+
+  /**
+   * Producer의 일시 중지/재개 상태를 변경
+   */
+  private async _setProducerPausedState(producerId: string, userId: string, pause: boolean): Promise<void> {
+    const producer = await this._getAndValidateProducer(producerId, userId);
+
+    if (pause) {
+      await producer.pause();
+      await this.redisClient.hSet(`mediasoup:producer:${producerId}`, 'paused', 'true');
+      logMessage(this.logger, LOG.VOICE.PRODUCER_PAUSED(producerId, userId));
+    } else {
+      await producer.resume();
+      await this.redisClient.hSet(`mediasoup:producer:${producerId}`, 'paused', 'false');
+      logMessage(this.logger, LOG.VOICE.PRODUCER_RESUMED(producerId, userId));
+    }
+  }
+
+  /**
+   * Producer를 일시 중지
+   */
+  async pauseProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
+    await this._setProducerPausedState(producerId, userId, true);
+    return { success: true };
+  }
+
+  /**
+   * Producer를 재개
+   */
+  async resumeProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
+    await this._setProducerPausedState(producerId, userId, false);
+    return { success: true };
   }
 
   /**

@@ -46,3 +46,11 @@ export class CreateProducerDto {
   @IsObject()
   rtp_parameters: RtpParameters;
 }
+
+export class ProducerStateChangeDto {
+  @IsString()
+  room_id: string;
+
+  @IsString()
+  producer_id: string;
+}
