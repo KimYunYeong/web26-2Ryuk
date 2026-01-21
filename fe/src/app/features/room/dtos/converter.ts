@@ -50,6 +50,14 @@ export const toData = (dto: RoomDto): RoomData => ({
       nickname: p.nickname,
       profileImage: p.profile_image,
     })) ?? [],
+  players:
+    dto.players?.map((p) => ({
+      userId: p.user_id,
+      nickname: p.nickname,
+      profileImage: p.profile_image ?? undefined,
+      isHost: p.is_host,
+      isReady: p.is_ready,
+    })) ?? [],
   createDate: dto.create_date ? new Date(dto.create_date) : undefined,
 });
 
@@ -116,6 +124,13 @@ export const toDto = (data: RoomData): RoomDto => ({
     user_id: p.userId,
     nickname: p.nickname,
     profile_image: p.profileImage,
+  })),
+  players: data.players?.map((p) => ({
+    user_id: p.userId,
+    nickname: p.nickname,
+    profile_image: p.profileImage,
+    is_host: p.isHost,
+    is_ready: p.isReady,
   })),
   create_date: data.createDate?.toISOString(),
 });

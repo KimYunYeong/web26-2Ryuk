@@ -36,7 +36,7 @@ import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherRead
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
 
 export default function FeatureComponents() {
-  const sampleGames = gamesMock.map(GameConverter.toData);
+  const sampleGames = gamesMock.map(GameConverter.toGameData);
 
   return (
     <>

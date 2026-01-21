@@ -32,10 +32,11 @@ export type GameJoinData = {
 };
 
 export type GamePlayerData = {
-  playerId: string;
+  userId: string;
   nickname: string;
   profileImage?: string;
   isReady?: boolean;
+  isHost?: boolean;
 };
 
 export type GameData = {

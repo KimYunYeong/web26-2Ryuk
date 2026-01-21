@@ -1,4 +1,5 @@
 import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
+import { GamePlayerDto } from '@/app/features/game/dtos/dto';
 
 // HTTP DTOs
 
@@ -19,6 +20,7 @@ export type RoomDto = {
   is_private: boolean;
   is_game_recruiting?: boolean;
   participants: RoomParticipantDto[];
+  players?: GamePlayerDto[];
   create_date?: string;
 };
 

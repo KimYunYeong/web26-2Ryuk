@@ -1,4 +1,5 @@
 import { ChatReceiveData } from '@/app/features/chat/dtos/data';
+import { GamePlayerData } from '@/app/features/game/dtos/data';
 
 // HTTP data
 
@@ -21,6 +22,7 @@ export type RoomData = {
   isPrivate: boolean;
   isGameRecruiting?: boolean;
   participants: RoomParticipantData[];
+  players?: GamePlayerData[];
   createDate?: Date;
 };
 

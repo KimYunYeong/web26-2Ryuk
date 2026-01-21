@@ -1,3 +1,4 @@
+import { GamePlayerData } from '@/app/features/game/dtos/data';
 import { RoomEditData, RoomData } from '@/app/features/room/dtos/data';
 
 export interface RoomCardProps extends RoomData {}
@@ -45,15 +46,5 @@ export interface DeleteRoomButtonProps {
   handleClick?: () => void;
 }
 
-export interface MyReadyStatusCardProps {
-  nickname: string;
-  profileImage?: string;
-  isHost: boolean;
-  isReady: boolean;
-}
-export interface OtherReadyStatusCardProps {
-  nickname: string;
-  profileImage?: string;
-  isHost: boolean;
-  isReady: boolean;
-}
+export interface MyReadyStatusCardProps extends GamePlayerData {}
+export interface OtherReadyStatusCardProps extends GamePlayerData {}

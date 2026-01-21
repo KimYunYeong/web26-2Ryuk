@@ -418,7 +418,7 @@ export class GameService {
   }
 
   // 게임 참여자 조회
-  private async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
+  async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
 

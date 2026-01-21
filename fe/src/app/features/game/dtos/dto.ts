@@ -31,10 +31,11 @@ export type GameJoinDto = {
 };
 
 export type GamePlayerDto = {
-  player_id: string;
+  user_id: string;
   nickname: string;
   profile_image?: string;
   is_ready?: boolean;
+  is_host?: boolean;
 };
 
 export type GameDto = {

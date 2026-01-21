@@ -9,15 +9,15 @@ import {
 import MyReadyStatusCard from './MyReadyStatusCard';
 import OtherReadyStatusCardGrid from './OtherReadyStatusCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
-import { GameData } from '@/app/features/game/dtos/data';
+import { GameData, GamePlayerData } from '@/app/features/game/dtos/data';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import { useState } from 'react';
 
 interface GameReadyModalContentProps {
-  myStatus: MyReadyStatusCardProps;
-  participants: OtherReadyStatusCardProps[];
+  myStatus: GamePlayerData;
+  players: GamePlayerData[];
   selectedGame?: GameData;
-  maxParticipants?: number;
+  maxPlayers?: number;
   onChangeGame?: () => void;
   onReadyChange?: (value: boolean) => void;
   onStart?: () => void;
@@ -25,21 +25,23 @@ interface GameReadyModalContentProps {
 
 export default function GameReadyModalContent({
   myStatus,
-  participants,
-  maxParticipants,
+  players,
+  maxPlayers,
   selectedGame,
   onChangeGame,
   onReadyChange,
   onStart,
 }: GameReadyModalContentProps) {
-  const currentCount = participants.length + 1;
+  const currentPlayers = players.length + 1;
   const title = myStatus.isHost ? '게임 참가자 모집 중' : '게임에 참가하시겠어요?';
-  const [_isReady, setIsReady] = useState<boolean>(myStatus.isReady);
+  const [isReady, setIsReady] = useState<boolean>(myStatus.isReady ?? false);
+
+  const gridPlayers = players.filter((p) => p.userId !== myStatus.userId);
 
   const handleReadyChange = () => {
     if (myStatus.isHost) return;
     setIsReady((prev) => !prev);
-    onReadyChange?.(_isReady);
+    onReadyChange?.(isReady);
   };
 
   return (
@@ -49,7 +51,7 @@ export default function GameReadyModalContent({
         <div className={styles.text}>
           <h2 className={styles.title}>{title}</h2>
           <p className={styles.subtitle}>
-            참가자 현황 ({currentCount}/{maxParticipants})
+            참가자 현황 ({currentPlayers}/{maxPlayers})
           </p>
         </div>
       </div>
@@ -57,7 +59,7 @@ export default function GameReadyModalContent({
         <MyReadyStatusCard {...myStatus} />
       </div>
       <div className={styles.section}>
-        <OtherReadyStatusCardGrid participants={participants} />
+        <OtherReadyStatusCardGrid players={gridPlayers} />
       </div>
       <div className={styles.section}>
         <SelectedGameCard game={selectedGame} isHost={myStatus.isHost} onChange={onChangeGame} />
@@ -66,7 +68,7 @@ export default function GameReadyModalContent({
         {myStatus.isHost && (
           <TextButton.Primary text="게임 시작" iconName="play" size="medium" onClick={onStart} />
         )}
-        {!myStatus.isHost && _isReady && (
+        {!myStatus.isHost && isReady && (
           <TextButton.SuccessSecondary
             iconName="check"
             text="준비 완료"
@@ -74,7 +76,7 @@ export default function GameReadyModalContent({
             onClick={handleReadyChange}
           />
         )}
-        {!myStatus.isHost && !_isReady && (
+        {!myStatus.isHost && !isReady && (
           <TextButton.SuccessPrimary text="준비" size="medium" onClick={handleReadyChange} />
         )}
         <p className={styles.notice}>게임 참여 여부와 관계없이 음성채팅은 지속됩니다</p>

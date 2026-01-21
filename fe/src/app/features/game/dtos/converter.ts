@@ -23,6 +23,7 @@ import {
   GameSelectDto,
   GameStartDto,
   GameUnreadyDto,
+  GameDto,
 } from './dto';
 import {
   GameItemData,
@@ -74,11 +75,21 @@ export const toGameListData = (dto: GameListResponseDto): GameListResponseData =
   games: dto.games.map(toGameData),
 });
 
+const toGamePayloadData = (game: GameDto): GameData => ({
+  id: game.id,
+  title: game.title,
+  description: game.description,
+  type: game.type,
+  minPlayers: Number(game.min_players),
+  maxPlayers: Number(game.max_players),
+});
+
 const toGamePlayerData = (player: GamePlayerDto): GamePlayerData => ({
-  playerId: player.player_id,
+  userId: player.user_id,
   nickname: player.nickname,
   profileImage: player.profile_image ?? undefined,
   isReady: player.is_ready,
+  isHost: player.is_host,
 });
 
 export const toGameRecruitDto = (data: GameRecruitData): GameRecruitDto => ({
@@ -100,18 +111,14 @@ export const toGameJoinDto = (data: GameJoinData): GameJoinDto => ({
 export const toGameJoinAckData = (dto: GameJoinAckDto): GameJoinAckData => ({
   currentPlayers: Number(dto.current_players),
   maxPlayers: Number(dto.max_players),
-  host: toGamePlayerData(dto.host),
-  players: dto.players.map(toGamePlayerData),
-  game: dto.game
-    ? {
-        id: dto.game.id,
-        title: dto.game.title,
-        description: dto.game.description,
-        type: dto.game.type,
-        minPlayers: Number(dto.game.min_players),
-        maxPlayers: Number(dto.game.max_players),
-      }
-    : undefined,
+  host: { ...toGamePlayerData(dto.host), isHost: true },
+  players: dto.players.map((p) => {
+    const data = toGamePlayerData(p);
+    const hostId = dto.host.user_id;
+    const playerId = p.user_id;
+    return { ...data, isHost: playerId === hostId };
+  }),
+  game: dto.game ? toGamePayloadData(dto.game) : undefined,
 });
 
 export const toGamePlayerJoinData = (dto: GamePlayerJoinDto): GamePlayerJoinData => ({
@@ -134,14 +141,7 @@ export const toGameSelectDto = (data: GameSelectData): GameSelectDto => ({
 });
 
 export const toGamePlayerSelectData = (dto: GamePlayerSelectDto): GamePlayerSelectData => ({
-  game: {
-    id: dto.game.id,
-    title: dto.game.title,
-    description: dto.game.description,
-    type: dto.game.type,
-    minPlayers: Number(dto.game.min_players),
-    maxPlayers: Number(dto.game.max_players),
-  },
+  game: toGamePayloadData(dto.game),
 });
 
 export const toGameReadyDto = (data: GameReadyData): GameReadyDto => ({
@@ -191,7 +191,7 @@ export const toGamePlayerRealtimeData = (dto: GamePlayerRealtimeDto): GamePlayer
 
 export const toGamePlayerResultData = (dto: GamePlayerResultDto): GamePlayerResultData => ({
   results: dto.results.map((result) => ({
-    playerId: result.player_id,
+    userId: result.user_id,
     nickname: result.nickname,
     profileImage: result.profile_image,
     isReady: result.is_ready,
@@ -200,6 +200,28 @@ export const toGamePlayerResultData = (dto: GamePlayerResultDto): GamePlayerResu
 });
 
 export const GameConverter = {
-  toData: toGameData,
-  toDto: toGameDto,
+  toGameData,
+  toGameDto,
+  toGameListData,
+  toGameRecruitDto,
+  toGameRecruitData,
+  toGamePlayerRecruitData,
+  toGameJoinDto,
+  toGameJoinAckData,
+  toGamePlayerJoinData,
+  toGameLeaveDto,
+  toGamePlayerLeaveData,
+  toGameSelectDto,
+  toGamePlayerSelectData,
+  toGameReadyDto,
+  toGamePlayerReadyData,
+  toGameUnreadyDto,
+  toGamePlayerUnreadyData,
+  toGameStartDto,
+  toGamePlayerStartData,
+  toGameCloseDto,
+  toGamePlayerCloseData,
+  toGameRealtimeDto,
+  toGamePlayerRealtimeData,
+  toGamePlayerResultData,
 };

@@ -9,14 +9,21 @@ import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import useNavigation from '@/app/hooks/useNavigation';
+import { useGame } from '@/app/features/game/hooks/useGame';
 
 export interface UseRoomResult {
   roomData: RoomStore['roomData'];
   roomJoinInfoData: RoomJoinInfoData | null;
   isHost: boolean;
+  isGameRecruiting: boolean;
+  isGameReadyModalOpen: boolean;
+  myStatus: import('@/app/features/game/dtos/data').GamePlayerData;
+  gamePlayers: import('@/app/features/game/dtos/data').GamePlayerData[];
   showPasswordAuth: boolean;
   handlePasswordConfirm: (password: string) => Promise<void>;
   handlePasswordCancel: () => void;
+  handleGameRecruitClick: () => Promise<void>;
+  closeGameReadyModal: () => void;
 }
 
 export function useRoom(roomId: string): UseRoomResult {
@@ -29,6 +36,15 @@ export function useRoom(roomId: string): UseRoomResult {
   const [roomJoinInfoData, setRoomJoinInfoData] = useState<RoomJoinInfoData | null>(null);
   const [showPasswordAuth, setShowPasswordAuth] = useState(false);
   const [isHost, setIsHost] = useState(false);
+
+  const {
+    isGameRecruiting,
+    isReadyModalOpen,
+    handleGameRecruitClick,
+    closeReadyModal,
+    myStatus,
+    gamePlayers,
+  } = useGame(roomId, isHost);
 
   const hasInitialized = useRef(false);
 
@@ -110,8 +126,14 @@ export function useRoom(roomId: string): UseRoomResult {
     roomData,
     roomJoinInfoData,
     isHost,
+    isGameRecruiting,
+    isGameReadyModalOpen: isReadyModalOpen,
+    myStatus,
+    gamePlayers,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
+    handleGameRecruitClick,
+    closeGameReadyModal: closeReadyModal,
   };
 }

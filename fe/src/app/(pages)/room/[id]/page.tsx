@@ -12,6 +12,8 @@ import DeleteRoomButtonWithModal from '@/app/features/room/components/DeleteRoom
 import GameStartButton from '@/app/features/room/components/GameStartButton';
 import { useParams } from 'next/navigation';
 import { useRoom } from '@/app/features/room/hooks/room';
+import Modal from '@/app/components/shared/modal/Modal';
+import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
 
 export default function RoomPage() {
   const params = useParams();
@@ -23,10 +25,18 @@ export default function RoomPage() {
     roomData,
     roomJoinInfoData,
     isHost,
+    isGameRecruiting,
+    isGameReadyModalOpen,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
+    handleGameRecruitClick,
+    closeGameReadyModal,
+    myStatus,
+    gamePlayers,
   } = useRoom(roomId);
+
+  const isGameButtonEnabled = isHost || isGameRecruiting;
 
   return (
     <>
@@ -50,7 +60,7 @@ export default function RoomPage() {
 
             <div className={styles.right}>
               <RoomVoiceChat />
-              <GameStartButton disabled={!isHost} />
+              <GameStartButton disabled={!isGameButtonEnabled} onClick={handleGameRecruitClick} />
             </div>
           </div>
         </div>
@@ -61,6 +71,23 @@ export default function RoomPage() {
         onConfirm={handlePasswordConfirm}
         onCancel={handlePasswordCancel}
       />
+
+      <Modal
+        id="game-ready"
+        closeOnBackdropClick={false}
+        showCloseButton
+        onClose={closeGameReadyModal}
+      >
+        <GameReadyModalContent
+          myStatus={myStatus}
+          players={gamePlayers}
+          maxPlayers={roomData?.maxParticipants}
+          selectedGame={undefined}
+          onChangeGame={() => {}}
+          onReadyChange={() => {}}
+          onStart={() => {}}
+        />
+      </Modal>
     </>
   );
 }

@@ -653,21 +653,31 @@ export class RoomService implements OnModuleInit {
 
     const roomData = await this.redisClient.hGetAll(`room:${roomId}`);
     const tags = await this.redisClient.sMembers(`room:${roomId}:tags`);
+    const isRecruiting = await this.redisClient.hGet(`room:${roomId}:game`, 'is_recruiting');
 
     // 멤버 정보 조회 (id, 닉네임, 프로필 이미지) - 제한 없이 모든 참여자 조회
     const participants = await this.getRoomMembers(roomId);
+    const players = await this.gameService.getGameParticipants(roomId);
+    const hostId = roomData.host_id || '';
 
     return {
       id: roomId,
       title: roomData.title || '',
       tags: tags || [],
-      host_id: roomData.host_id || '',
+      host_id: hostId,
       current_participants: parseInt(roomData.current_participants || '0', 10),
       max_participants: parseInt(roomData.max_participants || '0', 10),
       is_mic_available: roomData.is_mic_available === '1',
       is_private: roomData.is_private === '1',
-      is_game_recruiting: roomData.isGameRecruiting === '1',
+      is_game_recruiting: isRecruiting === '1',
       participants,
+      players: players.map((player) => ({
+        user_id: player.user_id,
+        nickname: player.nickname,
+        profile_image: player.profile_image,
+        is_host: player.user_id === hostId,
+        is_ready: player.is_ready,
+      })),
       create_date: new Date(roomData.create_date || new Date().toISOString()),
     };
   }
