@@ -49,7 +49,9 @@ export class VoiceService {
 
     try {
       // (1) Router Capabilities 조회
-      const routerCaps = await this.request('voice:router:capabilities', { room_id: roomId });
+      const routerCaps = await WebSocketService.request('voice:router:capabilities', {
+        room_id: roomId,
+      });
 
       // (2) WebRTC 디바이스 초기화 (코덱 맞추기)
       await this.webRtc.initDevice(routerCaps);
@@ -72,7 +74,7 @@ export class VoiceService {
    */
   private static async setupTransport(roomId: string, producing: boolean) {
     // A. 서버에 Transport 생성 요청
-    const transportOptions = await this.request('voice:transport:create', {
+    const transportOptions = await WebSocketService.request('voice:transport:create', {
       room_id: roomId,
       producing,
     });
@@ -84,7 +86,7 @@ export class VoiceService {
     // C. [이벤트] 연결 시작 (Handshake)
     transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
       try {
-        await this.request('voice:transport:connect', {
+        await WebSocketService.request('voice:transport:connect', {
           room_id: roomId,
           transport_id: transport.id,
           dtls_parameters: dtlsParameters,
@@ -99,7 +101,7 @@ export class VoiceService {
     if (producing) {
       transport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
         try {
-          const data = await this.request('voice:producer:create', {
+          const data = await WebSocketService.request('voice:producer:create', {
             room_id: roomId,
             transport_id: transport.id,
             kind,
@@ -134,7 +136,7 @@ export class VoiceService {
 
   static async stopMic() {
     if (!this.myProducer) return;
-    await this.request('voice:producer:close', {
+    await WebSocketService.request('voice:producer:close', {
       room_id: this.roomId,
       producer_id: this.myProducer.id,
     });
@@ -153,7 +155,7 @@ export class VoiceService {
         throw new Error('수신용 트랜스포트가 준비되지 않았습니다.');
       }
 
-      const consumerOptions = await this.request('voice:consumer:create', {
+      const consumerOptions = await WebSocketService.request('voice:consumer:create', {
         transport_id: recvTransportId,
         producer_id: remoteProducerId,
         rtp_capabilities: this.webRtc.rtpCapabilities, // 내 사양 전달
@@ -167,7 +169,7 @@ export class VoiceService {
       this.consumers.set(remoteProducerId, consumer);
 
       // 명세에 따라 수신 재개 요청
-      await this.request('voice:consumer:resume', { consumer_id: consumer.id });
+      await WebSocketService.request('voice:consumer:resume', { consumer_id: consumer.id });
 
       // 실제 오디오 재생 로직 (예: 오디오 태그 연결)
       const stream = new MediaStream([consumer.track]);
@@ -184,7 +186,7 @@ export class VoiceService {
     if (!this.myProducer) return;
 
     const event = pause ? 'voice:producer:pause' : 'voice:producer:resume';
-    await this.request(event, { producer_id: this.myProducer.id });
+    await WebSocketService.request(event, { producer_id: this.myProducer.id });
 
     if (pause) this.myProducer.pause();
     else this.myProducer.resume();
@@ -201,7 +203,7 @@ export class VoiceService {
 
     try {
       // 1. 서버에 요청 (서버가 나에게 보내는 패킷 밸브를 잠그거나 염)
-      await this.request(event, {
+      await WebSocketService.request(event, {
         consumer_id: consumer.id,
       });
 
@@ -221,7 +223,7 @@ export class VoiceService {
   static async leaveChannel() {
     if (!this.roomId) return;
 
-    await this.request('voice:room:leave', { room_id: this.roomId });
+    await WebSocketService.request('voice:room:leave', { room_id: this.roomId });
     this.webRtc.cleanup();
     this.consumers.clear();
     this.myProducer = null;
@@ -287,19 +289,6 @@ export class VoiceService {
       console.log(`[Voice] 컨슈머 제거 완료: ${data.producer_id}`);
       this.notify({ userId: consumer.appData.userId as string, isMicOn: false, action: 'remove' });
     }
-  }
-
-  /**
-   * 소켓 요청 유틸리티
-   * 요청을 보내고 응답을 기다림
-   */
-  private static request(event: string, data: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      WebSocketService.getSocket()?.emit(event, data, (res: any) => {
-        if (res.error) reject(res.error);
-        else resolve(res.data);
-      });
-    });
   }
 
   /**
