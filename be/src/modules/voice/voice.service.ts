@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   Inject,
   BadRequestException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as mediasoup from 'mediasoup';
@@ -23,6 +24,7 @@ import { VoiceTransportConnectDto, VoiceTransportCloseDto, CreateProducerDto } f
 import { Socket } from 'socket.io';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
+import { RoomService } from '../room/room.service';
 
 /**
  * 서버(Router)에서 지원할 미디어 코덱 설정
@@ -60,6 +62,7 @@ export class VoiceService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
+    @Inject(forwardRef(() => RoomService)) private readonly roomService: RoomService,
   ) {}
 
   /**
@@ -121,13 +124,13 @@ export class VoiceService implements OnModuleInit {
         id: router.id,
         worker_pid: this.worker.pid.toString(),
       })
-      .catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(router.id, err)));
+      .catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(router.id, String(err))));
 
     router.on('@close', () => {
       this.routers.delete(roomId);
       this.redisClient
         .del(`mediasoup:router:${roomId}`)
-        .catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(router.id, err)));
+        .catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(router.id, String(err))));
       logMessage(this.logger, LOG.VOICE.ROUTER_CLOSED(router.id, roomId));
     });
 
@@ -174,14 +177,14 @@ export class VoiceService implements OnModuleInit {
         socket_id: client.id,
       }),
       this.redisClient.sAdd(`mediasoup:room:${roomId}:user:${userId}:transports`, transport.id),
-    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(transport.id, err)));
+    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(transport.id, String(err))));
 
     transport.on('@close', () => {
       this.transports.delete(transport.id);
       Promise.all([
         this.redisClient.del(`mediasoup:transport:${transport.id}`),
         this.redisClient.sRem(`mediasoup:room:${roomId}:user:${userId}:transports`, transport.id),
-      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(transport.id, err)));
+      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(transport.id, String(err))));
       logMessage(this.logger, LOG.VOICE.TRANSPORT_CLOSED(transport.id));
     });
 
@@ -261,14 +264,14 @@ export class VoiceService implements OnModuleInit {
         paused: 'false',
       }),
       this.redisClient.sAdd(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
-    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, err)));
+    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, String(err))));
 
     producer.on('@close', () => {
       this.producers.delete(producer.id);
       Promise.all([
         this.redisClient.del(`mediasoup:producer:${producer.id}`),
         this.redisClient.sRem(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
-      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, err)));
+      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, String(err))));
     });
 
     logMessage(this.logger, LOG.VOICE.PRODUCER_CREATED(producer.id, transport.id, userId));
@@ -337,6 +340,45 @@ export class VoiceService implements OnModuleInit {
     producer.close();
     logMessage(this.logger, LOG.VOICE.PRODUCER_CLOSED(producerId, userId));
     return { success: true };
+  }
+
+  /**
+   * 특정 방의 모든 활성 Producer 목록을 조회
+   */
+  async getProducersForRoom(roomId: string): Promise<{ producer_id: string; user_id: string }[]> {
+    const userIds = await this.roomService.getRoomMemberIds(roomId);
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const producerSetKeys = userIds.map((userId) => `mediasoup:room:${roomId}:user:${userId}:producers`);
+
+    const multi = this.redisClient.multi();
+    producerSetKeys.forEach((key) => multi.sMembers(key));
+    const producerIdLists = (await multi.exec()) as unknown as string[][];
+
+    const allProducerIds = producerIdLists.flat().filter((id): id is string => !!id);
+    if (allProducerIds.length === 0) {
+      return [];
+    }
+
+    const producerPipeline = this.redisClient.multi();
+    allProducerIds.forEach((id) => producerPipeline.hGetAll(`mediasoup:producer:${id}`));
+    const producerDataArray = (await producerPipeline.exec()) as unknown as (Record<string, string> | null)[];
+
+    const activeProducers: { producer_id: string; user_id: string }[] = [];
+    producerDataArray.forEach((data, i) => {
+      if (data?.paused === 'false' && data.user_id) {
+        activeProducers.push({
+          producer_id: allProducerIds[i],
+          user_id: data.user_id,
+        });
+      }
+    });
+
+    logMessage(this.logger, LOG.VOICE.PRODUCERS_FOR_ROOM_FETCHED(roomId, activeProducers.length));
+
+    return activeProducers;
   }
 
   /**

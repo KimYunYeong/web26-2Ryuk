@@ -10,6 +10,7 @@ import {
   VoiceTransportCloseDto,
   CreateProducerDto,
   ProducerStateChangeDto,
+  GetProducersDto,
 } from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { RoomService } from '../room/room.service';
@@ -145,6 +146,26 @@ export class VoiceGateway {
       });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Producer 생성 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * 방의 모든 Producer 목록 조회
+   */
+  @SubscribeMessage('voice:room:producers')
+  async handleGetProducers(
+    @MessageBody() data: GetProducersDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      await this._authorizeClient(client, data.room_id);
+      const producers = await this.voiceService.getProducersForRoom(data.room_id);
+      ack({ data: { producers } });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '방의 Producer 목록 조회 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
     }
   }

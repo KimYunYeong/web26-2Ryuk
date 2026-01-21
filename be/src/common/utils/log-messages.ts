@@ -435,6 +435,10 @@ export const LOG = {
       message: `Producer 종료: producerId=${producerId}, userId=${userId}`,
       level: 'log',
     }),
+    PRODUCERS_FOR_ROOM_FETCHED: (roomId: string, count: number): LogMessage => ({
+      message: `방의 Producer 목록 조회: roomId=${roomId}, count=${count}`,
+      level: 'log',
+    }),
   },
 } as const;
 

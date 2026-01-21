@@ -54,3 +54,8 @@ export class ProducerStateChangeDto {
   @IsString()
   producer_id: string;
 }
+
+export class GetProducersDto {
+  @IsString()
+  room_id: string;
+}
