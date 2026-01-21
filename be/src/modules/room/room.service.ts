@@ -600,6 +600,7 @@ export class RoomService implements OnModuleInit {
           max_participants: parseInt(roomData.max_participants || '0', 10),
           is_mic_available: roomData.is_mic_available === '1',
           is_private: roomData.is_private === '1',
+          is_game_recruiting: roomData.isGameRecruiting === '1',
           participants,
           create_date: new Date(roomData.create_date || new Date().toISOString()),
         });
@@ -665,6 +666,7 @@ export class RoomService implements OnModuleInit {
       max_participants: parseInt(roomData.max_participants || '0', 10),
       is_mic_available: roomData.is_mic_available === '1',
       is_private: roomData.is_private === '1',
+      is_game_recruiting: roomData.isGameRecruiting === '1',
       participants,
       create_date: new Date(roomData.create_date || new Date().toISOString()),
     };

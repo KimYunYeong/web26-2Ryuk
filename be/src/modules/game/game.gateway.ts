@@ -242,12 +242,12 @@ export class GameGateway {
       await this.gameService.leaveGame(dto.room_id, userId);
 
       // 남은 참여자 수 계산
-      const participantCount = await this.gameService.getParticipantCount(dto.room_id);
+      const currentPlayers = await this.gameService.getCurrentPlayers(dto.room_id);
 
       // 브로드캐스트
-      this.server.to(dto.room_id).emit(WS_EVENTS_GAME.PARTICIPANT_LEAVE, {
-        user_id: userId,
-        participant_count: participantCount,
+      this.server.to(dto.room_id).emit(WS_EVENTS_GAME.PLAYER_LEAVE, {
+        player_id: userId,
+        current_players: currentPlayers,
       });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 나가기 중 문제가 발생했습니다.');
