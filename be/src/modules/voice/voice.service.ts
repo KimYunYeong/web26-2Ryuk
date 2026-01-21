@@ -222,6 +222,7 @@ export class VoiceService implements OnModuleInit {
     const transport = await this._getAndValidateTransport(dto.transport_id, dto.room_id);
     await transport.connect({ dtlsParameters: dto.dtls_parameters });
     logMessage(this.logger, LOG.VOICE.TRANSPORT_CONNECTED(transport.id));
+    return { transport_id: dto.transport_id };
   }
 
   /**
@@ -232,6 +233,7 @@ export class VoiceService implements OnModuleInit {
     const transport = await this._getAndValidateTransport(dto.transport_id, dto.room_id);
     transport.close(); // mediasoup Transport 객체를 닫으면 '@close' 이벤트가 발생하고, 해당 리스너가 로컬 맵에서 정리
     logMessage(this.logger, LOG.VOICE.TRANSPORT_CLOSED(transport.id));
+    return { success: true };
   }
 
   /**
