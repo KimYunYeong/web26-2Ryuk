@@ -1,13 +1,13 @@
-import { RoomEditData, RoomData, ParticipantData } from '../dtos/type';
+import { RoomEditData, RoomData } from '@/app/features/room/dtos/data';
 
-export interface RoomCardProps extends RoomData<ParticipantData> {}
+export interface RoomCardProps extends RoomData {}
 
 export interface RoomGridProps {
-  rooms: RoomData<ParticipantData>[];
+  rooms: RoomData[];
 }
 
 export interface RealtimeRoomsSectionProps {
-  rooms?: RoomData<ParticipantData>[];
+  rooms?: RoomData[];
   onSearch?: (query: string) => void;
 }
 

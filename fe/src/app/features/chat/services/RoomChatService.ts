@@ -1,6 +1,7 @@
-import { ChatReceiveData, ChatReceiveDto } from '@/app/features/chat/dtos/type';
+import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { WebSocketService } from '@/app/services/websocket.service';
-import { ChatConverter } from '@/app/features/chat/dtos/Chat';
+import { ChatConverter } from '@/app/features/chat/dtos/converter';
 import { roomStore } from '@/app/features/room/stores/room';
 import { globalChatService } from './GlobalChatService';
 import {
@@ -55,45 +56,24 @@ export class RoomChatService {
       }
 
       this.currentRoomId = roomId;
-      const ackState = { received: false };
-      this.registerEventHandlers(() => {
-        ackState.received = true;
-      });
+      this.registerEventHandlers();
 
-      // 이벤트 리스너 등록 완료 대기
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // 방 입장 요청 (ACK 필요 이벤트이므로 request 사용)
+      const ack = (await WebSocketService.request(WS_EVENTS.ROOM_JOIN, {
+        room_id: roomId,
+      })) as RoomJoinedAckDto;
 
-      // 방 입장 요청
-      await globalChatService.joinRoom(roomId);
+      roomStore.getState().setRoom(roomId);
+      roomStore.getState().setJoined(true);
 
-      // room:join ACK 대기 (최대 2초). ACK 없으면 isSubscribed 미설정·연결 false
-      await new Promise<void>((resolve) => {
-        const timeout = setTimeout(() => {
-          if (!ackState.received) this.notifyConnection(false);
-          resolve();
-        }, 2000);
-
-        const ackHandler = (data: RoomJoinedAckDto) => {
-          if (data.roomId !== roomId || ackState.received) return;
-          ackState.received = true;
-          clearTimeout(timeout);
-          WebSocketService.off(WS_EVENTS.ROOM_JOIN, ackHandler);
-          if (data.current_participants != null) {
-            roomStore.getState().updateRoomData({
-              currentParticipants: data.current_participants,
-            });
-          }
-          this.notifyConnection(true);
-          resolve();
-        };
-
-        WebSocketService.on(WS_EVENTS.ROOM_JOIN, ackHandler);
-      });
-
-      if (ackState.received) {
-        this.isSubscribed = true;
-        this.notifyConnection(true);
+      if (ack?.current_participants != null) {
+        roomStore.getState().updateRoomData({
+          currentParticipants: ack.current_participants,
+        });
       }
+
+      this.isSubscribed = true;
+      this.notifyConnection(true);
     } catch (e) {
       this.notifyConnection(false);
       throw e;
@@ -112,9 +92,8 @@ export class RoomChatService {
 
   /**
    * WebSocket 이벤트 핸들러 등록
-   * @param onRoomJoinAck subscribe에서 ACK 대기 중일 때, ACK 수신 시 호출
    */
-  private registerEventHandlers(onRoomJoinAck?: () => void): void {
+  private registerEventHandlers(): void {
     // 기존 핸들러 제거
     this.removeEventHandlers();
 
@@ -123,32 +102,21 @@ export class RoomChatService {
     this.eventHandlers.set(WS_EVENTS.DISCONNECT, disconnectHandler);
     WebSocketService.on(WS_EVENTS.DISCONNECT, disconnectHandler);
 
-    // 소켓 재연결 시 같은 방이면 무조건 room:join 전송
-    const connectHandler = () => {
+    // 소켓 재연결 시 같은 방이면 room:join 재요청
+    const connectHandler = async () => {
       if (this.isSubscribed && this.currentRoomId && WebSocketService.isConnected()) {
-        WebSocketService.send(WS_EVENTS.ROOM_JOIN, { room_id: this.currentRoomId });
+        try {
+          await WebSocketService.request(WS_EVENTS.ROOM_JOIN, {
+            room_id: this.currentRoomId,
+          });
+        } catch (error) {
+          console.error('[RoomChatService] reconnect room:join 실패:', error);
+          this.notifyConnection(false);
+        }
       }
     };
     this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
     WebSocketService.on(WS_EVENTS.CONNECT, connectHandler);
-
-    // room:join ACK 핸들러 (방 입장 성공, 참여자 수 반영)
-    const joinAckHandler = (data: RoomJoinedAckDto) => {
-      if (data.roomId !== this.currentRoomId) return;
-      onRoomJoinAck?.();
-      if (data.current_participants != null) {
-        roomStore.getState().updateRoomData({
-          currentParticipants:
-            typeof data.current_participants === 'number'
-              ? data.current_participants
-              : parseInt(String(data.current_participants), 10),
-        });
-      }
-      this.onRoomJoined(data.roomId);
-      this.notifyConnection(true);
-    };
-    this.eventHandlers.set(WS_EVENTS.ROOM_JOIN, joinAckHandler);
-    WebSocketService.on(WS_EVENTS.ROOM_JOIN, joinAckHandler);
 
     // room:joined 브로드캐스트 핸들러
     const joinedBroadcastHandler = (data: RoomJoinedBroadcastDto) => {

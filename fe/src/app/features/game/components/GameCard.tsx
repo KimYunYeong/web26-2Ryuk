@@ -32,10 +32,10 @@ export function EmptyGameCard() {
 export default function GameCard(game?: GameCardProps) {
   if (!game) return <EmptyGameCard />;
 
-  const { id, title, description, type, min_participants, max_participants, onSelect } = game;
+  const { id, title, description, type, minPlayers, maxPlayers, onSelect } = game;
 
   const typeLabel = type === 'cooperation' ? '협력' : '경쟁';
-  const participantsLabel = `${min_participants}-${max_participants}명`;
+  const participantsLabel = `${minPlayers}-${maxPlayers}명`;
 
   return (
     <article className={styles.card}>

@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import useResponsive from '@/app/hooks/useResponsive';
 import '@/app/page.css';
 import styles from './page.module.css';
@@ -8,126 +7,47 @@ import RoomInfoWithModal from '@/app/features/room/components/info/RoomInfoWithM
 import RoomTextChat from '@/app/features/room/components/chat/RoomTextChat';
 import RoomVoiceChat from '@/app/features/room/components/chat/RoomVoiceChat';
 import PasswordAuthDialog from '@/app/features/room/components/PasswordAuthDialog';
-import { RoomStore } from '@/app/features/room/stores/room';
-import { roomStore } from '@/app/features/room/stores/room';
-import roomService from '@/app/features/room/services/RoomService';
-import { useParams } from 'next/navigation';
-import { RoomJoinInfoData } from '@/app/features/room/dtos/type';
-import { RoomConverter } from '@/app/features/room/dtos/Room';
-import { authStore, AuthStore } from '@/app/features/user/stores/auth';
-import { showErrorToast, useToast } from '@/app/components/shared/toast/useToast';
 import LeaveRoomButtonWithModal from '@/app/features/room/components/LeaveRoomButtonWithModal';
 import DeleteRoomButtonWithModal from '@/app/features/room/components/DeleteRoomButtonWithModal';
-import { roomChatService } from '@/app/features/chat/services/RoomChatService';
-import useNavigation from '@/app/hooks/useNavigation';
 import GameStartButton from '@/app/features/room/components/GameStartButton';
+import { useParams } from 'next/navigation';
+import { useRoom } from '@/app/features/room/hooks/room';
 
 export default function RoomPage() {
   const params = useParams();
   const roomId = params.id as string;
-  const { goBack, goHome } = useNavigation();
 
   const { status } = useResponsive();
-  const { showSuccessToast } = useToast();
-  const roomData = roomStore((state: RoomStore) => state.roomData);
-  const userId = authStore((state: AuthStore) => state.userId);
-  const [roomJoinInfoData, setRoomJoinInfoData] = useState<RoomJoinInfoData | null>(null);
-  const [showPasswordAuth, setShowPasswordAuth] = useState(false);
-  const hasInitialized = useRef(false);
-  const [isHost, setIsHost] = useState<boolean>(false);
 
-  // BE 응답 기준 방 입장 정보·상세 조회
-  useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
-
-    const syncFromBe = async () => {
-      if (!userId) {
-        showErrorToast('로그인 후 이용해주세요.');
-        goHome();
-        return;
-      }
-
-      if (!roomId) return;
-
-      try {
-        const roomJoinInfoDto = await roomService.getRoomJoinInfo(roomId);
-        const roomJoinInfoData = RoomConverter.toJoinInfoData(roomJoinInfoDto);
-        setRoomJoinInfoData(roomJoinInfoData);
-
-        const roomDto = await roomService.getRoom(roomId);
-        const roomData = RoomConverter.toData(roomDto);
-        roomStore.getState().setRoomData(roomData);
-        setIsHost(roomData.hostId === userId);
-
-        if (!roomJoinInfoData.isMember && roomJoinInfoData.isPrivate) {
-          setShowPasswordAuth(true);
-          return;
-        }
-
-        if (!roomJoinInfoData.isMember) {
-          await roomService.validateJoin(roomId);
-          await roomChatService.subscribe(roomId);
-          showSuccessToast('방에 입장했습니다!');
-          return;
-        }
-
-        await roomChatService.subscribe(roomId);
-      } catch {
-        roomStore.getState().leaveRoom();
-        roomChatService.clearSubscriptionOnly();
-        goHome();
-      }
-    };
-
-    const unsubInvalidated = roomChatService.onRoomInvalidated(goHome);
-    syncFromBe();
-    return () => unsubInvalidated();
-  }, []);
-
-  const handlePasswordConfirm = async (password: string) => {
-    await roomService.validateJoin(roomId, password);
-
-    // 비밀번호 인증 완료
-    setShowPasswordAuth(false);
-    showSuccessToast('방에 입장했습니다!');
-
-    await roomChatService.subscribe(roomId);
-
-    // 방 정보 조회 및 업데이트
-    const roomDto = await roomService.getRoom(roomId);
-    const roomData = RoomConverter.toData(roomDto);
-    roomStore.getState().setRoomData(roomData);
-    setIsHost(roomData.hostId === userId);
-  };
-
-  const handlePasswordCancel = () => {
-    setShowPasswordAuth(false);
-    goBack();
-  };
+  const {
+    roomData,
+    roomJoinInfoData,
+    isHost,
+    showPasswordAuth,
+    handlePasswordConfirm,
+    handlePasswordCancel,
+  } = useRoom(roomId);
 
   return (
     <>
       {isHost ? <DeleteRoomButtonWithModal /> : <LeaveRoomButtonWithModal />}
+
       <div className={styles[status]}>
         <div className="content">
           <div className={styles.content}>
             <div className={styles.left}>
-              <div>
-                <RoomInfoWithModal
-                  roomId={roomId}
-                  title={roomData?.title ?? roomJoinInfoData?.title}
-                  tags={roomData?.tags ?? roomJoinInfoData?.tags}
-                  isHost={isHost}
-                  isMicAvailable={roomData?.isMicAvailable ?? roomJoinInfoData?.isMicAvailable}
-                  isPrivate={roomData?.isPrivate ?? roomJoinInfoData?.isPrivate}
-                  maxParticipants={roomData?.maxParticipants}
-                />
-              </div>
-              <div>
-                <RoomTextChat />
-              </div>
+              <RoomInfoWithModal
+                roomId={roomId}
+                title={roomData?.title ?? roomJoinInfoData?.title}
+                tags={roomData?.tags ?? roomJoinInfoData?.tags}
+                isHost={isHost}
+                isMicAvailable={roomData?.isMicAvailable ?? roomJoinInfoData?.isMicAvailable}
+                isPrivate={roomData?.isPrivate ?? roomJoinInfoData?.isPrivate}
+                maxParticipants={roomData?.maxParticipants}
+              />
+              <RoomTextChat />
             </div>
+
             <div className={styles.right}>
               <RoomVoiceChat />
               <GameStartButton disabled={!isHost} />
@@ -135,6 +55,7 @@ export default function RoomPage() {
           </div>
         </div>
       </div>
+
       <PasswordAuthDialog
         isOpen={showPasswordAuth}
         onConfirm={handlePasswordConfirm}

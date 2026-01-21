@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
-import { ChatReceiveData } from '@/app/features/chat/dtos/type';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { authStore, type AuthStore } from '@/app/features/user/stores/auth';
 import ChatPanel from './ChatPanel';
 import { Position } from '@/app/components/shared/floatingWidget/type';

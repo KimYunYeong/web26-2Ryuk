@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { RoomData, ParticipantData } from '@/app/features/room/dtos/type';
+import { RoomData, ParticipantData } from '@/app/features/room/dtos/data';
 
 interface RoomState {
   roomId: string | null;

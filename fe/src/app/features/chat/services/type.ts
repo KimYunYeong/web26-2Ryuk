@@ -4,7 +4,8 @@ export interface ChatChannel {
   unsubscribe(): void;
 }
 
-import { ChatReceiveData, ChatReceiveDto } from '@/app/features/chat/dtos/type';
+import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 
 // WebSocket 콜백 타입
 export type MessageCallback = (message: ChatReceiveData) => void;
@@ -28,7 +29,7 @@ export interface RoomJoinedBroadcastDto {
   user: {
     id: string;
     nickname: string;
-    profile_image: string | null;
+    profile_image?: string;
   };
   current_participants: string;
 }

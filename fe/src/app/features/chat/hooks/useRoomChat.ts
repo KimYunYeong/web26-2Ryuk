@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { roomChatService } from '../services/RoomChatService';
-import { ChatReceiveData } from '../dtos/type';
+import { ChatReceiveData } from '../dtos/data';
 
 export function useRoomChat(roomId: string | null, isJoined: boolean) {
   const [chats, setChats] = useState<ChatReceiveData[]>([]);

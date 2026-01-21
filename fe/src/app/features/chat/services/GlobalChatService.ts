@@ -1,7 +1,8 @@
 'use client';
 
-import { ChatReceiveDto, ChatReceiveData } from '@/app/features/chat/dtos/type';
-import { ChatConverter } from '@/app/features/chat/dtos/Chat';
+import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
+import { ChatConverter } from '@/app/features/chat/dtos/converter';
 import {
   ChatChannel,
   MessageCallback,
@@ -53,16 +54,6 @@ export class GlobalChatService implements ChatChannel {
   async ensureConnected(): Promise<void> {
     if (WebSocketService.isConnected()) return;
     await this.connect();
-  }
-
-  async joinRoom(roomId: string): Promise<void> {
-    await this.ensureConnected();
-
-    const currentState = roomStore.getState();
-    const alreadyJoined = currentState.isJoined && currentState.roomId === roomId;
-
-    WebSocketService.send(WS_EVENTS.ROOM_JOIN, { room_id: roomId });
-    if (!alreadyJoined) roomStore.getState().setRoom(roomId);
   }
 
   async subscribe(): Promise<void> {

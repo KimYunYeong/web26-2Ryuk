@@ -5,7 +5,7 @@ import styles from './selectedGameCard.module.css';
 import { PrimaryChip } from '@/app/components/shared/chip/Chip';
 import Icon from '@/app/components/shared/icon/Icon';
 import Paths from '@/app/shared/path';
-import { GameData } from '@/app/features/game/dtos/type';
+import { GameData } from '@/app/features/game/dtos/data';
 import GameSelectionButton from './GameSelectionButton';
 import { SecondaryChipButton } from '@/app/components/shared/chip/ChipButton';
 
@@ -19,7 +19,7 @@ export default function SelectedGameCard({ game, onChange, isHost }: SelectedGam
   if (!game) return <GameSelectionButton />;
 
   const typeLabel = game.type === 'cooperation' ? '협력' : '경쟁';
-  const participantsLabel = `${game.minParticipants}-${game.maxParticipants}명`;
+  const participantsLabel = `${game.minPlayers}-${game.maxPlayers}명`;
 
   return (
     <article className={styles.card} aria-label="선택된 게임">

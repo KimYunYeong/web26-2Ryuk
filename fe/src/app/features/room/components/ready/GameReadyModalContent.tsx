@@ -9,39 +9,35 @@ import {
 import MyReadyStatusCard from './MyReadyStatusCard';
 import OtherReadyStatusCardGrid from './OtherReadyStatusCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
-import { GameData } from '@/app/features/game/dtos/type';
+import { GameData } from '@/app/features/game/dtos/data';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import { useState } from 'react';
 
 interface GameReadyModalContentProps {
-  isHost: boolean;
   myStatus: MyReadyStatusCardProps;
   participants: OtherReadyStatusCardProps[];
   selectedGame?: GameData;
   maxParticipants?: number;
-  isReady: boolean;
   onChangeGame?: () => void;
   onReadyChange?: (value: boolean) => void;
   onStart?: () => void;
 }
 
 export default function GameReadyModalContent({
-  isHost = false,
   myStatus,
   participants,
   maxParticipants,
   selectedGame,
   onChangeGame,
-  isReady = false,
   onReadyChange,
   onStart,
 }: GameReadyModalContentProps) {
   const currentCount = participants.length + 1;
-  const title = isHost ? '게임 참가자 모집 중' : '게임에 참가하시겠어요?';
-  const [_isReady, setIsReady] = useState<boolean>(isReady);
+  const title = myStatus.isHost ? '게임 참가자 모집 중' : '게임에 참가하시겠어요?';
+  const [_isReady, setIsReady] = useState<boolean>(myStatus.isReady);
 
   const handleReadyChange = () => {
-    if (isHost) return;
+    if (myStatus.isHost) return;
     setIsReady((prev) => !prev);
     onReadyChange?.(_isReady);
   };
@@ -67,10 +63,10 @@ export default function GameReadyModalContent({
         <SelectedGameCard game={selectedGame} isHost={myStatus.isHost} onChange={onChangeGame} />
       </div>
       <div className={styles.footer}>
-        {isHost && (
+        {myStatus.isHost && (
           <TextButton.Primary text="게임 시작" iconName="play" size="medium" onClick={onStart} />
         )}
-        {!isHost && _isReady && (
+        {!myStatus.isHost && _isReady && (
           <TextButton.SuccessSecondary
             iconName="check"
             text="준비 완료"
@@ -78,7 +74,7 @@ export default function GameReadyModalContent({
             onClick={handleReadyChange}
           />
         )}
-        {!isHost && !_isReady && (
+        {!myStatus.isHost && !_isReady && (
           <TextButton.SuccessPrimary text="준비" size="medium" onClick={handleReadyChange} />
         )}
         <p className={styles.notice}>게임 참여 여부와 관계없이 음성채팅은 지속됩니다</p>

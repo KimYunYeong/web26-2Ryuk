@@ -29,7 +29,7 @@ import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
-import { GameConverter } from '@/app/features/game/dtos/Game';
+import { GameConverter } from '@/app/features/game/dtos/converter';
 import gamesMock from '@/mocks/data/games.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
@@ -419,8 +419,8 @@ export default function FeatureComponents() {
                 title="비커 채우기"
                 description="제한 시간 동안 스페이스바를 빠르게 연타하여 비커를 채우세요!"
                 type="competition"
-                min_participants={1}
-                max_participants={10}
+                minPlayers={1}
+                maxPlayers={10}
               />
             </Component>
           </div>
