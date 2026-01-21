@@ -330,6 +330,16 @@ export class VoiceService implements OnModuleInit {
   }
 
   /**
+   * Producer를 종료
+   */
+  async closeProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
+    const producer = await this._getAndValidateProducer(producerId, userId);
+    producer.close();
+    logMessage(this.logger, LOG.VOICE.PRODUCER_CLOSED(producerId, userId));
+    return { success: true };
+  }
+
+  /**
    * 클라이언트의 WebRTC Transport를 종료하고 관련 리소스 정리
    * Transport 객체 닫힘 이벤트에 로컬 맵 메타데이터 정리 로직 연결
    */

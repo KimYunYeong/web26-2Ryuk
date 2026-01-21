@@ -204,6 +204,32 @@ export class VoiceGateway {
   }
 
   /**
+   * Producer 종료
+   */
+  @SubscribeMessage('voice:producer:close')
+  async handleCloseProducer(
+    @MessageBody() data: ProducerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.closeProducer(data.producer_id, userId);
+
+      ack({ data: { success: true } });
+
+      // 다른 참여자들에게 producer 종료 알림
+      client.to(data.room_id).emit('voice:producer:closed', {
+        user_id: userId,
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Producer 종료 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
    * 클라이언트 Transport 종료
    * @param data room_id, transport_id
    * @param client Socket

@@ -431,6 +431,10 @@ export const LOG = {
       message: `Producer 재개: producerId=${producerId}, userId=${userId}`,
       level: 'log',
     }),
+    PRODUCER_CLOSED: (producerId: string, userId: string): LogMessage => ({
+      message: `Producer 종료: producerId=${producerId}, userId=${userId}`,
+      level: 'log',
+    }),
   },
 } as const;
 
