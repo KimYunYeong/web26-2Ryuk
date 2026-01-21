@@ -394,7 +394,7 @@ export class GameService {
     // 게임 자동 종료 타이머 스케줄링 (start_time + duration 기준)
     const durationMs = selectedGame.duration_ms;
     if (durationMs > 0) {
-      this.scheduleGameEnd(server, roomId, selectedGame.id, durationMs);
+      this.scheduleGameEnd(server, roomId, selectedGame.id, this.GAME_START_DELAY_MS + durationMs);
     }
 
     return startTime;
