@@ -9,9 +9,11 @@ export const WS_EVENTS = {
 
   // 방 관련 이벤트
   ROOM_JOIN: 'room:join',
-  ROOM_JOINED: 'room:joined',
+  ROOM_JOIN_ACK: 'room:join:ack',
   ROOM_LEAVE: 'room:leave',
-  ROOM_LEFT: 'room:left',
+  ROOM_LEAVE_ACK: 'room:leave:ack',
+  ROOM_PARTICIPANT_LEFT: 'room:participant:left',
+  ROOM_PARTICIPANT_JOINED: 'room:participant:joined',
 
   // 방 채팅 이벤트
   CHAT_ROOM_SEND: 'chat:room:send',
@@ -26,4 +28,17 @@ export const WS_EVENTS = {
 
   // 인증 이벤트
   AUTH_LOGOUT: 'auth:logout',
+
+  // 게임 모집 이벤트
+  GAME_RECRUIT: 'game:recruit',
+  GAME_RECRUIT_ACK: 'game:recruit:ack',
+  GAME_RECRUIT_STARTED: 'game:recruit:started',
+  GAME_JOIN: 'game:join',
+  GAME_JOIN_ACK: 'game:join:ack',
+  GAME_PARTICIPANT_JOINED: 'game:participant:joined',
+  GAME_LEAVE: 'game:leave',
+  GAME_PARTICIPANT_LEAVE: 'game:participant:leave',
+  GAME_JOIN_FAILED: 'game:join:failed',
+  GAME_STATE: 'game:state',
+  GAME_STATE_ACK: 'game:state:ack',
 } as const;
