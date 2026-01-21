@@ -1,5 +1,5 @@
-import { IsString, IsBoolean, IsObject } from 'class-validator';
-import { DtlsParameters } from 'mediasoup/node/lib/types';
+import { IsString, IsBoolean, IsObject, IsIn } from 'class-validator';
+import { DtlsParameters, RtpParameters } from 'mediasoup/node/lib/types';
 
 export class GetRouterRtpCapabilitiesDto {
   @IsString()
@@ -31,4 +31,18 @@ export class VoiceTransportCloseDto {
 
   @IsString()
   transport_id: string;
+}
+
+export class CreateProducerDto {
+  @IsString()
+  room_id: string;
+
+  @IsString()
+  transport_id: string;
+
+  @IsIn(['audio', 'video'])
+  kind: 'audio' | 'video';
+
+  @IsObject()
+  rtp_parameters: RtpParameters;
 }

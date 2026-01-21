@@ -6,12 +6,20 @@ import {
   NotFoundException,
   ForbiddenException,
   Inject,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as mediasoup from 'mediasoup';
-import { Worker, Router, RtpCodecCapability, WebRtcTransport, TransportListenIp } from 'mediasoup/node/lib/types';
+import {
+  Worker,
+  Router,
+  RtpCodecCapability,
+  WebRtcTransport,
+  TransportListenIp,
+  Producer,
+} from 'mediasoup/node/lib/types';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
-import { VoiceTransportConnectDto, VoiceTransportCloseDto } from './dto/voice.dto';
+import { VoiceTransportConnectDto, VoiceTransportCloseDto, CreateProducerDto } from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -43,6 +51,8 @@ export class VoiceService implements OnModuleInit {
   private routers: Map<string, Router> = new Map();
   // transportId를 키로 실제 mediasoup WebRtcTransport 객체를 저장하는 맵 (프로세스 메모리)
   private transports: Map<string, WebRtcTransport> = new Map();
+  // producerId를 키로 실제 mediasoup Producer 객체를 저장하는 맵 (프로세스 메모리)
+  private producers: Map<string, Producer> = new Map();
 
   private mediasoupListenIps: TransportListenIp[];
   private readonly logger = new Logger(VoiceService.name);
@@ -219,6 +229,50 @@ export class VoiceService implements OnModuleInit {
     await transport.connect({ dtlsParameters: dto.dtls_parameters });
     logMessage(this.logger, LOG.VOICE.TRANSPORT_CONNECTED(transport.id));
     return { transport_id: dto.transport_id };
+  }
+
+  /**
+   * 오디오/비디오 스트림을 서버로 전송하기 위한 Producer 생성
+   */
+  async createProducer(dto: CreateProducerDto, userId: string): Promise<Producer> {
+    const { room_id, transport_id, kind, rtp_parameters } = dto;
+    const transport = await this._getAndValidateTransport(transport_id, room_id);
+
+    const transportData = await this.redisClient.hGetAll(`mediasoup:transport:${transport.id}`);
+    if (transportData.producing !== 'true') {
+      throw new BadRequestException(LOG.VOICE.TRANSPORT_NOT_FOR_PRODUCING(transport.id).message);
+    }
+
+    const producer = await transport.produce({
+      kind,
+      rtpParameters: rtp_parameters,
+      appData: { roomId: room_id, userId, transportId: transport_id },
+    });
+    this.producers.set(producer.id, producer);
+
+    // Redis에 Producer 메타데이터 저장
+    Promise.all([
+      this.redisClient.hSet(`mediasoup:producer:${producer.id}`, {
+        room_id,
+        user_id: userId,
+        kind,
+        transport_id,
+        rtp_parameters: JSON.stringify(rtp_parameters),
+      }),
+      this.redisClient.sAdd(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
+    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, err)));
+
+    producer.on('@close', () => {
+      this.producers.delete(producer.id);
+      Promise.all([
+        this.redisClient.del(`mediasoup:producer:${producer.id}`),
+        this.redisClient.sRem(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
+      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, err)));
+    });
+
+    logMessage(this.logger, LOG.VOICE.PRODUCER_CREATED(producer.id, transport.id, userId));
+
+    return producer;
   }
 
   /**

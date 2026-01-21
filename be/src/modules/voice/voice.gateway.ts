@@ -8,6 +8,7 @@ import {
   VoiceTransportCreateDto,
   VoiceTransportConnectDto,
   VoiceTransportCloseDto,
+  CreateProducerDto,
 } from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { RoomService } from '../room/room.service';
@@ -138,6 +139,33 @@ export class VoiceGateway {
       ack({ data: result });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'WebRTC Transport 종료 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * Producer 생성
+   */
+  @SubscribeMessage('voice:producer:create')
+  async handleCreateProducer(
+    @MessageBody() data: CreateProducerDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      const producer = await this.voiceService.createProducer(data, userId);
+
+      ack({ data: { producer_id: producer.id } });
+
+      // 다른 참여자들에게 새 producer 생성 알림
+      client.to(data.room_id).emit('voice:producer:new', {
+        producerUserId: userId,
+        producerId: producer.id,
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Producer 생성 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
     }
   }

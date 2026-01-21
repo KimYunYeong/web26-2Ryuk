@@ -407,6 +407,14 @@ export const LOG = {
       message: `Redis에서 객체 ${objectId} 정리 실패: ${error}`,
       level: 'error',
     }),
+    TRANSPORT_NOT_FOR_PRODUCING: (transportId: string): LogMessage => ({
+      message: `Transport ${transportId}는 producing용으로 생성되지 않았습니다.`,
+      level: 'warn',
+    }),
+    PRODUCER_CREATED: (producerId: string, transportId: string, userId: string): LogMessage => ({
+      message: `Producer 생성: producerId=${producerId}, transportId=${transportId}, userId=${userId}`,
+      level: 'log',
+    }),
   },
 } as const;
 
