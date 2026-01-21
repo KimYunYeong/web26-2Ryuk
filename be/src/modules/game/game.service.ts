@@ -20,6 +20,7 @@ import {
   GameCloseBroadcastDto,
   GameRealtimeBroadcastDto,
 } from './dto/game-response.dto';
+import { WS_EVENTS_GAME } from '@src/common/constants/ws-events.constant';
 
 @Injectable()
 export class GameService {
@@ -84,7 +85,7 @@ export class GameService {
     await this.redisClient.hSet(hostParticipantKey, 'is_ready', '1');
 
     // 해당 방의 모든 참여자에게 브로드캐스트
-    server.to(roomId).emit('game:participant:recruit', {
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_RECRUIT, {
       is_game_recruiting: true,
     });
 
@@ -138,7 +139,7 @@ export class GameService {
     await this.redisClient.hSet(this.getGameKey(roomId), cachePayload);
 
     const roomBroadcast: GameSelectBroadcastDto = { game: broadcastPayload };
-    server.to(roomId).emit('game:participant:select', roomBroadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_SELECT, roomBroadcast);
 
     logMessage(this.logger, LOG.GAME.SELECT(roomId, userId, gameId));
 
@@ -213,7 +214,7 @@ export class GameService {
     const joinedParticipant = participants.find((participant) => participant.user_id === userId);
 
     // 방의 모든 사람에게 브로드캐스트
-    server.to(roomId).emit('game:participant:join', {
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_JOIN, {
       participant: {
         user_id: joinedParticipant?.user_id || userId,
         nickname: joinedParticipant?.nickname || '',
@@ -257,7 +258,7 @@ export class GameService {
       player_id: userId,
       is_ready: true,
     };
-    server.to(roomId).emit('game:participant:ready', readyBroadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_READY, readyBroadcast);
 
     logMessage(this.logger, LOG.GAME.READY(roomId, userId));
   }
@@ -280,7 +281,7 @@ export class GameService {
       player_id: userId,
       is_ready: false,
     };
-    server.to(roomId).emit('game:participant:unready', unreadyBroadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_UNREADY, unreadyBroadcast);
 
     logMessage(this.logger, LOG.GAME.UNREADY(roomId, userId));
   }
@@ -323,7 +324,7 @@ export class GameService {
     await this.redisClient.hSet(this.getGameKey(roomId), { start_time: startTime, is_recruiting: '0' });
 
     const broadcast: GameStartBroadcastDto = { start_time: startTime };
-    server.to(roomId).emit('game:participant:start', broadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_START, broadcast);
 
     logMessage(this.logger, LOG.GAME.START(roomId, userId, startTime));
 
@@ -373,7 +374,7 @@ export class GameService {
     this.stopRealtimeBroadcast(roomId);
 
     // 해당 방의 모든 참여자에게 브로드캐스트
-    server.to(roomId).emit('game:participant:close', new GameCloseBroadcastDto(false));
+    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_CLOSE, new GameCloseBroadcastDto(false));
 
     logMessage(this.logger, LOG.GAME.CLOSE(roomId, userId));
   }
@@ -663,7 +664,7 @@ export class GameService {
         ranks,
       };
 
-      server.to(roomId).emit('game:participant:realtime', broadcast);
+      server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_REALTIME, broadcast);
 
       logMessage(this.logger, LOG.GAME.REALTIME_BROADCAST(roomId, highestScore, averageScore, ranks));
     } catch (error) {

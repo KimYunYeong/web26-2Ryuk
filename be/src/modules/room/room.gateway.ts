@@ -11,6 +11,7 @@ import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
+import { WS_EVENTS_ROOM, WS_EVENTS_ERROR } from '@src/common/constants/ws-events.constant';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -42,7 +43,7 @@ export class RoomGateway {
    * 대화방 입장 처리 (로컬)
    * 요구사항: 권한 검증 후 논리적 상태 변경 및 Socket.io room 참여
    */
-  @SubscribeMessage('room:join')
+  @SubscribeMessage(WS_EVENTS_ROOM.JOIN)
   async handleRoomJoin(@ConnectedSocket() client: Socket, @MessageBody() dto: RoomJoinDto) {
     // 디버깅: 받은 데이터 로그
     logMessage(this.logger, LOG.WS.ROOM_JOIN_DTO_RECEIVED(JSON.stringify(dto), typeof dto));
@@ -58,7 +59,7 @@ export class RoomGateway {
     // 인증 확인
     if (!isAuthenticated || !userId) {
       logMessage(this.logger, LOG.ROOM.UNAUTH_JOIN(client.id));
-      client.emit('error', createWsError('UNAUTHORIZED', '로그인이 필요합니다.'));
+      client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '로그인이 필요합니다.'));
       return;
     }
 
@@ -69,7 +70,7 @@ export class RoomGateway {
       // 방 존재 여부 및 타입 확인
       if (roomType === null) {
         logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.room_id));
-        client.emit('error', createWsError('NOT_FOUND', '존재하지 않는 방입니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('NOT_FOUND', '존재하지 않는 방입니다.'));
         return;
       }
 
@@ -77,7 +78,7 @@ export class RoomGateway {
       const canJoin = await this.roomService.canUserJoinRoom(userId, dto.room_id);
       if (!canJoin) {
         logMessage(this.logger, LOG.ROOM.NO_PERMISSION(userId, dto.room_id));
-        client.emit('error', createWsError('FORBIDDEN', '방 입장 권한이 없습니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('FORBIDDEN', '방 입장 권한이 없습니다.'));
         return;
       }
 
@@ -98,7 +99,7 @@ export class RoomGateway {
 
       if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
         logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, dto.room_id, '방 정원 초과'));
-        client.emit('error', createWsError('FORBIDDEN', '방 정원이 초과되었습니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('FORBIDDEN', '방 정원이 초과되었습니다.'));
         return;
       }
 
@@ -147,7 +148,7 @@ export class RoomGateway {
 
       const errorResponse = createWsErrorResponse(error, '방 입장 처리 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         // emit 실패 시 무시
@@ -160,7 +161,7 @@ export class RoomGateway {
    * 방 퇴장 처리
    * 요구사항: 논리적 상태 변경 및 Socket.io room에서 제거
    */
-  @SubscribeMessage('room:leave')
+  @SubscribeMessage(WS_EVENTS_ROOM.LEAVE)
   async handleRoomLeave(@ConnectedSocket() client: Socket, @MessageBody() dto: RoomLeaveDto) {
     try {
       const userId = client.data.userId;
@@ -169,7 +170,7 @@ export class RoomGateway {
       // 권한 검증: 인증되지 않은 사용자는 방 퇴장 불가능
       if (!isAuthenticated || !userId) {
         logMessage(this.logger, LOG.ROOM.UNAUTH_LEAVE(client.id));
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -177,7 +178,7 @@ export class RoomGateway {
       const isInRoom = await this.roomService.isUserInRoom(userId, dto.room_id);
       if (!isInRoom) {
         logMessage(this.logger, LOG.ROOM.NOT_IN(userId, dto.room_id));
-        client.emit('error', createWsError('NOT_FOUND', '해당 방에 참여하지 않았습니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('NOT_FOUND', '해당 방에 참여하지 않았습니다.'));
         return;
       }
 
@@ -195,7 +196,7 @@ export class RoomGateway {
 
       const errorResponse = createWsErrorResponse(error, '방 퇴장 처리 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);

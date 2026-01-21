@@ -7,6 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { GameService } from './game.service';
 import { GameRoomIdDto, GameSelectDto, GameRealtimeInputDto } from './dto/game.dto';
 import { createWsError, createWsErrorResponse } from '@src/common/utils/ws-error-code';
+import { WS_EVENTS_GAME, WS_EVENTS_ERROR } from '@src/common/constants/ws-events.constant';
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -33,7 +34,7 @@ export class GameGateway {
   /**
    * 게임 플레이어 모집
    */
-  @SubscribeMessage('game:recruit')
+  @SubscribeMessage(WS_EVENTS_GAME.RECRUIT)
   async handleGameRecruit(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
@@ -41,7 +42,7 @@ export class GameGateway {
 
       // 권한 검증: 인증되지 않은 사용자는 게임 모집 불가능
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -56,7 +57,7 @@ export class GameGateway {
       // 모든 예외를 일관되게 처리
       const errorResponse = createWsErrorResponse(error, '게임 모집 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -67,14 +68,14 @@ export class GameGateway {
   /**
    * 게임 참가
    */
-  @SubscribeMessage('game:join')
+  @SubscribeMessage(WS_EVENTS_GAME.JOIN)
   async handleGameJoin(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -85,7 +86,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 참가 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -96,14 +97,14 @@ export class GameGateway {
   /**
    * 게임 선택
    */
-  @SubscribeMessage('game:select')
+  @SubscribeMessage(WS_EVENTS_GAME.SELECT)
   async handleGameSelect(@ConnectedSocket() client: Socket, @MessageBody() dto: GameSelectDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -111,7 +112,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 선택 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -122,14 +123,14 @@ export class GameGateway {
   /**
    * 게임 준비 완료
    */
-  @SubscribeMessage('game:ready')
+  @SubscribeMessage(WS_EVENTS_GAME.READY)
   async handleGameReady(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -137,7 +138,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 준비 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -148,14 +149,14 @@ export class GameGateway {
   /**
    * 게임 준비 해제
    */
-  @SubscribeMessage('game:unready')
+  @SubscribeMessage(WS_EVENTS_GAME.UNREADY)
   async handleGameUnready(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -163,7 +164,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 준비 해제 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -174,14 +175,14 @@ export class GameGateway {
   /**
    * 게임 시작 (카운트다운)
    */
-  @SubscribeMessage('game:start')
+  @SubscribeMessage(WS_EVENTS_GAME.START)
   async handleGameStart(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -189,7 +190,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 시작 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -200,14 +201,14 @@ export class GameGateway {
   /**
    * 게임 모집 닫기 (방장)
    */
-  @SubscribeMessage('game:close')
+  @SubscribeMessage(WS_EVENTS_GAME.CLOSE)
   async handleGameClose(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -215,7 +216,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 모집 닫기 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -226,14 +227,14 @@ export class GameGateway {
   /**
    * 게임 나가기 (참가자)
    */
-  @SubscribeMessage('game:leave')
+  @SubscribeMessage(WS_EVENTS_GAME.LEAVE)
   async handleGameLeave(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -244,14 +245,14 @@ export class GameGateway {
       const participantCount = await this.gameService.getParticipantCount(dto.room_id);
 
       // 브로드캐스트
-      this.server.to(dto.room_id).emit('game:participant:leave', {
+      this.server.to(dto.room_id).emit(WS_EVENTS_GAME.PARTICIPANT_LEAVE, {
         left_user_id: userId,
         participant_count: participantCount,
       });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 나가기 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
@@ -264,14 +265,14 @@ export class GameGateway {
    * - 클라이언트로부터 100ms 주기로 쓰로틀된 입력 받음
    * - 서버에서 300ms 주기로 배치하여 브로드캐스트
    */
-  @SubscribeMessage('game:realtime')
+  @SubscribeMessage(WS_EVENTS_GAME.REALTIME)
   async handleGameRealtime(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRealtimeInputDto) {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
 
       if (!isAuthenticated || !userId) {
-        client.emit('error', createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
+        client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
@@ -279,7 +280,7 @@ export class GameGateway {
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 실시간 입력 처리 중 문제가 발생했습니다.');
       try {
-        client.emit('error', errorResponse);
+        client.emit(WS_EVENTS_ERROR.ERROR, errorResponse);
         return;
       } catch (emitError) {
         this.logger.warn('에러 메시지 전송 실패', emitError);
