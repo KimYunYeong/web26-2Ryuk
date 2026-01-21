@@ -151,18 +151,26 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자 방 제거 처리
    */
-  async leaveRoom(userId: string, roomId: string): Promise<void> {
+  async leaveRoom(server: Server, userId: string, roomId: string): Promise<void> {
     const uuid = toUuid(userId);
     // 방 멤버 목록에서 제거 (Hash), 사용자의 참여 방 목록에서 제거 (Set)
     await this.redisClient.del(`room:${roomId}:members:${uuid}`);
     await this.redisClient.sRem(`user:${uuid}:rooms`, roomId);
 
     // 게임 참가자 목록에서도 제거 (게임 중일 경우)
-    await this.gameService.leaveGame(roomId, userId);
+    await this.gameService.leaveGame(server, roomId, userId);
 
     // 참여자 수 감소
     await this.updateCurrentParticipants(roomId);
     logMessage(this.logger, LOG.ROOM.USER_LEFT(userId, roomId));
+
+    // 만약 방장이면 방 삭제 처리
+    const isHost = await this.isHost(userId, roomId);
+    if (isHost) {
+      console.log('방장이 나가서 방 삭제 처리:', roomId);
+      await this.deleteRoom(userId, roomId);
+      return;
+    }
 
     // 빈 Local 방 삭제
     if ((await this.getRoomType(roomId)) === ROOM_TYPE.GLOBAL) return;
@@ -294,11 +302,11 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자 연결 해제 시 모든 방에서 제거
    */
-  async leaveAllRooms(userId: string): Promise<void> {
+  async leaveAllRooms(server: Server, userId: string): Promise<void> {
     const uuid = toUuid(userId);
     const rooms = await this.redisClient.sMembers(`user:${uuid}:rooms`);
     for (const roomId of rooms) {
-      await this.leaveRoom(userId, roomId);
+      await this.leaveRoom(server, userId, roomId);
     }
   }
 
@@ -440,6 +448,19 @@ export class RoomService implements OnModuleInit {
       this.redisClient.del(tagKey),
     ]);
 
+    // room에 연관된 기타 키들 (game, recents) 정리
+    try {
+      const relatedKeys = await this.redisClient.keys(`room:${roomId}:*`);
+      if (relatedKeys.length > 0) {
+        await Promise.all(relatedKeys.map((key) => this.redisClient.del(key)));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+    } finally {
+      // 게임 실시간 브로드캐스트 타이머 정리
+      this.gameService.stopRealtimeBroadcast(roomId);
+    }
+
     logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId, hostUuid));
 
     return { id: roomId };
@@ -463,6 +484,19 @@ export class RoomService implements OnModuleInit {
       this.redisClient.del(roomKey),
       this.redisClient.del(tagKey),
     ]);
+
+    // room에 연관된 기타 키들 (game, recents) 정리
+    try {
+      const relatedKeys = await this.redisClient.keys(`room:${roomId}:*`);
+      if (relatedKeys.length > 0) {
+        await Promise.all(relatedKeys.map((key) => this.redisClient.del(key)));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+    } finally {
+      // 게임 실시간 브로드캐스트 타이머 정리
+      this.gameService.stopRealtimeBroadcast(roomId);
+    }
 
     logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId, 'FORCED'));
   }

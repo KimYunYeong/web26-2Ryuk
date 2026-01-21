@@ -210,7 +210,7 @@ export class RoomGateway {
    */
   private async leaveRoomProcess(client: Socket, userId: string, roomId: string) {
     // Redis에서 제거
-    await this.roomService.leaveRoom(userId, roomId);
+    await this.roomService.leaveRoom(this.server, userId, roomId);
 
     // 소켓 room 탈퇴
     client.leave(roomId);
