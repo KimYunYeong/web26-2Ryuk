@@ -4,8 +4,8 @@ export class GameInfoResponseDto {
   title: string;
   type: string;
   description?: string;
-  min_participants: number;
-  max_participants: number;
+  min_players: number;
+  max_players: number;
 }
 
 export class GameListResponseDto {
@@ -43,8 +43,8 @@ export class GameInfoPayloadDto {
   title: string;
   description?: string;
   type: string;
-  min_participants: string;
-  max_participants: string;
+  min_players: string;
+  max_players: string;
 }
 
 // 게임 선택 브로드캐스트

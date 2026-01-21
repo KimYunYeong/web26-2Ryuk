@@ -24,6 +24,7 @@ export class RoomReadResponseDto {
   max_participants: number;
   is_mic_available: boolean;
   is_private: boolean;
+  is_game_recruiting: boolean;
   participants: ParticipantDto[];
   create_date: Date;
 }
