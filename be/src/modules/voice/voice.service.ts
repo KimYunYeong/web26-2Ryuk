@@ -467,6 +467,41 @@ export class VoiceService implements OnModuleInit {
   }
 
   /**
+   * 사용자가 음성 채팅방을 나갈 때 관련 모든 리소스를 정리
+   */
+  async leaveRoom(userId: string, roomId: string): Promise<{ success: boolean }> {
+    logMessage(this.logger, LOG.VOICE.VOICE_LEAVE_ROOM(userId, roomId));
+
+    const transportIds = await this.redisClient.sMembers(`mediasoup:room:${roomId}:user:${userId}:transports`);
+    for (const transportId of transportIds) {
+      const transport = this.transports.get(transportId);
+      if (transport) {
+        transport.close(); // transport의 @close 이벤트가 나머지 정리를 처리
+      }
+    }
+
+    const producerIds = await this.redisClient.sMembers(`mediasoup:room:${roomId}:user:${userId}:producers`);
+    for (const producerId of producerIds) {
+      const producer = this.producers.get(producerId);
+      if (producer) {
+        producer.close();
+      }
+    }
+
+    const consumerIds = await this.redisClient.sMembers(`mediasoup:room:${roomId}:user:${userId}:consumers`);
+    for (const consumerId of consumerIds) {
+      const consumer = this.consumers.get(consumerId);
+      if (consumer) {
+        consumer.close();
+      }
+    }
+
+    // @close 이벤트가 비동기적으로 처리되어 약간의 지연 후 확인하는 것이 더 안정적일 수 있음
+    // 우선 즉시 성공을 반환
+    return { success: true };
+  }
+
+  /**
    * 특정 방의 Router를 닫고 관련 리소스를 정리
    * Router 객체 닫힘 이벤트에 로컬 맵 정리 로직 연결
    */

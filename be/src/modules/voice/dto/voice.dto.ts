@@ -78,3 +78,8 @@ export class ConsumerStateChangeDto {
   @IsString()
   consumer_id: string;
 }
+
+export class LeaveVoiceRoomDto {
+  @IsString()
+  room_id: string;
+}

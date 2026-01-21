@@ -13,6 +13,7 @@ import {
   GetProducersDto,
   CreateConsumerDto,
   ConsumerStateChangeDto,
+  LeaveVoiceRoomDto,
 } from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { RoomService } from '../room/room.service';
@@ -345,6 +346,27 @@ export class VoiceGateway {
       ack({ success: true });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Consumer 종료 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * 음성 채팅방 나가기
+   */
+  @SubscribeMessage('voice:room:leave')
+  async handleLeaveVoiceRoom(
+    @MessageBody() data: LeaveVoiceRoomDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: unknown) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.leaveRoom(userId, data.room_id);
+
+      ack({ success: true });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '음성 채팅방 나가기 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
     }
   }

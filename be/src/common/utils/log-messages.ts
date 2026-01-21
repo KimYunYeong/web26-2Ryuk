@@ -496,6 +496,10 @@ export const LOG = {
       message: `Consumer 종료: consumerId=${consumerId}, userId=${userId}`,
       level: 'log',
     }),
+    VOICE_LEAVE_ROOM: (userId: string, roomId: string): LogMessage => ({
+      message: `음성 채팅방 퇴장 및 리소스 정리 시작: userId=${userId}, roomId=${roomId}`,
+      level: 'log',
+    }),
   },
 } as const;
 
