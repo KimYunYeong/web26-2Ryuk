@@ -5,20 +5,25 @@ import {
   GameJoinAckData,
   GameJoinData,
   GamePlayerJoinData,
+  GamePlayerLeaveData,
   GameRecruitAckData,
   GameRecruitData,
   GamePlayerRecruitData,
+  GameLeaveData,
 } from '@/app/features/game/dtos/data';
 import {
   GameJoinAckDto,
   GameJoinDto,
   GamePlayerJoinDto,
+  GamePlayerLeaveDto,
   GameRecruitAckDto,
   GameRecruitDto,
   GamePlayerRecruitDto,
+  GameLeaveDto,
 } from '@/app/features/game/dtos/dto';
 
 type PlayerJoinCallback = (data: GamePlayerJoinData) => void;
+type PlayerLeaveCallback = (data: GamePlayerLeaveData) => void;
 type RecruitCallback = (data: GamePlayerRecruitData) => void;
 
 /**
@@ -27,6 +32,7 @@ type RecruitCallback = (data: GamePlayerRecruitData) => void;
  */
 class GameService {
   private playerJoinCallbacks: Set<PlayerJoinCallback> = new Set();
+  private playerLeaveCallbacks: Set<PlayerLeaveCallback> = new Set();
   private recruitCallbacks: Set<RecruitCallback> = new Set();
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
@@ -47,12 +53,28 @@ class GameService {
   }
 
   /**
+   * 게임 나가기 (브로드캐스트만 수신)
+   */
+  async leave(roomId: string): Promise<void> {
+    await WebSocketService.ensureConnected();
+    const data: GameLeaveData = { roomId };
+    const dto: GameLeaveDto = GameConverter.toGameLeaveDto(data);
+    WebSocketService.send(WS_EVENTS.GAME_LEAVE, dto);
+  }
+
+  /**
    * 게임 모집 브로드캐스트 구독
    */
   onRecruit(callback: RecruitCallback): () => void {
     this.recruitCallbacks.add(callback);
     this.registerEventHandlers();
     return () => this.recruitCallbacks.delete(callback);
+  }
+
+  onPlayerLeave(callback: PlayerLeaveCallback): () => void {
+    this.playerLeaveCallbacks.add(callback);
+    this.registerEventHandlers();
+    return () => this.playerLeaveCallbacks.delete(callback);
   }
 
   private registerEventHandlers(): void {
@@ -64,6 +86,11 @@ class GameService {
       this.playerJoinCallbacks.forEach((cb) => cb(data));
     };
 
+    const playerLeaveHandler = (dto: GamePlayerLeaveDto) => {
+      const data = GameConverter.toGamePlayerLeaveData(dto);
+      this.playerLeaveCallbacks.forEach((cb) => cb(data));
+    };
+
     const recruitHandler = (dto: GamePlayerRecruitDto) => {
       const data = GameConverter.toGamePlayerRecruitData(dto);
       this.recruitCallbacks.forEach((cb) => cb(data));
@@ -71,6 +98,9 @@ class GameService {
 
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_JOIN, playerJoinHandler);
     WebSocketService.on(WS_EVENTS.GAME_PLAYER_JOIN, playerJoinHandler);
+
+    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_LEAVE, playerLeaveHandler);
+    WebSocketService.on(WS_EVENTS.GAME_PLAYER_LEAVE, playerLeaveHandler);
 
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_RECRUIT, recruitHandler);
     WebSocketService.on(WS_EVENTS.GAME_PLAYER_RECRUIT, recruitHandler);

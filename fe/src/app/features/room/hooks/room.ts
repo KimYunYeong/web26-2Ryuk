@@ -10,6 +10,7 @@ import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useGame } from '@/app/features/game/hooks/useGame';
+import { GamePlayerData } from '@/app/features/game/dtos/data';
 
 export interface UseRoomResult {
   roomData: RoomStore['roomData'];
@@ -17,13 +18,13 @@ export interface UseRoomResult {
   isHost: boolean;
   isGameRecruiting: boolean;
   isGameReadyModalOpen: boolean;
-  myStatus: import('@/app/features/game/dtos/data').GamePlayerData;
-  gamePlayers: import('@/app/features/game/dtos/data').GamePlayerData[];
+  myStatus?: GamePlayerData;
+  gamePlayers: GamePlayerData[];
   showPasswordAuth: boolean;
   handlePasswordConfirm: (password: string) => Promise<void>;
   handlePasswordCancel: () => void;
   handleGameRecruitClick: () => Promise<void>;
-  closeGameReadyModal: () => void;
+  handleLeaveGame: () => Promise<void>;
 }
 
 export function useRoom(roomId: string): UseRoomResult {
@@ -41,7 +42,7 @@ export function useRoom(roomId: string): UseRoomResult {
     isGameRecruiting,
     isReadyModalOpen,
     handleGameRecruitClick,
-    closeReadyModal,
+    handleLeaveGame,
     myStatus,
     gamePlayers,
   } = useGame(roomId, isHost);
@@ -122,18 +123,26 @@ export function useRoom(roomId: string): UseRoomResult {
     goBack();
   }, [goBack]);
 
+  const safeMyStatus: GamePlayerData = myStatus ?? {
+    userId: userId ?? '',
+    nickname: '',
+    profileImage: '',
+    isHost,
+    isReady: false,
+  };
+
   return {
     roomData,
     roomJoinInfoData,
     isHost,
     isGameRecruiting,
     isGameReadyModalOpen: isReadyModalOpen,
-    myStatus,
+    myStatus: safeMyStatus,
     gamePlayers,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
     handleGameRecruitClick,
-    closeGameReadyModal: closeReadyModal,
+    handleLeaveGame,
   };
 }

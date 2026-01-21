@@ -2,10 +2,6 @@
 
 import styles from './gameReadyModalContent.module.css';
 import * as IconCircle from '@/app/components/shared/icon/IconCircle';
-import {
-  MyReadyStatusCardProps,
-  OtherReadyStatusCardProps,
-} from '@/app/features/room/components/type';
 import MyReadyStatusCard from './MyReadyStatusCard';
 import OtherReadyStatusCardGrid from './OtherReadyStatusCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';

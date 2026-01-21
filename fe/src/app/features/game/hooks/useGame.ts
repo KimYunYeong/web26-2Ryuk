@@ -15,7 +15,15 @@ export function useGame(roomId: string, isHost: boolean) {
   const roomData = roomStore((state) => state.roomData);
   const userId = authStore((state) => state.userId);
   const [gamePlayers, setGamePlayers] = useState<GamePlayerData[]>([]);
-  const [myStatus, setMyStatus] = useState<GamePlayerData | null>(null);
+  const [myStatus, setMyStatus] = useState<GamePlayerData>();
+
+  const initialPlayer = {
+    userId: userId ?? '',
+    nickname: '',
+    profileImage: '',
+    isHost,
+    isReady: false,
+  } as GamePlayerData;
 
   // 초기 방 정보에 isGameRecruiting이 포함되어 있으면 반영
   useEffect(() => {
@@ -33,8 +41,8 @@ export function useGame(roomId: string, isHost: boolean) {
 
     const others =
       roomData.players
-        ?.filter((p) => p.userId !== userId)
-        .map((p) => ({
+        ?.filter((p: GamePlayerData) => p.userId !== userId)
+        .map((p: GamePlayerData) => ({
           playerId: p.userId,
           nickname: p.nickname,
           profileImage: p.profileImage ?? '',
@@ -44,13 +52,7 @@ export function useGame(roomId: string, isHost: boolean) {
 
     setGamePlayers(others);
 
-    const me = roomData.players.find((p) => p.userId === userId) ?? {
-      playerId: userId ?? '',
-      nickname: '',
-      profileImage: '',
-      isHost,
-      isReady: false,
-    };
+    const me = roomData.players.find((p: GamePlayerData) => p.userId === userId) ?? initialPlayer;
     setMyStatus(me);
 
     if (roomData.isGameRecruiting && isHost && !isReadyModalOpen) {
@@ -77,16 +79,14 @@ export function useGame(roomId: string, isHost: boolean) {
   }, [showSuccessToast, isHost]);
 
   const applyJoinAck = (ackData: GameJoinAckData) => {
-    const players = ackData.players.map((p) => ({
-      ...p,
-      isHost: p.userId === ackData.host.userId,
-    }));
+    const isPHost = (p: GamePlayerData) => p.userId === ackData.host.userId;
+    const players = ackData.players.map((p) => ({ ...p, isHost: isPHost(p) }));
 
     const hasHost = players.some((p) => p.userId === ackData.host.userId);
     const mergedPlayers = hasHost ? players : [...players, ackData.host];
     setGamePlayers(mergedPlayers.filter((p) => p.userId !== userId));
 
-    const me = mergedPlayers.find((p) => p.userId === userId) as GamePlayerData;
+    const me = mergedPlayers.find((p: GamePlayerData) => p.userId === userId) ?? initialPlayer;
     setMyStatus(me);
   };
 
@@ -135,7 +135,6 @@ export function useGame(roomId: string, isHost: boolean) {
       modalStore.getState().openModal('game-ready');
       setIsReadyModalOpen(true);
     } catch (error) {
-      console.error('[useGame] 게임 요청 실패:', error);
       showErrorToast('게임 요청에 실패했습니다.');
     }
   }, [roomId, isHost, isGameRecruiting, showErrorToast, showSuccessToast, applyJoinAck]);
@@ -145,18 +144,34 @@ export function useGame(roomId: string, isHost: boolean) {
     setIsReadyModalOpen(false);
   }, []);
 
+  useEffect(() => {
+    const unsubscribeLeave = gameService.onPlayerLeave((data) => {
+      setGamePlayers((prev) => prev.filter((p) => p.userId !== data.playerId));
+      // 나 자신이 떠났을 때는 모달 닫기
+      if (data.playerId === userId) closeReadyModal();
+    });
+    return () => unsubscribeLeave();
+  }, [closeReadyModal, userId]);
+
+  const handleLeaveGame = useCallback(async () => {
+    if (!roomId || !userId) return;
+    try {
+      await gameService.leave(roomId);
+      showSuccessToast('게임에서 퇴장했습니다.');
+      setGamePlayers((prev) => prev.filter((p) => p.userId !== userId));
+      closeReadyModal();
+    } catch (error) {
+      showErrorToast('게임 나가기에 실패했습니다.');
+    }
+  }, [roomId, userId, closeReadyModal, showErrorToast]);
+
   return {
     isGameRecruiting,
     isReadyModalOpen,
     handleGameRecruitClick,
     closeReadyModal,
-    myStatus: myStatus ?? {
-      playerId: userId ?? '',
-      nickname: '',
-      profileImage: '',
-      isHost,
-      isReady: false,
-    },
+    myStatus,
     gamePlayers,
+    handleLeaveGame,
   };
 }
