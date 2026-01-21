@@ -5,10 +5,10 @@
 type LogLevel = 'log' | 'warn' | 'debug' | 'error';
 
 interface LoggerLike {
-  log: Function;
-  warn: Function;
-  debug: Function;
-  error: Function;
+  log: (...args: any[]) => void;
+  warn: (...args: any[]) => void;
+  debug: (...args: any[]) => void;
+  error: (...args: any[]) => void;
 }
 
 interface LogMessage {
@@ -20,11 +20,11 @@ export const LOG = {
   // WebSocket 연결 관련
   WS: {
     CONNECT: (socketId: string, userId?: string): LogMessage => ({
-      message: `클라이언트 연결: socketId=${socketId}, userId=${userId || 'anonymous'}`,
+      message: `클라이언트 연결: socketId=${socketId}, userId=${userId ?? 'anonymous'}`,
       level: 'log',
     }),
     DISCONNECT: (socketId: string, userId?: string): LogMessage => ({
-      message: `클라이언트 연결 해제: socketId=${socketId}, userId=${userId || 'anonymous'}`,
+      message: `클라이언트 연결 해제: socketId=${socketId}, userId=${userId ?? 'anonymous'}`,
       level: 'log',
     }),
     ROOM_JOIN_DTO_RECEIVED: (dto: string, type: string): LogMessage => ({
@@ -382,6 +382,30 @@ export const LOG = {
     TRANSPORT_ROOM_MISMATCH: (transportId: string, actualRoomId: string, requestedRoomId: string): LogMessage => ({
       message: `Transport 방 불일치: transportId=${transportId}, 실제 방=${actualRoomId}, 요청 방=${requestedRoomId}`,
       level: 'warn',
+    }),
+    ROUTER_IN_REDIS_NOT_IN_MEMORY: (routerId: string, roomId: string): LogMessage => ({
+      message: `Redis에는 있지만 메모리에 없는 Router 발견: routerId=${routerId}, roomId=${roomId}. 새 Router를 생성합니다.`,
+      level: 'warn',
+    }),
+    TRANSPORT_IN_REDIS_NOT_IN_MEMORY: (transportId: string): LogMessage => ({
+      message: `Redis에는 있지만 현재 서버 인스턴스의 메모리에 없는 Transport: transportId=${transportId}`,
+      level: 'error',
+    }),
+    MEDIASOUP_CONFIG_ERROR: {
+      message: `Mediasoup 환경 변수(RTC 포트, 리슨 IP, 공지 IP)가 완전히 구성되지 않았습니다.`,
+      level: 'error',
+    },
+    TRANSPORT_NOT_FOUND_REDIS: (transportId: string): LogMessage => ({
+      message: `Redis에서 ID "${transportId}"를 가진 Transport를 찾을 수 없습니다.`,
+      level: 'warn',
+    }),
+    TRANSPORT_ROOM_FORBIDDEN: (transportId: string, roomId: string): LogMessage => ({
+      message: `ID "${transportId}"를 가진 Transport는 방 "${roomId}"에 속하지 않습니다.`,
+      level: 'warn',
+    }),
+    REDIS_CLEANUP_ERROR: (objectId: string, error: string): LogMessage => ({
+      message: `Redis에서 객체 ${objectId} 정리 실패: ${error}`,
+      level: 'error',
     }),
   },
 } as const;

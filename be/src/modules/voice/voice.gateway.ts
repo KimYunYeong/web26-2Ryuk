@@ -14,6 +14,12 @@ import { RoomService } from '../room/room.service';
 import { AuthService } from '../auth/auth.service';
 import { createWsErrorResponse } from '@src/common/utils/ws-error-code';
 
+interface SocketWithAuth extends Socket {
+  data: {
+    userId: string;
+  };
+}
+
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
 @UsePipes(
@@ -40,7 +46,7 @@ export class VoiceGateway {
   /**
    * 클라이언트의 인증 및 인가(방 참여 여부)를 확인하는 헬퍼 메서드
    */
-  private async _authorizeClient(client: Socket, roomId: string): Promise<string> {
+  private async _authorizeClient(client: SocketWithAuth, roomId: string): Promise<string> {
     const { userId } = client.data;
     if (!userId) {
       throw new Error('UNAUTHORIZED');
@@ -59,7 +65,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:router:capabilities')
   async handleGetRouterRtpCapabilities(
     @MessageBody() data: GetRouterRtpCapabilitiesDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
@@ -80,7 +86,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:transport:create')
   async handleCreateTransport(
     @MessageBody() data: VoiceTransportCreateDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
@@ -100,7 +106,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:transport:connect')
   async handleConnectTransport(
     @MessageBody() data: VoiceTransportConnectDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
@@ -122,7 +128,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:transport:close')
   async handleCloseTransport(
     @MessageBody() data: VoiceTransportCloseDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
