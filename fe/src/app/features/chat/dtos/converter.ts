@@ -2,19 +2,25 @@ import {
   ChatGlobalNewMessageDto,
   ChatGlobalParticipantsUpdatedDto,
   ChatGlobalSendDto,
+  ChatGlobalJoinAckDto,
+  ChatGlobalSendAckDto,
   ChatReceiveDto,
   ChatRoomNewMessageDto,
   ChatRoomSendDto,
+  ChatRoomSendAckDto,
   GlobalChatRecentsDto,
 } from './dto';
 import {
   ChatGlobalNewMessageData,
   ChatGlobalParticipantsUpdatedData,
   ChatGlobalSendData,
+  ChatGlobalSendAckData,
   ChatReceiveData,
   ChatRoomNewMessageData,
   ChatRoomSendData,
+  ChatRoomSendAckData,
   GlobalChatRecentsData,
+  ChatGlobalJoinAckData,
   ChatSendData,
 } from './data';
 
@@ -75,6 +81,38 @@ export const toGlobalChatRecentsData = (dto: GlobalChatRecentsDto): GlobalChatRe
   currentParticipants: dto.current_participants,
 });
 
+export const toGlobalJoinAckData = (dto: ChatGlobalJoinAckDto): ChatGlobalJoinAckData => ({
+  roomId: dto.room_id,
+  messages: dto.recents.map(toReceiveData),
+  currentParticipants: Number(dto.current_participants),
+});
+
+export const toRoomSendAckData = (dto: ChatRoomSendAckDto): ChatRoomSendAckData => ({
+  message: dto.message,
+  sender: {
+    role: dto.sender.role,
+    nickname: dto.sender.nickname,
+    profileImage: dto.sender.profile_image ?? undefined,
+    isMe: dto.sender.is_me,
+  },
+  timestamp: new Date(dto.timestamp),
+  roomId: dto.room_id,
+  userId: undefined,
+});
+
+export const toGlobalSendAckData = (dto: ChatGlobalSendAckDto): ChatGlobalSendAckData => ({
+  message: dto.message,
+  sender: {
+    role: dto.sender.role,
+    nickname: dto.sender.nickname,
+    profileImage: dto.sender.profile_image ?? undefined,
+    isMe: dto.sender.is_me,
+  },
+  timestamp: new Date(dto.timestamp),
+  roomId: undefined,
+  userId: undefined,
+});
+
 export const toSendDto = (data: ChatSendData): ChatRoomSendDto | ChatGlobalSendDto => {
   if (data.roomId) {
     return {
@@ -91,6 +129,13 @@ export const toSendDto = (data: ChatSendData): ChatRoomSendDto | ChatGlobalSendD
 export const ChatConverter = {
   toReceiveData,
   toSendDto,
+  toGlobalSendDto,
+  toRoomSendDto,
   toGlobalNewMessageData,
   toRoomNewMessageData,
+  toGlobalParticipantsUpdatedData,
+  toGlobalChatRecentsData,
+  toGlobalJoinAckData,
+  toRoomSendAckData,
+  toGlobalSendAckData,
 };

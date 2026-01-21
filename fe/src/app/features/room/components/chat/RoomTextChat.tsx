@@ -20,9 +20,9 @@ export default function RoomTextChat() {
     chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
   }, [chats]);
 
-  const handleMessageSubmit = (message: string) => {
+  const handleMessageSubmit = async (message: string) => {
     if (!message.trim()) return;
-    roomChatService.sendMessage(message.trim());
+    await roomChatService.sendMessage(message.trim());
   };
 
   return (

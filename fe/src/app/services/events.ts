@@ -9,11 +9,9 @@ export const WS_EVENTS = {
 
   // 방 관련 이벤트
   ROOM_JOIN: 'room:join',
-  ROOM_JOIN_ACK: 'room:join:ack',
   ROOM_LEAVE: 'room:leave',
-  ROOM_LEAVE_ACK: 'room:leave:ack',
-  ROOM_PARTICIPANT_LEFT: 'room:participant:left',
-  ROOM_PARTICIPANT_JOINED: 'room:participant:joined',
+  ROOM_PARTICIPANT_LEAVE: 'room:participant:leave',
+  ROOM_PARTICIPANT_JOIN: 'room:participant:join',
 
   // 방 채팅 이벤트
   CHAT_ROOM_SEND: 'chat:room:send',
@@ -31,14 +29,23 @@ export const WS_EVENTS = {
 
   // 게임 모집 이벤트
   GAME_RECRUIT: 'game:recruit',
-  GAME_RECRUIT_ACK: 'game:recruit:ack',
-  GAME_RECRUIT_STARTED: 'game:recruit:started',
+  GAME_PLAYER_RECRUIT: 'game:player:recruit',
   GAME_JOIN: 'game:join',
-  GAME_JOIN_ACK: 'game:join:ack',
-  GAME_PARTICIPANT_JOINED: 'game:participant:joined',
+  GAME_PLAYER_JOIN: 'game:player:join',
   GAME_LEAVE: 'game:leave',
-  GAME_PARTICIPANT_LEAVE: 'game:participant:leave',
-  GAME_JOIN_FAILED: 'game:join:failed',
-  GAME_STATE: 'game:state',
-  GAME_STATE_ACK: 'game:state:ack',
+  GAME_PLAYER_LEAVE: 'game:player:leave',
+  GAME_SELECT: 'game:select',
+  GAME_PLAYER_SELECT: 'game:player:select',
+  GAME_READY: 'game:ready',
+  GAME_PLAYER_READY: 'game:player:ready',
+  GAME_UNREADY: 'game:unready',
+  GAME_PLAYER_UNREADY: 'game:player:unready',
+  GAME_START: 'game:start',
+  GAME_PLAYER_START: 'game:player:start',
+  GAME_CLOSE: 'game:close',
+  GAME_PLAYER_CLOSE: 'game:player:close',
+  GAME_REALTIME: 'game:realtime',
+  GAME_PLAYER_REALTIME: 'game:player:realtime',
+  GAME_RESULT: 'game:result',
+  GAME_PLAYER_RESULT: 'game:player:result',
 } as const;

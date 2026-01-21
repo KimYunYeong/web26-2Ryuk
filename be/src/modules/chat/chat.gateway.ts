@@ -13,6 +13,7 @@ import {
   GlobalChatParticipantsUpdatedResponseDto,
   GlobalChatMessageResponseDto,
   LocalChatMessageResponseDto,
+  GlobalChatJoinAckResponseDto,
 } from './dto/chat-response.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -71,11 +72,9 @@ export class ChatGateway {
         timestamp: msg.create_date,
       }));
 
-      const recentsResponse = new GlobalChatRecentsResponseDto(messages, currentParticipants);
-      client.emit(WS_EVENTS_CHAT.GLOBAL_RECENTS, recentsResponse);
-
-      const participantsResponse = new GlobalChatParticipantsUpdatedResponseDto(globalRoomId, currentParticipants);
-      client.emit(WS_EVENTS_CHAT.GLOBAL_PARTICIPANTS_UPDATED, participantsResponse);
+      // chat:global:join ACK 응답 (명세 기준)
+      const joinAck = new GlobalChatJoinAckResponseDto(globalRoomId, currentParticipants, messages);
+      return joinAck.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.GLOBAL_CHAT_HANDLE_ERROR(errorMessage));

@@ -87,6 +87,23 @@ export class GlobalChatRecentsResponseDto {
   }
 }
 
+// 글로벌 채팅 입장 ACK 응답 DTO (chat:global:join)
+export class GlobalChatJoinAckResponseDto {
+  data: {
+    room_id: string;
+    current_participants: string;
+    recents: GlobalChatRecentMessageDto[];
+  };
+
+  constructor(roomId: string, currentParticipants: number, recents: GlobalChatRecentMessageDto[]) {
+    this.data = {
+      room_id: roomId,
+      current_participants: String(currentParticipants),
+      recents,
+    };
+  }
+}
+
 // 글로벌 채팅 참여자 수 업데이트 응답 DTO
 export class GlobalChatParticipantsUpdatedResponseDto {
   room_id: string;

@@ -55,9 +55,9 @@ export default function LocalChatPanel() {
 
   const handleMicChange = (state: boolean) => setMicState(state);
   const handleSpeakerChange = (state: boolean) => setSpeakerState(state);
-  const handleMessageSubmit = (message: string) => {
+  const handleMessageSubmit = async (message: string) => {
     if (!message.trim()) return;
-    roomChatService.sendMessage(message.trim());
+    await roomChatService.sendMessage(message.trim());
   };
 
   const handleGoRoomClick = () => {

@@ -1,20 +1,20 @@
-import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
-import { ChatReceiveData } from '@/app/features/chat/dtos/data';
+import { ChatReceiveDto, ChatRoomSendAckDto } from '@/app/features/chat/dtos/dto';
+import { ChatReceiveData, ChatRoomSendData } from '@/app/features/chat/dtos/data';
 import { WebSocketService } from '@/app/services/websocket.service';
 import { ChatConverter } from '@/app/features/chat/dtos/converter';
 import { roomStore } from '@/app/features/room/stores/room';
 import { globalChatService } from './GlobalChatService';
+import { MessageCallback, ConnectionCallback } from './type';
 import {
-  RoomJoinedAckDto,
-  RoomJoinedBroadcastDto,
-  RoomLeftAckDto,
-  RoomLeftBroadcastDto,
-  MessageCallback,
-  ConnectionCallback,
-} from './type';
+  RoomJoinAckDto,
+  RoomParticipantJoinDto,
+  RoomLeaveAckDto,
+  RoomParticipantLeaveDto,
+} from '@/app/features/room/dtos/dto';
 import { WS_EVENTS } from '@/app/services/events';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
 import { authStore } from '@/app/features/user/stores/auth';
+import { RoomConverter } from '@/app/features/room/dtos/converter';
 
 /**
  * RoomChat 클라이언트 서비스
@@ -38,7 +38,7 @@ export class RoomChatService {
     const isConnected = WebSocketService.isConnected();
 
     // 다른 대화방 소속 중
-    if (this.isSubscribed && !isMyRoom) this.unsubscribe();
+    if (this.isSubscribed && !isMyRoom) await this.unsubscribe();
 
     // 동일 대화방 소속 중
     if (this.isSubscribed && isMyRoom && isConnected) return this.registerEventHandlers();
@@ -61,14 +61,16 @@ export class RoomChatService {
       // 방 입장 요청 (ACK 필요 이벤트이므로 request 사용)
       const ack = (await WebSocketService.request(WS_EVENTS.ROOM_JOIN, {
         room_id: roomId,
-      })) as RoomJoinedAckDto;
+      })) as RoomJoinAckDto;
+
+      const joinData = RoomConverter.toRoomJoinData(ack);
 
       roomStore.getState().setRoom(roomId);
       roomStore.getState().setJoined(true);
 
-      if (ack?.current_participants != null) {
+      if (joinData.currentParticipants != null) {
         roomStore.getState().updateRoomData({
-          currentParticipants: ack.current_participants,
+          currentParticipants: joinData.currentParticipants,
         });
       }
 
@@ -118,38 +120,40 @@ export class RoomChatService {
     this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
     WebSocketService.on(WS_EVENTS.CONNECT, connectHandler);
 
-    // room:joined 브로드캐스트 핸들러
-    const joinedBroadcastHandler = (data: RoomJoinedBroadcastDto) => {
+    // room:participant:join 브로드캐스트 핸들러
+    const joinedBroadcastHandler = (dto: RoomParticipantJoinDto) => {
+      const data = RoomConverter.toRoomParticipantJoinData(dto);
       if (data.roomId !== this.currentRoomId) return;
 
       const currentUserId = authStore.getState().userId;
-      const isOtherUser = !currentUserId || data.user.id !== currentUserId;
+      const isOtherUser = !currentUserId || data.user.userId !== currentUserId;
 
       if (isOtherUser) {
         toastStore.getState().showInfoToast(`${data.user.nickname}님이 입장했습니다.`);
         roomStore.getState().addParticipant({
-          userId: data.user.id,
+          userId: data.user.userId,
           nickname: data.user.nickname,
-          profileImage: data.user.profile_image || '',
+          profileImage: data.user.profileImage || '',
         });
       }
 
       roomStore.getState().updateRoomData({
-        currentParticipants: parseInt(data.current_participants, 10),
+        currentParticipants: data.currentParticipants,
       });
     };
-    this.eventHandlers.set(WS_EVENTS.ROOM_JOINED, joinedBroadcastHandler);
-    WebSocketService.on(WS_EVENTS.ROOM_JOINED, joinedBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
+    WebSocketService.on(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
 
     // room:leave ACK 핸들러 (방 퇴장 성공)
-    const leaveAckHandler = (data: RoomLeftAckDto) => {
+    const leaveAckHandler = (data: RoomLeaveAckDto) => {
       // ACK는 특별한 처리가 필요 없을 수 있음
     };
     this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
     WebSocketService.on(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
 
-    // room:left 브로드캐스트 핸들러 (다른 사용자 퇴장)
-    const leftBroadcastHandler = (data: RoomLeftBroadcastDto) => {
+    // room:participant:leave 브로드캐스트 핸들러 (다른 사용자 퇴장)
+    const leftBroadcastHandler = (dto: RoomParticipantLeaveDto) => {
+      const data = RoomConverter.toRoomParticipantLeaveData(dto);
       if (data.roomId !== this.currentRoomId) return;
 
       const currentUserId = authStore.getState().userId;
@@ -161,11 +165,11 @@ export class RoomChatService {
       }
 
       roomStore.getState().updateRoomData({
-        currentParticipants: parseInt(data.current_participants, 10),
+        currentParticipants: data.currentParticipants,
       });
     };
-    this.eventHandlers.set(WS_EVENTS.ROOM_LEFT, leftBroadcastHandler);
-    WebSocketService.on(WS_EVENTS.ROOM_LEFT, leftBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
+    WebSocketService.on(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
 
     // chat:room:new-message 핸들러
     const messageHandler = (dto: ChatReceiveDto) => this.handleRoomMessage(dto);
@@ -231,14 +235,15 @@ export class RoomChatService {
   /**
    * 방 채팅 구독 해제
    */
-  unsubscribe(): void {
+  async unsubscribe(): Promise<void> {
     if (!this.isSubscribed) return;
 
     this.removeEventHandlers();
     roomStore.getState().leaveRoom();
 
     if (this.currentRoomId && WebSocketService.isConnected()) {
-      WebSocketService.send(WS_EVENTS.ROOM_LEAVE, { room_id: this.currentRoomId });
+      // 백엔드에서 ACK를 반환하므로 request() 사용
+      await WebSocketService.request(WS_EVENTS.ROOM_LEAVE, { room_id: this.currentRoomId });
     }
 
     this.isSubscribed = false;
@@ -251,14 +256,29 @@ export class RoomChatService {
    * 메시지 전송
    * @param message 전송할 메시지
    */
-  sendMessage(message: string): void {
+  async sendMessage(message: string): Promise<void> {
     if (!this.isSubscribed || !this.currentRoomId) return;
     if (!WebSocketService.isConnected()) return;
 
-    WebSocketService.send(WS_EVENTS.CHAT_ROOM_SEND, {
-      room_id: this.currentRoomId,
+    // Data → DTO 변환
+    const sendData: ChatRoomSendData = {
+      roomId: this.currentRoomId,
       message,
-    });
+    };
+    const dto = ChatConverter.toRoomSendDto(sendData);
+
+    // ACK 응답 받기 (DTO 형태)
+    const ackDto = (await WebSocketService.request(
+      WS_EVENTS.CHAT_ROOM_SEND,
+      dto,
+    )) as ChatRoomSendAckDto;
+
+    // DTO → Data 변환
+    const ackData = ChatConverter.toRoomSendAckData(ackDto);
+
+    // 변환된 Data를 로직에서 사용
+    this.messages.push(ackData);
+    this.notifyMessage(ackData);
   }
 
   /**

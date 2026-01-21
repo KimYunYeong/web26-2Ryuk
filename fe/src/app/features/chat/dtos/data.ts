@@ -22,16 +22,7 @@ export type ChatGlobalSendData = {
   message: string;
 };
 
-export type ChatGlobalNewMessageData = {
-  message: string;
-  sender: {
-    role: string;
-    nickname: string;
-    profileImage?: string;
-    isMe: boolean;
-  };
-  timestamp: Date;
-};
+export type ChatGlobalNewMessageData = ChatReceiveData;
 
 export type ChatGlobalParticipantsUpdatedData = {
   roomId: string;
@@ -43,19 +34,17 @@ export type ChatRoomSendData = {
   message: string;
 };
 
-export type ChatRoomNewMessageData = {
-  roomId: string;
-  message: string;
-  sender: {
-    role: string;
-    nickname: string;
-    profileImage?: string;
-    isMe: boolean;
-  };
-  timestamp: Date;
-};
+export type ChatRoomNewMessageData = ChatReceiveData;
+
+export type ChatRoomSendAckData = ChatRoomNewMessageData;
+
+export type ChatGlobalSendAckData = ChatReceiveData;
 
 export type GlobalChatRecentsData = {
   messages: ChatReceiveData[];
   currentParticipants?: number;
+};
+
+export type ChatGlobalJoinAckData = GlobalChatRecentsData & {
+  roomId: string;
 };

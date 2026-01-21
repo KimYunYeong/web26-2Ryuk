@@ -66,13 +66,13 @@ export default function GlobalChatPanel() {
       unsubscribeMessage();
       unsubscribeConnection();
       unsubscribeParticipants();
-      globalChatService.unsubscribe();
+      globalChatService.unsubscribe().catch(console.error);
     };
   }, []);
 
   // 메시지 전송 핸들러
-  const handleMessageSubmit = useCallback((message: string) => {
-    globalChatService.sendMessage(message);
+  const handleMessageSubmit = useCallback(async (message: string) => {
+    await globalChatService.sendMessage(message);
   }, []);
 
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);

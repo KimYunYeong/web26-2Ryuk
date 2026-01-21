@@ -1,8 +1,18 @@
 'use client';
 
-import { ChatReceiveDto } from '@/app/features/chat/dtos/dto';
-import { ChatReceiveData } from '@/app/features/chat/dtos/data';
+import {
+  ChatGlobalNewMessageDto,
+  ChatGlobalParticipantsUpdatedDto,
+  GlobalChatRecentsDto,
+  ChatGlobalJoinAckDto,
+  ChatGlobalSendAckDto,
+} from '@/app/features/chat/dtos/dto';
+import { ChatReceiveData, ChatGlobalSendData } from '@/app/features/chat/dtos/data';
 import { ChatConverter } from '@/app/features/chat/dtos/converter';
+import { WS_EVENTS } from '@/app/services/events';
+import { WebSocketService } from '@/app/services/websocket.service';
+import { authStore } from '@/app/features/user/stores/auth';
+import { roomStore } from '@/app/features/room/stores/room';
 import {
   ChatChannel,
   MessageCallback,
@@ -10,13 +20,7 @@ import {
   ParticipantsCallback,
   RecentsCallback,
   WebSocketErrorDto,
-  ParticipantsUpdatedDto,
-  GlobalChatRecentsDto,
 } from './type';
-import { WS_EVENTS } from '@/app/services/events';
-import { WebSocketService } from '@/app/services/websocket.service';
-import { authStore } from '@/app/features/user/stores/auth';
-import { roomStore } from '@/app/features/room/stores/room';
 
 /**
  * GlobalChat 클라이언트 서비스
@@ -30,10 +34,11 @@ export class GlobalChatService implements ChatChannel {
   private messages: ChatReceiveData[] = [];
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private connectPromise: Promise<void> | null = null;
+  private currentParticipants = 0;
 
   async connect(): Promise<void> {
     if (WebSocketService.isConnected()) {
-      this.registerEventHandlers();
+      if (this.eventHandlers.size === 0) this.registerEventHandlers();
       this.notifyConnection(true);
       return;
     }
@@ -57,12 +62,24 @@ export class GlobalChatService implements ChatChannel {
   }
 
   async subscribe(): Promise<void> {
-    if (this.isSubscribed) this.unsubscribe();
+    // 이미 구독 중이면 중복 구독 방지
+    if (this.isSubscribed) return;
 
     await this.connect();
     if (WebSocketService.isConnected()) this.notifyConnection(true);
 
-    WebSocketService.send(WS_EVENTS.CHAT_GLOBAL_JOIN, {});
+    // chat:global:join ACK 기반 초기 상태 세팅
+    const ack = (await WebSocketService.request(WS_EVENTS.CHAT_GLOBAL_JOIN, {
+      room_id: 'global-room-001',
+    })) as ChatGlobalJoinAckDto;
+
+    const joinData = ChatConverter.toGlobalJoinAckData(ack);
+    this.messages = joinData.messages;
+    this.currentParticipants = joinData.currentParticipants ?? 0;
+
+    this.notifyRecents(this.messages);
+    this.notifyParticipants(this.currentParticipants);
+
     this.isSubscribed = true;
   }
 
@@ -77,12 +94,15 @@ export class GlobalChatService implements ChatChannel {
     this.eventHandlers.set(WS_EVENTS.DISCONNECT, disconnectHandler);
     WebSocketService.on(WS_EVENTS.DISCONNECT, disconnectHandler);
 
-    const messageHandler = (dto: ChatReceiveDto) => this.handleGlobalMessage(dto);
+    const messageHandler = (dto: ChatGlobalNewMessageDto) => this.handleGlobalMessage(dto);
     this.eventHandlers.set(WS_EVENTS.CHAT_GLOBAL_NEW_MESSAGE, messageHandler);
     WebSocketService.on(WS_EVENTS.CHAT_GLOBAL_NEW_MESSAGE, messageHandler);
 
-    const participantsHandler = (dto: ParticipantsUpdatedDto) =>
-      this.notifyParticipants(dto.current_participants);
+    const participantsHandler = (dto: ChatGlobalParticipantsUpdatedDto) => {
+      const data = ChatConverter.toGlobalParticipantsUpdatedData(dto);
+      this.currentParticipants = data.currentParticipants;
+      this.notifyParticipants(this.currentParticipants);
+    };
     this.eventHandlers.set(WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, participantsHandler);
     WebSocketService.on(WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, participantsHandler);
 
@@ -97,12 +117,13 @@ export class GlobalChatService implements ChatChannel {
   }
 
   private removeEventHandlers(): void {
-    this.eventHandlers.forEach((handler, event) => WebSocketService.off(event, handler));
+    // 이벤트 이름만으로 모든 리스너 제거 (핸들러 참조 문제 방지)
+    this.eventHandlers.forEach((_, event) => WebSocketService.off(event));
     this.eventHandlers.clear();
   }
 
-  private handleGlobalMessage(dto: ChatReceiveDto): void {
-    const chatData = ChatConverter.toReceiveData(dto);
+  private handleGlobalMessage(dto: ChatGlobalNewMessageDto): void {
+    const chatData = ChatConverter.toGlobalNewMessageData(dto);
     this.messages.push(chatData);
     this.notifyMessage(chatData);
   }
@@ -110,16 +131,17 @@ export class GlobalChatService implements ChatChannel {
   private handleGlobalChatRecents(dto: GlobalChatRecentsDto): void {
     this.messages = [];
 
-    const chatMessages = dto.messages.map((msg) => ChatConverter.toReceiveData(msg));
+    const chatMessages = dto.messages.map(ChatConverter.toReceiveData);
     this.messages = chatMessages;
 
-    // recents는 일괄 업데이트 콜백으로 전달 (개별 메시지 콜백 호출 X)
     this.notifyRecents(chatMessages);
-
-    if (dto.current_participants != null) this.notifyParticipants(dto.current_participants);
+    if (dto.current_participants != null) {
+      this.currentParticipants = dto.current_participants;
+      this.notifyParticipants(this.currentParticipants);
+    }
   }
 
-  unsubscribe(): void {
+  async unsubscribe(): Promise<void> {
     if (!this.isSubscribed) return;
 
     this.notifyConnection(false);
@@ -129,18 +151,45 @@ export class GlobalChatService implements ChatChannel {
     this.isSubscribed = false;
   }
 
-  sendMessage(message: string): void {
+  async sendMessage(message: string): Promise<void> {
     if (!authStore.getState().isAuthenticated)
       throw new Error('메시지를 보내려면 로그인이 필요합니다.');
     if (!WebSocketService.isConnected()) throw new Error('WebSocket이 연결되지 않았습니다.');
 
-    const dto = ChatConverter.toSendDto({ message });
-    WebSocketService.send(WS_EVENTS.CHAT_GLOBAL_SEND, dto);
+    // Data → DTO 변환
+    const sendData: ChatGlobalSendData = {
+      message,
+    };
+    const dto = ChatConverter.toGlobalSendDto(sendData);
+
+    // ACK 응답 받기 (DTO 형태)
+    const ackDto = (await WebSocketService.request(
+      WS_EVENTS.CHAT_GLOBAL_SEND,
+      dto,
+    )) as ChatGlobalSendAckDto;
+
+    // DTO → Data 변환
+    const ackData = ChatConverter.toGlobalSendAckData(ackDto);
+
+    // 변환된 Data를 로직에서 사용
+    this.messages.push(ackData);
+    this.notifyMessage(ackData);
   }
 
   notifyLogout(): void {
     if (!WebSocketService.isConnected()) return;
     WebSocketService.send(WS_EVENTS.AUTH_LOGOUT, {});
+  }
+
+  incrementParticipantsOptimistic(): void {
+    this.currentParticipants += 1;
+    this.notifyParticipants(this.currentParticipants);
+  }
+
+  decrementParticipantsOptimistic(): void {
+    if (this.currentParticipants <= 0) return;
+    this.currentParticipants -= 1;
+    this.notifyParticipants(this.currentParticipants);
   }
 
   onMessage(callback: MessageCallback): () => void {
@@ -155,6 +204,7 @@ export class GlobalChatService implements ChatChannel {
 
   onParticipantsChange(callback: ParticipantsCallback): () => void {
     this.participantsCallbacks.add(callback);
+    callback(this.currentParticipants);
     return () => this.participantsCallbacks.delete(callback);
   }
 

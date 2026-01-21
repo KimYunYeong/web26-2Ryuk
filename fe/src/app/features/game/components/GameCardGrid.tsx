@@ -26,8 +26,8 @@ export default function GameCardGrid({
     title: game.title,
     description: game.description,
     type: game.type,
-    min_players: game.minPlayers,
-    max_players: game.maxPlayers,
+    minPlayers: game.minPlayers,
+    maxPlayers: game.maxPlayers,
     onSelect,
   }));
 
