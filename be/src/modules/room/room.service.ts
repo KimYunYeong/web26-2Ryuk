@@ -18,8 +18,9 @@ import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
 import { User } from '@src/modules/user/user.entity';
+import { WS_EVENTS_ROOM, WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
+import { RoomRequestDto } from './dto/room.dto';
 import {
-  RoomRequestDto,
   RoomCreateResponseDto,
   RoomReadResponseDto,
   RoomDeleteResponseDto,
@@ -28,7 +29,7 @@ import {
   RoomListResponseDto,
   RoomJoinInfoResponseDto,
   GlobalChatRecentMessageDto,
-} from './dto/room.dto';
+} from './dto/room-response.dto';
 import { toUuid } from '@src/common/utils/user-id';
 import { ROOM_TYPE, RoomType } from './room.type';
 import { Server } from 'socket.io';
@@ -711,7 +712,7 @@ export class RoomService implements OnModuleInit {
     // Redis adapter를 사용하는 경우 server.to()가 모든 서버 인스턴스에 브로드캐스트를 전파
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
-    server.to(roomId).emit('room:joined', data);
+    server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_JOIN, data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserJoined', userInfo.userId, roomClientsCount));
   }
   /**
@@ -732,7 +733,7 @@ export class RoomService implements OnModuleInit {
     // Redis adapter를 사용하는 경우 server.to()가 모든 서버 인스턴스에 브로드캐스트를 전파
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
-    server.to(roomId).emit('room:left', data);
+    server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_LEAVE, data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserLeft', userId, roomClientsCount));
     logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));
   }
@@ -744,7 +745,7 @@ export class RoomService implements OnModuleInit {
     const data = { roomId, current_participants: currentParticipants };
 
     // 글로벌 방의 경우 모든 클라이언트에게 브로드캐스트
-    server.emit('chat:global:participants-updated', data);
+    server.emit(WS_EVENTS_CHAT.GLOBAL_PARTICIPANTS_UPDATED, data);
     logMessage(this.logger, LOG.CHAT.PARTICIPANTS_UPDATED(roomId, currentParticipants));
   }
 
