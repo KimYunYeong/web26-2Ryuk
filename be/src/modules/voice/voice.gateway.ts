@@ -80,7 +80,7 @@ export class VoiceGateway {
       await this._authorizeClient(client, room_Id);
 
       const rtpCapabilities = await this.voiceService.getRouterRtpCapabilities(room_Id);
-      ack({ data: { rtpCapabilities } });
+      ack({ rtpCapabilities });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '라우터 기능 조회 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -100,7 +100,7 @@ export class VoiceGateway {
     try {
       await this._authorizeClient(client, data.room_id);
       const transportInfo = await this.voiceService.createTransport(data.room_id, data.producing, client);
-      ack({ data: transportInfo });
+      ack(transportInfo);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'WebRTC Transport 생성 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -120,7 +120,7 @@ export class VoiceGateway {
     try {
       await this._authorizeClient(client, data.room_id);
       const result = await this.voiceService.connectTransport(data);
-      ack({ data: result });
+      ack(result);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'WebRTC Transport 연결 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -141,7 +141,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       const producer = await this.voiceService.createProducer(data, userId);
 
-      ack({ data: { producer_id: producer.id } });
+      ack({ producer_id: producer.id });
 
       // 다른 참여자들에게 새 producer 생성 알림
       client.to(data.room_id).emit('voice:producer:new', {
@@ -167,7 +167,7 @@ export class VoiceGateway {
     try {
       await this._authorizeClient(client, data.room_id);
       const producers = await this.voiceService.getProducersForRoom(data.room_id);
-      ack({ data: { producers } });
+      ack({ producers });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '방의 Producer 목록 조회 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -188,7 +188,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       await this.voiceService.pauseProducer(data.producer_id, userId);
 
-      ack({ data: { success: true } });
+      ack({ success: true });
 
       // 다른 참여자들에게 상태 변경 알림
       client.to(data.room_id).emit('voice:producer:update', {
@@ -215,7 +215,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       await this.voiceService.resumeProducer(data.producer_id, userId);
 
-      ack({ data: { success: true } });
+      ack({ success: true });
 
       // 다른 참여자들에게 상태 변경 알림
       client.to(data.room_id).emit('voice:producer:update', {
@@ -242,7 +242,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       await this.voiceService.closeProducer(data.producer_id, userId);
 
-      ack({ data: { success: true } });
+      ack({ success: true });
 
       // 다른 참여자들에게 producer 종료 알림
       client.to(data.room_id).emit('voice:producer:closed', {
@@ -279,7 +279,7 @@ export class VoiceGateway {
 
       const consumerInfo = await this.voiceService.createConsumer(data, userId);
 
-      ack({ data: consumerInfo });
+      ack(consumerInfo);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Consumer 생성 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -300,7 +300,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       await this.voiceService.pauseConsumer(data.consumer_id, userId);
 
-      ack({ data: { success: true } });
+      ack({ success: true });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Consumer 일시 중지 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -321,7 +321,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       await this.voiceService.resumeConsumer(data.consumer_id, userId);
 
-      ack({ data: { success: true } });
+      ack({ success: true });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Consumer 재개 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -342,7 +342,7 @@ export class VoiceGateway {
       const userId = await this._authorizeClient(client, data.room_id);
       await this.voiceService.closeConsumer(data.consumer_id, userId);
 
-      ack({ data: { success: true } });
+      ack({ success: true });
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'Consumer 종료 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
@@ -364,7 +364,7 @@ export class VoiceGateway {
     try {
       await this._authorizeClient(client, data.room_id);
       const result = await this.voiceService.closeTransport(data);
-      ack({ data: result });
+      ack(result);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, 'WebRTC Transport 종료 중 오류가 발생했습니다.');
       ack({ error: errorResponse });
