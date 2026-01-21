@@ -213,8 +213,7 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자가 참여 중인 GLOBAL 타입 방 조회
    */
-  /*
-  async getUserGlobalRoom(userId: string): Promise<string | null> {
+  async getUserGlobalRoom(_userId: string): Promise<string | null> {
     return GLOBAL_ROOM_ID;
 
     // TODO: 추후 글로벌 방이 여러 개가 될 경우 구현 필요
@@ -229,7 +228,6 @@ export class RoomService implements OnModuleInit {
 
     // return null;
   }
-  */
 
   /**
    * 방의 모든 멤버 아이디 목록 조회
