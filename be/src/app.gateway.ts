@@ -175,6 +175,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const localRoomId = await this.roomService.getUserLocalRoom(userId);
     if (localRoomId && localRoomId !== null) {
       await this.gameService.leaveGame(this.server, localRoomId, userId);
+
+      // 만약 내가 게임에 속해있는 마지막 사람이라면 game hash 정보도 삭제
+      const pattern = `room:${localRoomId}:game:players:*`;
+      const keys = await this.redisClient.keys(pattern);
+
+      if (keys.length == 1) await this.redisClient.del(`room:${localRoomId}:game`);
     }
 
     // 기존 타이머가 있으면 취소
