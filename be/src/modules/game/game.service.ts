@@ -85,7 +85,7 @@ export class GameService {
     await this.redisClient.hSet(hostParticipantKey, 'is_ready', '1');
 
     // 해당 방의 모든 참여자에게 브로드캐스트
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_RECRUIT, {
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_RECRUIT, {
       is_game_recruiting: true,
     });
 
@@ -122,8 +122,8 @@ export class GameService {
       title: game.title,
       description: game.description || '',
       type: game.type,
-      min_participants: game.min_participants?.toString() || '',
-      max_participants: game.max_participants?.toString() || '',
+      min_players: game.min_players?.toString() || '',
+      max_players: game.max_players?.toString() || '',
     };
 
     // Redis에 선택된 게임 정보 저장
@@ -133,13 +133,13 @@ export class GameService {
       title: broadcastPayload.title,
       description: broadcastPayload.description || '',
       type: broadcastPayload.type,
-      min_participants: broadcastPayload.min_participants,
-      max_participants: broadcastPayload.max_participants,
+      min_players: broadcastPayload.min_players,
+      max_players: broadcastPayload.max_players,
     };
     await this.redisClient.hSet(this.getGameKey(roomId), cachePayload);
 
     const roomBroadcast: GameSelectBroadcastDto = { game: broadcastPayload };
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_SELECT, roomBroadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_SELECT, roomBroadcast);
 
     logMessage(this.logger, LOG.GAME.SELECT(roomId, userId, gameId));
 
@@ -181,18 +181,16 @@ export class GameService {
     const hostProfile = this.extractHostProfile(roomInfo.host_id, participants, roomInfo.participants);
 
     const players: GamePlayerDto[] = participants.map((participant) => ({
+      user_id: participant.user_id,
       nickname: participant.nickname,
       profile_image: participant.profile_image,
       is_ready: participant.is_ready,
     }));
 
-    const ackPayload = new GameJoinAckResponseDto(
-      currentPlayers,
-      roomInfo.current_participants,
-      hostProfile,
-      players,
-      selectedGame,
-    );
+    // max_players는 선택된 게임의 최대 인원을 우선 사용, 없으면 방 최대 인원으로 대체
+    const maxPlayers = selectedGame?.max_players ? parseInt(selectedGame.max_players, 10) : roomInfo.max_participants;
+
+    const ackPayload = new GameJoinAckResponseDto(currentPlayers, maxPlayers, hostProfile, players, selectedGame);
 
     // 새로 추가된 경우에만 브로드캐스트
     if (wasAdded) {
@@ -208,20 +206,20 @@ export class GameService {
     server: Server,
     roomId: string,
     userId: string,
-    participantCount: number,
+    currentPlayers: number,
     participants: GameParticipantDto[],
   ): Promise<void> {
     const joinedParticipant = participants.find((participant) => participant.user_id === userId);
 
     // 방의 모든 사람에게 브로드캐스트
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_JOIN, {
-      participant: {
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_JOIN, {
+      player: {
         user_id: joinedParticipant?.user_id || userId,
         nickname: joinedParticipant?.nickname || '',
         profile_image: joinedParticipant?.profile_image || '',
         is_ready: joinedParticipant?.is_ready ?? false,
       },
-      participant_count: participantCount.toString(),
+      current_players: currentPlayers.toString(),
     });
   }
 
@@ -239,13 +237,13 @@ export class GameService {
     // 선택된 게임 정보 조회
     const selectedGame = await this.getSelectedGame(roomId);
     if (selectedGame) {
-      const maxParticipants = parseInt(selectedGame.max_participants, 10);
-      if (!isNaN(maxParticipants)) {
+      const maxPlayers = parseInt(selectedGame.max_players, 10);
+      if (!isNaN(maxPlayers)) {
         // 현재 준비 완료한 참가자 수 조회 (본인 포함 전)
-        const currentReadyCount = await this.getReadyParticipantCount(roomId);
+        const currentReadyPlayers = await this.getCurrentReadyPlayers(roomId);
 
         // 본인이 준비 완료하면 최대 인원을 초과하는지 확인
-        if (currentReadyCount + 1 > maxParticipants) {
+        if (currentReadyPlayers + 1 > maxPlayers) {
           throw new ForbiddenException('게임 최대 인원을 초과할 수 없습니다.');
         }
       }
@@ -258,7 +256,7 @@ export class GameService {
       player_id: userId,
       is_ready: true,
     };
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_READY, readyBroadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_READY, readyBroadcast);
 
     logMessage(this.logger, LOG.GAME.READY(roomId, userId));
   }
@@ -281,7 +279,7 @@ export class GameService {
       player_id: userId,
       is_ready: false,
     };
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_UNREADY, unreadyBroadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_UNREADY, unreadyBroadcast);
 
     logMessage(this.logger, LOG.GAME.UNREADY(roomId, userId));
   }
@@ -310,11 +308,11 @@ export class GameService {
       throw new NotFoundException('선택된 게임이 없습니다.');
     }
 
-    const [readyCount] = await Promise.all([this.getReadyParticipantCount(roomId)]);
+    const [currentReadyPlayers] = await Promise.all([this.getCurrentReadyPlayers(roomId)]);
 
     // 최소 인원 이상이어야 게임 시작 가능
-    const minParticipants = parseInt(selectedGame.min_participants, 10);
-    if (!isNaN(minParticipants) && readyCount < minParticipants) {
+    const minParticipants = parseInt(selectedGame.min_players, 10);
+    if (!isNaN(minParticipants) && currentReadyPlayers < minParticipants) {
       throw new ForbiddenException('게임 최소 인원 조건을 충족하지 못했습니다.');
     }
 
@@ -324,7 +322,7 @@ export class GameService {
     await this.redisClient.hSet(this.getGameKey(roomId), { start_time: startTime, is_recruiting: '0' });
 
     const broadcast: GameStartBroadcastDto = { start_time: startTime };
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_START, broadcast);
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_START, broadcast);
 
     logMessage(this.logger, LOG.GAME.START(roomId, userId, startTime));
 
@@ -374,7 +372,7 @@ export class GameService {
     this.stopRealtimeBroadcast(roomId);
 
     // 해당 방의 모든 참여자에게 브로드캐스트
-    server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_CLOSE, new GameCloseBroadcastDto(false));
+    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_CLOSE, new GameCloseBroadcastDto(false));
 
     logMessage(this.logger, LOG.GAME.CLOSE(roomId, userId));
   }
@@ -455,6 +453,7 @@ export class GameService {
       roomParticipants?.find((participant) => participant.user_id === hostId);
 
     return {
+      user_id: hostId,
       nickname: host?.nickname || '',
       profile_image: host?.profile_image || '',
     };
@@ -484,8 +483,8 @@ export class GameService {
         title: gameData.title,
         description: gameData.description || '',
         type: gameData.type,
-        min_participants: gameData.min_participants || '',
-        max_participants: gameData.max_participants || '',
+        min_players: gameData.min_players || '',
+        max_players: gameData.max_players || '',
       };
 
       return gamePayload;
@@ -499,7 +498,7 @@ export class GameService {
   /**
    * 게임 참가자 수 조회
    */
-  async getParticipantCount(roomId: string): Promise<number> {
+  async getCurrentPlayers(roomId: string): Promise<number> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
     return keys.length;
@@ -508,7 +507,7 @@ export class GameService {
   /**
    * 게임 준비 완료한 참가자 수 조회
    */
-  async getReadyParticipantCount(roomId: string): Promise<number> {
+  async getCurrentReadyPlayers(roomId: string): Promise<number> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
 
@@ -516,9 +515,7 @@ export class GameService {
 
     for (const key of keys) {
       const isReady = await this.redisClient.hGet(key, 'is_ready');
-      if (isReady === '1') {
-        readyCount++;
-      }
+      if (isReady === '1') readyCount++;
     }
 
     return readyCount;
@@ -664,7 +661,7 @@ export class GameService {
         ranks,
       };
 
-      server.to(roomId).emit(WS_EVENTS_GAME.PARTICIPANT_REALTIME, broadcast);
+      server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_REALTIME, broadcast);
 
       logMessage(this.logger, LOG.GAME.REALTIME_BROADCAST(roomId, highestScore, averageScore, ranks));
     } catch (error) {

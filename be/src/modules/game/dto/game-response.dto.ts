@@ -4,8 +4,8 @@ export class GameInfoResponseDto {
   title: string;
   type: string;
   description?: string;
-  min_participants: number;
-  max_participants: number;
+  min_players: number;
+  max_players: number;
 }
 
 export class GameListResponseDto {
@@ -24,6 +24,7 @@ export class GameParticipantDto {
 
 // 게임 참가자 정보 (게임 플레이어)
 export class GamePlayerDto {
+  user_id: string;
   nickname: string;
   profile_image: string;
   is_ready: boolean;
@@ -31,6 +32,7 @@ export class GamePlayerDto {
 
 // 게임 호스트 정보
 export class GameHostDto {
+  user_id: string;
   nickname: string;
   profile_image: string;
 }
@@ -41,8 +43,8 @@ export class GameInfoPayloadDto {
   title: string;
   description?: string;
   type: string;
-  min_participants: string;
-  max_participants: string;
+  min_players: string;
+  max_players: string;
 }
 
 // 게임 선택 브로드캐스트

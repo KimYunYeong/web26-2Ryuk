@@ -90,7 +90,7 @@ export class RoomGateway {
         // Redis에는 참여 중이지만 Socket.io room에 참여하지 않았을 수 있으므로 재참여만
         client.join(dto.room_id);
         const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
-        return { roomId: dto.room_id, current_participants: currentParticipants };
+        return { room_id: dto.room_id, current_participants: currentParticipants };
       }
 
       // 정원 확인
@@ -139,7 +139,7 @@ export class RoomGateway {
       logMessage(this.logger, LOG.ROOM.JOIN(userId, dto.room_id));
 
       // 클라이언트에 입장 성공 알림 (ACK, 참여자 수 포함)
-      return { roomId: dto.room_id, current_participants: currentParticipants };
+      return { room_id: dto.room_id, current_participants: currentParticipants };
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -187,7 +187,7 @@ export class RoomGateway {
 
       logMessage(this.logger, LOG.ROOM.LEAVE(userId, dto.room_id));
       // 클라이언트에 퇴장 성공 알림 (ACK)
-      return { roomId: dto.room_id };
+      return { room_id: dto.room_id };
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorMessage = error instanceof Error ? error.message : String(error);

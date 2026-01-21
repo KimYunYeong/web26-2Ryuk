@@ -50,15 +50,16 @@ export const WS_EVENTS_GAME = {
   REALTIME: 'game:realtime',
 
   // 송신 이벤트
-  PARTICIPANT_RECRUIT: 'game:participant:recruit',
-  PARTICIPANT_SELECT: 'game:participant:select',
-  PARTICIPANT_JOIN: 'game:participant:join',
-  PARTICIPANT_READY: 'game:participant:ready',
-  PARTICIPANT_UNREADY: 'game:participant:unready',
-  PARTICIPANT_START: 'game:participant:start',
-  PARTICIPANT_CLOSE: 'game:participant:close',
-  PARTICIPANT_LEAVE: 'game:participant:leave',
-  PARTICIPANT_REALTIME: 'game:participant:realtime',
+  PLAYER_RECRUIT: 'game:player:recruit',
+  PLAYER_SELECT: 'game:player:select',
+  PLAYER_JOIN: 'game:player:join',
+  PLAYER_READY: 'game:player:ready',
+  PLAYER_UNREADY: 'game:player:unready',
+  PLAYER_START: 'game:player:start',
+  PLAYER_CLOSE: 'game:player:close',
+  PLAYER_LEAVE: 'game:player:leave',
+  PLAYER_REALTIME: 'game:player:realtime',
+  PLAYER_RESULT: 'game:player:result',
 } as const;
 
 /**
