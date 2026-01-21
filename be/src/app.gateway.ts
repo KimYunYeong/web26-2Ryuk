@@ -132,7 +132,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
           // 클라이언트에게 직접 room:join 전송 (ACK (X) event push (O))
           const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
-          client.emit(WS_EVENTS_ROOM.JOIN, { roomId, current_participants: currentParticipants });
+          client.emit(WS_EVENTS_ROOM.JOIN, { room_id: roomId, current_participants: currentParticipants });
         }
 
         // 세션 복구 완료 후 세션 정보 삭제
