@@ -84,7 +84,7 @@ export class GameService {
     await this.redisClient.hSet(hostParticipantKey, 'is_ready', '1');
 
     // 해당 방의 모든 참여자에게 브로드캐스트
-    server.to(roomId).emit('game:recruit', {
+    server.to(roomId).emit('game:participant:recruit', {
       is_game_recruiting: true,
     });
 
@@ -212,8 +212,8 @@ export class GameService {
   ): Promise<void> {
     const joinedParticipant = participants.find((participant) => participant.user_id === userId);
 
-    // 방의 다른 모든 사람에게 브로드캐스트 (본인 제외하지 않음, 전체 브로드캐스트)
-    server.to(roomId).emit('game:joined', {
+    // 방의 모든 사람에게 브로드캐스트
+    server.to(roomId).emit('game:participant:join', {
       participant: {
         user_id: joinedParticipant?.user_id || userId,
         nickname: joinedParticipant?.nickname || '',

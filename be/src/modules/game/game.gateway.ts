@@ -49,9 +49,9 @@ export class GameGateway {
       await this.gameService.startGameRecruiting(this.server, dto.room_id, userId);
 
       // 요청한 클라이언트에게 응답 전송
-      client.emit('game:recruit', {
+      return {
         room_id: dto.room_id,
-      });
+      };
     } catch (error) {
       // 모든 예외를 일관되게 처리
       const errorResponse = createWsErrorResponse(error, '게임 모집 중 문제가 발생했습니다.');
@@ -81,7 +81,7 @@ export class GameGateway {
       const payload = await this.gameService.joinGame(this.server, dto.room_id, userId);
 
       // 요청한 클라이언트에게 응답 전송
-      client.emit('game:join', payload);
+      return { ...payload };
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 참가 중 문제가 발생했습니다.');
       try {
@@ -244,7 +244,7 @@ export class GameGateway {
       const participantCount = await this.gameService.getParticipantCount(dto.room_id);
 
       // 브로드캐스트
-      this.server.to(dto.room_id).emit('game:leave', {
+      this.server.to(dto.room_id).emit('game:participant:leave', {
         left_user_id: userId,
         participant_count: participantCount,
       });
