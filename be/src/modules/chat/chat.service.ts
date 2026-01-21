@@ -5,6 +5,7 @@ import { GlobalChatMessageResponseDto, LocalChatMessageResponseDto } from './dto
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
+import { WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
 
 @Injectable()
 export class ChatService {
@@ -31,43 +32,9 @@ export class ChatService {
   ): Promise<void> {
     const timestamp = new Date().toISOString();
 
-    // 메시지를 보낸 사용자에게는 is_me: true로 전송
-    const responseToSender: GlobalChatMessageResponseDto = {
-      event: 'chat:global:new-message',
-      data: {
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: true,
-        },
-        timestamp,
-      },
-    };
-
     // 다른 사용자들에게는 is_me: false로 전송
-    const responseToOthers: GlobalChatMessageResponseDto = {
-      event: 'chat:global:new-message',
-      data: {
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: false,
-        },
-        timestamp,
-      },
-    };
-
-    // 메시지를 보낸 클라이언트에게만 is_me: true로 전송
-    server.to(senderSocketId).emit(responseToSender.event, responseToSender.data);
-    this.logger.debug(`메시지 발신자에게 전송: socketId=${senderSocketId}, is_me=true`);
-
-    // 같은 방의 다른 클라이언트들에게는 is_me: false로 전송
-    server.to(roomId).except(senderSocketId).emit(responseToOthers.event, responseToOthers.data);
-    this.logger.debug(`다른 클라이언트들에게 브로드캐스트: roomId=${roomId}, except=${senderSocketId}, is_me=false`);
+    const responseToOthers = new GlobalChatMessageResponseDto(message, senderInfo, false, timestamp);
+    server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.GLOBAL_NEW_MESSAGE, responseToOthers.data);
 
     // 글로벌 채팅 메시지를 Redis에 저장 (최신 30개 유지)
     if (roomId === GLOBAL_ROOM_ID) {
@@ -88,45 +55,9 @@ export class ChatService {
   ): Promise<void> {
     const timestamp = new Date().toISOString();
 
-    // 메시지를 보낸 사용자에게는 is_me: true로 전송
-    const responseToSender: LocalChatMessageResponseDto = {
-      event: 'chat:room:new-message',
-      data: {
-        room_id: roomId,
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: true,
-        },
-        timestamp,
-      },
-    };
-
     // 다른 사용자들에게는 is_me: false로 전송
-    const responseToOthers: LocalChatMessageResponseDto = {
-      event: 'chat:room:new-message',
-      data: {
-        room_id: roomId,
-        message,
-        sender: {
-          role: senderInfo.role,
-          nickname: senderInfo.nickname,
-          profile_image: senderInfo.profile_image,
-          is_me: false,
-        },
-        timestamp,
-      },
-    };
-
-    // 메시지를 보낸 클라이언트에게만 is_me: true로 전송
-    server.to(senderSocketId).emit(responseToSender.event, responseToSender.data);
-    this.logger.debug(`메시지 발신자에게 전송: socketId=${senderSocketId}, is_me=true`);
-
-    // 같은 방의 다른 클라이언트들에게는 is_me: false로 전송
-    server.to(roomId).except(senderSocketId).emit(responseToOthers.event, responseToOthers.data);
-    this.logger.debug(`다른 클라이언트들에게 브로드캐스트: roomId=${roomId}, except=${senderSocketId}, is_me=false`);
+    const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
+    server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.ROOM_NEW_MESSAGE, responseToOthers.data);
 
     logMessage(this.logger, LOG.CHAT.ROOM_BROADCAST(roomId, userId, message));
   }

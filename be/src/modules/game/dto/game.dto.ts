@@ -1,28 +1,31 @@
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsNumberString } from 'class-validator';
 
-export class GameRecruitDto {
+export class GameRoomIdDto {
   @IsString()
   @IsNotEmpty()
   @IsUUID()
   room_id: string;
 }
 
-export class GameJoinDto {
+export class GameSelectDto {
   @IsString()
   @IsNotEmpty()
   @IsUUID()
   room_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  game_id: string;
 }
 
-export interface GameInfoDto {
-  id: string;
-  title: string;
-  type: string;
-  description: string;
-  min_participants: number;
-  max_participants: number;
-}
+export class GameRealtimeInputDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID()
+  room_id: string;
 
-export class GameListResponseDto {
-  games: GameInfoDto[];
+  @IsNumberString()
+  @IsNotEmpty()
+  delta: string;
 }

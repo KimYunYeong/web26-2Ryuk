@@ -1,6 +1,6 @@
 import { Controller, Get, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { GameService } from './game.service';
-import { GameListResponseDto } from './dto/game.dto';
+import { GameListResponseDto } from './dto/game-response.dto';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
 
 @Controller('games')

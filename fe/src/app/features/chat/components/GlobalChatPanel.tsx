@@ -36,16 +36,16 @@ export default function GlobalChatPanel() {
     const subscribe = async () => {
       await globalChatService.subscribe();
 
-      const savedMessages = globalChatService.getMessages();
-      if (savedMessages.length > 0) setChats(savedMessages);
-
       // 구독 완료 후 연결 상태 확인
       setIsConnected(globalChatService.isConnected());
     };
 
     subscribe();
 
-    // 메시지 수신 콜백 등록
+    // recents 수신 콜백 등록 (초기 메시지 로드 시 배열 교체)
+    const unsubscribeRecents = globalChatService.onRecents((messages) => setChats(messages));
+
+    // 메시지 수신 콜백 등록 (새 메시지만 추가)
     const unsubscribeMessage = globalChatService.onMessage((message) =>
       setChats((prev) => [...prev, message]),
     );
@@ -62,6 +62,7 @@ export default function GlobalChatPanel() {
 
     // 정리 함수
     return () => {
+      unsubscribeRecents();
       unsubscribeMessage();
       unsubscribeConnection();
       unsubscribeParticipants();
