@@ -89,11 +89,11 @@ export class GlobalChatRecentsResponseDto {
 
 // 글로벌 채팅 참여자 수 업데이트 응답 DTO
 export class GlobalChatParticipantsUpdatedResponseDto {
-  roomId: string;
+  room_id: string;
   current_participants: number;
 
   constructor(roomId: string, currentParticipants: number) {
-    this.roomId = roomId;
+    this.room_id = roomId;
     this.current_participants = currentParticipants;
   }
 }

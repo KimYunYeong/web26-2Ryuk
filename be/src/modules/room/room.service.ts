@@ -695,9 +695,9 @@ export class RoomService implements OnModuleInit {
     currentParticipants: number,
   ): Promise<void> {
     const data = {
-      roomId,
+      room_id: roomId,
       user: {
-        id: userInfo.userId,
+        user_id: userInfo.userId,
         nickname: userInfo.nickname,
         profile_image: userInfo.profile_image,
       },
@@ -720,8 +720,8 @@ export class RoomService implements OnModuleInit {
    */
   async notifyUserLeft(server: Server, roomId: string, userId: string, currentParticipants: number): Promise<void> {
     const data = {
-      roomId,
-      userId,
+      room_id: roomId,
+      user_id: userId,
       current_participants: currentParticipants.toString(),
     };
 
@@ -742,7 +742,7 @@ export class RoomService implements OnModuleInit {
    * 글로벌 채팅 참여자 수 업데이트 브로드캐스트
    */
   async notifyParticipantsUpdated(server: Server, roomId: string, currentParticipants: number): Promise<void> {
-    const data = { roomId, current_participants: currentParticipants };
+    const data = { room_id: roomId, current_participants: currentParticipants };
 
     // 글로벌 방의 경우 모든 클라이언트에게 브로드캐스트
     server.emit(WS_EVENTS_CHAT.GLOBAL_PARTICIPANTS_UPDATED, data);
