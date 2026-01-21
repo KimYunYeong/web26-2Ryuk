@@ -18,9 +18,15 @@ import {
   WebRtcTransport,
   TransportListenIp,
   Producer,
+  Consumer,
 } from 'mediasoup/node/lib/types';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
-import { VoiceTransportConnectDto, VoiceTransportCloseDto, CreateProducerDto } from './dto/voice.dto';
+import {
+  VoiceTransportConnectDto,
+  VoiceTransportCloseDto,
+  CreateProducerDto,
+  CreateConsumerDto,
+} from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -55,6 +61,8 @@ export class VoiceService implements OnModuleInit {
   private transports: Map<string, WebRtcTransport> = new Map();
   // producerId를 키로 실제 mediasoup Producer 객체를 저장하는 맵 (프로세스 메모리)
   private producers: Map<string, Producer> = new Map();
+  // consumerId를 키로 실제 mediasoup Consumer 객체를 저장하는 맵 (프로세스 메모리)
+  private consumers: Map<string, Consumer> = new Map();
 
   private mediasoupListenIps: TransportListenIp[];
   private readonly logger = new Logger(VoiceService.name);
@@ -402,5 +410,123 @@ export class VoiceService implements OnModuleInit {
       router.close();
       logMessage(this.logger, LOG.VOICE.ROUTER_CLOSED(router.id, roomId));
     }
+  }
+
+  /**
+   * Consumer 생성
+   */
+  async createConsumer(dto: CreateConsumerDto, userId: string) {
+    const { producer_id, transport_id, rtp_capabilities } = dto;
+
+    // 1. Redis에서 Producer 메타데이터 조회
+    const producerData = await this.getProducerMetadata(producer_id);
+    if (Object.keys(producerData).length === 0) {
+      throw new NotFoundException(LOG.VOICE.PRODUCER_NOT_FOUND_REDIS(producer_id).message);
+    }
+
+    // 2. Redis에서 Transport 메타데이터 조회
+    const transportData = await this.redisClient.hGetAll(`mediasoup:transport:${transport_id}`);
+    if (Object.keys(transportData).length === 0) {
+      throw new NotFoundException(LOG.VOICE.TRANSPORT_NOT_FOUND_REDIS(transport_id).message);
+    }
+
+    // 3. 유효성 검증
+    // Consumer를 생성하는 Transport는 consuming용이어야 함
+    if (transportData.producing !== 'false') {
+      throw new BadRequestException(LOG.VOICE.CONSUMER_TRANSPORT_NOT_FOR_CONSUMING(transport_id).message);
+    }
+    // Producer와 Transport가 같은 방에 속해야 함
+    if (producerData.room_id !== transportData.room_id) {
+      throw new BadRequestException(
+        LOG.VOICE.PRODUCER_TRANSPORT_ROOM_MISMATCH(
+          producer_id,
+          transport_id,
+          producerData.room_id,
+          transportData.room_id,
+        ).message,
+      );
+    }
+    // Producer가 일시 중지 상태이면 소비할 수 없음
+    if (producerData.paused === 'true') {
+      throw new BadRequestException(LOG.VOICE.PRODUCER_PAUSED_CANNOT_CONSUME(producer_id).message);
+    }
+    // Consumer 생성 요청자의 userId와 transportData의 user_id가 일치해야 함 (자신이 만든 Transport에만 Consumer 생성)
+    if (transportData.user_id !== userId) {
+      throw new ForbiddenException(
+        LOG.VOICE.TRANSPORT_OWNERSHIP_MISMATCH(transport_id, transportData.user_id, userId).message,
+      );
+    }
+
+    // 4. mediasoup 객체 가져오기
+    const router = this.routers.get(producerData.room_id);
+    const producer = this.producers.get(producer_id);
+    const transport = this.transports.get(transport_id);
+
+    if (!router || !producer || !transport) {
+      // 이 경우는 Redis에는 있으나 메모리에 없는 경우. 서버 재시작 등의 상황일 수 있음.
+      throw new InternalServerErrorException(LOG.VOICE.MEDIASOUP_OBJECT_NOT_IN_MEMORY.message);
+    }
+
+    // 5. Router가 Consumer를 생성할 수 있는지 확인
+    const rtpCapabilities = rtp_capabilities;
+    if (!router.canConsume({ producerId: producer.id, rtpCapabilities })) {
+      throw new BadRequestException(LOG.VOICE.ROUTER_CANNOT_CONSUME(producer.id, transport.id).message);
+    }
+
+    // 6. Consumer 생성
+    const consumer = await transport.consume({
+      producerId: producer.id,
+      rtpCapabilities,
+      paused: false, // 시작은 paused가 아님
+    });
+    this.consumers.set(consumer.id, consumer);
+
+    // 7. Redis에 Consumer 메타데이터 저장
+    Promise.all([
+      this.redisClient.hSet(`mediasoup:consumer:${consumer.id}`, {
+        room_id: producerData.room_id,
+        consuming_user_id: userId,
+        producing_user_id: producerData.user_id,
+        producer_id: producer.id,
+        transport_id: transport.id,
+        kind: consumer.kind,
+        rtp_parameters: JSON.stringify(consumer.rtpParameters),
+        paused: 'false',
+      }),
+      this.redisClient.sAdd(`mediasoup:room:${producerData.room_id}:user:${userId}:consumers`, consumer.id),
+    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(consumer.id, String(err))));
+
+    // 8. @close 리스너 설정
+    consumer.on('@close', () => {
+      this.consumers.delete(consumer.id);
+      Promise.all([
+        this.redisClient.del(`mediasoup:consumer:${consumer.id}`),
+        this.redisClient.sRem(`mediasoup:room:${producerData.room_id}:user:${userId}:consumers`, consumer.id),
+      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(consumer.id, String(err))));
+      logMessage(this.logger, LOG.VOICE.CONSUMER_CLOSED(consumer.id, userId));
+    });
+
+    // 9. 로그
+    logMessage(this.logger, LOG.VOICE.CONSUMER_CREATED(consumer.id, producer.id, userId));
+
+    // 10. 결과 반환
+    return {
+      id: consumer.id,
+      producer_id: producer.id,
+      kind: consumer.kind,
+      rtp_parameters: consumer.rtpParameters,
+    };
+  }
+
+  // Redis에서 Producer 메타데이터 조회
+  async getProducerMetadata(producerId: string): Promise<Record<string, string>> {
+    const producerData = await this.redisClient.hGetAll(`mediasoup:producer:${producerId}`);
+    return producerData;
+  }
+
+  // Redis에서 Transport 메타데이터 조회
+  async getTransportMetadata(transportId: string): Promise<Record<string, string>> {
+    const transportData = await this.redisClient.hGetAll(`mediasoup:transport:${transportId}`);
+    return transportData;
   }
 }

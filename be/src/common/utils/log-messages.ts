@@ -5,10 +5,10 @@
 type LogLevel = 'log' | 'warn' | 'debug' | 'error';
 
 interface LoggerLike {
-  log: (...args: any[]) => void;
-  warn: (...args: any[]) => void;
-  debug: (...args: any[]) => void;
-  error: (...args: any[]) => void;
+  log: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
 }
 
 interface LogMessage {
@@ -437,6 +437,47 @@ export const LOG = {
     }),
     PRODUCERS_FOR_ROOM_FETCHED: (roomId: string, count: number): LogMessage => ({
       message: `방의 Producer 목록 조회: roomId=${roomId}, count=${count}`,
+      level: 'log',
+    }),
+    PRODUCER_NOT_FOUND_REDIS: (producerId: string): LogMessage => ({
+      message: `Redis에서 ID "${producerId}"를 가진 Producer를 찾을 수 없습니다.`,
+      level: 'warn',
+    }),
+    CONSUMER_TRANSPORT_NOT_FOR_CONSUMING: (transportId: string): LogMessage => ({
+      message: `Transport ${transportId}는 consuming용으로 생성되지 않았습니다.`,
+      level: 'warn',
+    }),
+    PRODUCER_TRANSPORT_ROOM_MISMATCH: (
+      producerId: string,
+      transportId: string,
+      producerRoomId: string,
+      transportRoomId: string,
+    ): LogMessage => ({
+      message: `Producer ${producerId}(${producerRoomId})와 Transport ${transportId}(${transportRoomId})가 서로 다른 방에 속해있습니다.`,
+      level: 'warn',
+    }),
+    PRODUCER_PAUSED_CANNOT_CONSUME: (producerId: string): LogMessage => ({
+      message: `Producer ${producerId}가 일시 중지 상태이므로 소비할 수 없습니다.`,
+      level: 'warn',
+    }),
+    ROUTER_CANNOT_CONSUME: (producerId: string, transportId: string): LogMessage => ({
+      message: `Router가 이 Producer를 소비할 수 없음: producerId=${producerId}, transportId=${transportId}`,
+      level: 'error',
+    }),
+    CONSUMER_CREATED: (consumerId: string, producerId: string, userId: string): LogMessage => ({
+      message: `Consumer 생성: consumerId=${consumerId}, producerId=${producerId}, userId=${userId}`,
+      level: 'log',
+    }),
+    TRANSPORT_OWNERSHIP_MISMATCH: (transportId: string, actualUserId: string, requestedUserId: string): LogMessage => ({
+      message: `Transport ${transportId}는 사용자 ${requestedUserId}의 소유가 아닙니다. 실제 소유자: ${actualUserId}`,
+      level: 'warn',
+    }),
+    MEDIASOUP_OBJECT_NOT_IN_MEMORY: {
+      message: `Mediasoup 객체가 Redis에는 존재하지만 현재 서버 메모리에는 없습니다. 서버 상태를 확인하세요.`,
+      level: 'error',
+    },
+    CONSUMER_CLOSED: (consumerId: string, userId: string): LogMessage => ({
+      message: `Consumer 종료: consumerId=${consumerId}, userId=${userId}`,
       level: 'log',
     }),
   },
