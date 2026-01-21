@@ -15,6 +15,7 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
+import { WS_EVENTS_AUTH, WS_EVENTS_ROOM, WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
 
 @UseFilters(new WsExceptionFilter()) // 필터
 @WebSocketGateway({ namespace: '/' })
@@ -129,9 +130,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
           // Redis 상태 복구
           await this.roomService.joinRoom(userId, roomId);
 
-          // 클라이언트에게 직접 room:join ACK 전송
+          // 클라이언트에게 직접 room:join 전송 (ACK (X) event push (O))
           const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
-          client.emit('room:join', { roomId, current_participants: currentParticipants });
+          client.emit(WS_EVENTS_ROOM.JOIN, { room_id: roomId, current_participants: currentParticipants });
         }
 
         // 세션 복구 완료 후 세션 정보 삭제
@@ -201,7 +202,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * 인증 사용자 -> 익명 사용자 전환
    * WebSocket 연결은 유지하되, 참여자 수에서 제외
    */
-  @SubscribeMessage('auth:logout')
+  @SubscribeMessage(WS_EVENTS_AUTH.LOGOUT)
   async handleLogout(@ConnectedSocket() client: Socket) {
     try {
       const userId = client.data.userId;
@@ -257,7 +258,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: msg.create_date,
       }));
 
-      client.emit('chat:global:recents', {
+      client.emit(WS_EVENTS_CHAT.GLOBAL_RECENTS, {
         messages,
         current_participants: currentParticipants,
       });

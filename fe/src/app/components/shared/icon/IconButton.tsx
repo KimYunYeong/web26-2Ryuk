@@ -15,7 +15,7 @@ function IconButtonBase({
   return (
     <button
       type="button"
-      className={CSSUtil.buildCls(styles.button, styles[themeColor])}
+      className={CSSUtil.buildCls(styles.button, styles[themeColor], 'clickable')}
       onClick={onClick}
       disabled={disabled}
       aria-label={name}

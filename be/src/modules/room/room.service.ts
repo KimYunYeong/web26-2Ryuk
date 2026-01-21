@@ -9,6 +9,7 @@ import {
   NotFoundException,
   OnModuleInit,
   HttpStatus,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,8 +18,9 @@ import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
 import { User } from '@src/modules/user/user.entity';
+import { WS_EVENTS_ROOM, WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
+import { RoomRequestDto } from './dto/room.dto';
 import {
-  RoomRequestDto,
   RoomCreateResponseDto,
   RoomReadResponseDto,
   RoomDeleteResponseDto,
@@ -27,10 +29,11 @@ import {
   RoomListResponseDto,
   RoomJoinInfoResponseDto,
   GlobalChatRecentMessageDto,
-} from './dto/room.dto';
+} from './dto/room-response.dto';
 import { toUuid } from '@src/common/utils/user-id';
 import { ROOM_TYPE, RoomType } from './room.type';
 import { Server } from 'socket.io';
+import { GameService } from '../game/game.service';
 
 @Injectable()
 export class RoomService implements OnModuleInit {
@@ -42,6 +45,7 @@ export class RoomService implements OnModuleInit {
   constructor(
     @Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => GameService)) private readonly gameService: GameService,
   ) {}
 
   onModuleInit() {
@@ -152,6 +156,9 @@ export class RoomService implements OnModuleInit {
     // 방 멤버 목록에서 제거 (Hash), 사용자의 참여 방 목록에서 제거 (Set)
     await this.redisClient.del(`room:${roomId}:members:${uuid}`);
     await this.redisClient.sRem(`user:${uuid}:rooms`, roomId);
+
+    // 게임 참가자 목록에서도 제거 (게임 중일 경우)
+    await this.gameService.leaveGame(roomId, userId);
 
     // 참여자 수 감소
     await this.updateCurrentParticipants(roomId);
@@ -593,6 +600,7 @@ export class RoomService implements OnModuleInit {
           max_participants: parseInt(roomData.max_participants || '0', 10),
           is_mic_available: roomData.is_mic_available === '1',
           is_private: roomData.is_private === '1',
+          is_game_recruiting: roomData.isGameRecruiting === '1',
           participants,
           create_date: new Date(roomData.create_date || new Date().toISOString()),
         });
@@ -658,6 +666,7 @@ export class RoomService implements OnModuleInit {
       max_participants: parseInt(roomData.max_participants || '0', 10),
       is_mic_available: roomData.is_mic_available === '1',
       is_private: roomData.is_private === '1',
+      is_game_recruiting: roomData.isGameRecruiting === '1',
       participants,
       create_date: new Date(roomData.create_date || new Date().toISOString()),
     };
@@ -688,9 +697,9 @@ export class RoomService implements OnModuleInit {
     currentParticipants: number,
   ): Promise<void> {
     const data = {
-      roomId,
+      room_id: roomId,
       user: {
-        id: userInfo.userId,
+        user_id: userInfo.userId,
         nickname: userInfo.nickname,
         profile_image: userInfo.profile_image,
       },
@@ -705,7 +714,7 @@ export class RoomService implements OnModuleInit {
     // Redis adapter를 사용하는 경우 server.to()가 모든 서버 인스턴스에 브로드캐스트를 전파
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
-    server.to(roomId).emit('room:joined', data);
+    server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_JOIN, data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserJoined', userInfo.userId, roomClientsCount));
   }
   /**
@@ -713,8 +722,8 @@ export class RoomService implements OnModuleInit {
    */
   async notifyUserLeft(server: Server, roomId: string, userId: string, currentParticipants: number): Promise<void> {
     const data = {
-      roomId,
-      userId,
+      room_id: roomId,
+      user_id: userId,
       current_participants: currentParticipants.toString(),
     };
 
@@ -726,7 +735,7 @@ export class RoomService implements OnModuleInit {
     // Redis adapter를 사용하는 경우 server.to()가 모든 서버 인스턴스에 브로드캐스트를 전파
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
-    server.to(roomId).emit('room:left', data);
+    server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_LEAVE, data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserLeft', userId, roomClientsCount));
     logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));
   }
@@ -735,10 +744,10 @@ export class RoomService implements OnModuleInit {
    * 글로벌 채팅 참여자 수 업데이트 브로드캐스트
    */
   async notifyParticipantsUpdated(server: Server, roomId: string, currentParticipants: number): Promise<void> {
-    const data = { roomId, current_participants: currentParticipants };
+    const data = { room_id: roomId, current_participants: currentParticipants };
 
     // 글로벌 방의 경우 모든 클라이언트에게 브로드캐스트
-    server.emit('chat:global:participants-updated', data);
+    server.emit(WS_EVENTS_CHAT.GLOBAL_PARTICIPANTS_UPDATED, data);
     logMessage(this.logger, LOG.CHAT.PARTICIPANTS_UPDATED(roomId, currentParticipants));
   }
 

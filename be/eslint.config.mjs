@@ -28,6 +28,10 @@ export default [
         require: 'readonly',
         exports: 'readonly',
         console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        NodeJS: 'readonly',
+        crypto: 'readonly',
         // Jest globals
         jest: 'readonly',
         describe: 'readonly',

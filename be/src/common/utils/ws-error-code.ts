@@ -1,9 +1,10 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { ERROR_CODE } from '@src/common/constants/constants';
 
 /**
  * WebSocket 에러 코드 타입
  */
-export type WsErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'BAD_REQUEST' | 'INTERNAL_SERVER_ERROR';
+export type WsErrorCode = (typeof ERROR_CODE)[keyof typeof ERROR_CODE];
 
 /**
  * WebSocket 에러 응답 인터페이스
@@ -36,19 +37,19 @@ export function createWsErrorResponse(exception: unknown, defaultMessage?: strin
     let code: WsErrorCode;
     switch (status) {
       case HttpStatus.UNAUTHORIZED:
-        code = 'UNAUTHORIZED';
+        code = ERROR_CODE.UNAUTHORIZED;
         break;
       case HttpStatus.FORBIDDEN:
-        code = 'FORBIDDEN';
+        code = ERROR_CODE.FORBIDDEN;
         break;
       case HttpStatus.NOT_FOUND:
-        code = 'NOT_FOUND';
+        code = ERROR_CODE.NOT_FOUND;
         break;
       case HttpStatus.BAD_REQUEST:
-        code = 'BAD_REQUEST';
+        code = ERROR_CODE.BAD_REQUEST;
         break;
       default:
-        code = 'INTERNAL_SERVER_ERROR';
+        code = ERROR_CODE.INTERNAL_SERVER_ERROR;
     }
 
     return { code, message };
@@ -56,13 +57,13 @@ export function createWsErrorResponse(exception: unknown, defaultMessage?: strin
 
   if (exception instanceof Error) {
     return {
-      code: 'INTERNAL_SERVER_ERROR',
+      code: ERROR_CODE.INTERNAL_SERVER_ERROR,
       message: exception.message || defaultMessage || '서버 오류가 발생했습니다.',
     };
   }
 
   return {
-    code: 'INTERNAL_SERVER_ERROR',
+    code: ERROR_CODE.INTERNAL_SERVER_ERROR,
     message: defaultMessage || '서버 오류가 발생했습니다.',
   };
 }

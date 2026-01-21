@@ -95,6 +95,10 @@ export const LOG = {
       message: `로그아웃 처리 중 에러 발생: ${error}`,
       level: 'error',
     }),
+    VOICE_HANDLE_ERROR: (error: string, stack?: string): LogMessage => ({
+      message: `Voice Gateway 처리 중 에러 발생: ${error}${stack ? `\n${stack}` : ''}`,
+      level: 'error',
+    }),
   },
 
   // 채팅 관련
@@ -270,6 +274,114 @@ export const LOG = {
     RECRUIT_STARTED: (roomId: string, userId: string): LogMessage => ({
       message: `게임 모집 시작: roomId=${roomId}, userId=${userId}`,
       level: 'log',
+    }),
+    JOIN_REQUEST: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 참가 요청: roomId=${roomId}, userId=${userId}`,
+      level: 'debug',
+    }),
+    SELECT: (roomId: string, userId: string, gameId: string): LogMessage => ({
+      message: `게임 선택: roomId=${roomId}, userId=${userId}, gameId=${gameId}`,
+      level: 'log',
+    }),
+    READY: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 준비 완료: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    UNREADY: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 준비 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    START: (roomId: string, userId: string, startTime: string): LogMessage => ({
+      message: `게임 시작 카운트다운: roomId=${roomId}, userId=${userId}, startTime=${startTime}`,
+      level: 'log',
+    }),
+    GAME_STATE_FETCH_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `게임 상태 조회 실패: roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
+    LEAVE: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 참가 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    CLOSE: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 모집 닫기: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    REALTIME_INPUT: (roomId: string, userId: string, delta: string): LogMessage => ({
+      message: `게임 실시간 입력: roomId=${roomId}, userId=${userId}, delta=${delta}`,
+      level: 'debug',
+    }),
+    REALTIME_INPUT_ERROR: (roomId: string, userId: string, error: string): LogMessage => ({
+      message: `게임 실시간 입력 처리 실패: roomId=${roomId}, userId=${userId}, error=${error}`,
+      level: 'error',
+    }),
+    REALTIME_BROADCAST: (roomId: string, highestScore: number, averageScore: string, ranks: string[]): LogMessage => ({
+      message: `게임 실시간 상태 브로드캐스트: roomId=${roomId}, highest_score=${highestScore}, average_score=${averageScore}, ranks_count=${ranks.length}`,
+      level: 'debug',
+    }),
+    REALTIME_BROADCAST_STOPPED: (roomId: string): LogMessage => ({
+      message: `게임 실시간 브로드캐스트 중지: roomId=${roomId}`,
+      level: 'log',
+    }),
+  },
+
+  // 음성 관련
+  VOICE: {
+    CREATING_WORKER: {
+      message: `mediasoup Worker 생성 중...`,
+      level: 'log',
+    },
+    WORKER_CREATED: (pid: number): LogMessage => ({
+      message: `Mediasoup Worker 생성: pid=${pid}`,
+      level: 'log',
+    }),
+    WORKER_DIED: {
+      message: `Mediasoup Worker가 예기치 않게 종료됨`,
+      level: 'error',
+    },
+    ROUTER_CREATED: (routerId: string, roomId: string): LogMessage => ({
+      message: `Mediasoup Router 생성: roomId=${roomId}, routerId=${routerId}`,
+      level: 'log',
+    }),
+    ROUTER_CLOSED: (routerId: string, roomId: string): LogMessage => ({
+      message: `Mediasoup Router 종료: roomId=${roomId}, routerId: ${routerId}`,
+      level: 'log',
+    }),
+    TRANSPORT_CREATED: (transportId: string, roomId: string, producing: boolean): LogMessage => ({
+      message: `WebRTC Transport 생성: transportId=${transportId}, roomId=${roomId}, producing=${producing}`,
+      level: 'log',
+    }),
+    TRANSPORT_CREATE_ERROR: (roomId: string, producing: boolean, error: string): LogMessage => ({
+      message: `WebRTC Transport 생성 실패: roomId=${roomId}, producing=${producing}, error=${error}`,
+      level: 'error',
+    }),
+    TRANSPORT_SET_MAX_BITRATE_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `Transport 최대 비트레이트 설정 실패: roomId=${roomId}, error=${error}`,
+      level: 'warn',
+    }),
+    TRANSPORT_DTLS_FAILED: (transportId: string, dtlsState: string): LogMessage => ({
+      message: `Transport DTLS 연결 실패: transportId=${transportId}, state=${dtlsState}`,
+      level: 'warn',
+    }),
+    TRANSPORT_CONNECTED: (transportId: string): LogMessage => ({
+      message: `WebRTC Transport 연결 성공: transportId=${transportId}`,
+      level: 'log',
+    }),
+    TRANSPORT_ICE_CANDIDATE: (transportId: string, candidate: string): LogMessage => ({
+      message: `ICE 후보 수신: transportId=${transportId}, candidate=${candidate}`,
+      level: 'debug',
+    }),
+    TRANSPORT_CLOSED: (transportId: string): LogMessage => ({
+      message: `WebRTC Transport 종료: transportId=${transportId}`,
+      level: 'log',
+    }),
+    TRANSPORT_NOT_FOUND: (transportId: string): LogMessage => ({
+      message: `WebRTC Transport를 찾을 수 없음: transportId=${transportId}`,
+      level: 'warn',
+    }),
+    TRANSPORT_ROOM_MISMATCH: (transportId: string, actualRoomId: string, requestedRoomId: string): LogMessage => ({
+      message: `Transport 방 불일치: transportId=${transportId}, 실제 방=${actualRoomId}, 요청 방=${requestedRoomId}`,
+      level: 'warn',
     }),
   },
 } as const;

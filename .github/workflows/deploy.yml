@@ -63,7 +63,7 @@ jobs:
           timeout: 60s
           command_timeout: 300s
           # 셸 환경변수로 필요한 데이터 전달
-          envs: DOCKER_USERNAME,DOCKER_PASSWORD,DOCKER_IMAGE_BACKEND,DOCKER_IMAGE_FRONTEND,DOCKER_IMAGE_TAG,DEPLOY_PATH,API_PORT
+          envs: DOCKER_USERNAME,DOCKER_PASSWORD,DOCKER_IMAGE_BACKEND,DOCKER_IMAGE_FRONTEND,DOCKER_IMAGE_TAG,DEPLOY_PATH,API_PORT,MEDIASOUP_ANNOUNCED_IP,MEDIASOUP_RTC_MIN_PORT,MEDIASOUP_RTC_MAX_PORT
           script_stop: true
           script: |
             set -e
@@ -81,6 +81,9 @@ jobs:
           DOCKER_IMAGE_TAG: ${{ steps.tag.outputs.IMAGE_TAG }}
           DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
           API_PORT: ${{ env.API_PORT }}
+          MEDIASOUP_ANNOUNCED_IP: ${{ secrets.NCP_HOST }}
+          MEDIASOUP_RTC_MIN_PORT: ${{ secrets.MEDIASOUP_RTC_MIN_PORT }}
+          MEDIASOUP_RTC_MAX_PORT: ${{ secrets.MEDIASOUP_RTC_MAX_PORT }}
 
       # 5️⃣ 성공 로그
       - name: Notify Success

@@ -21,10 +21,10 @@ export class Game {
   type: GameType;
 
   @Column({ type: 'int', nullable: true })
-  max_participants: number;
+  max_players: number;
 
   @Column({ type: 'int', nullable: true })
-  min_participants: number;
+  min_players: number;
 
   @Column({ type: 'text', nullable: true })
   description: string;

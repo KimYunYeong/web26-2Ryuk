@@ -30,7 +30,9 @@
     "seed:rooms": "DB_HOST=localhost DB_PORT=3307 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-rooms.ts",
     "seed:rooms:docker": "DB_HOST=db DB_PORT=3306 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-rooms.ts",
     "seed:users": "DB_HOST=localhost DB_PORT=3307 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-users.ts",
-    "seed:users:docker": "DB_HOST=db DB_PORT=3306 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-users.ts"
+    "seed:users:docker": "DB_HOST=db DB_PORT=3306 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-users.ts",
+    "seed:games": "DB_HOST=localhost DB_PORT=3307 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-games.ts",
+    "seed:games:docker": "DB_HOST=db DB_PORT=3306 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-games.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.20",
@@ -45,6 +47,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dotenv": "^16.4.5",
+    "mediasoup": "^3.19.14",
     "mysql2": "^3.16.0",
     "redis": "^5.10.0",
     "reflect-metadata": "^0.1.13",

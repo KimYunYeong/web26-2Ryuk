@@ -20,6 +20,7 @@ import LeaveRoomButtonWithModal from '@/app/features/room/components/LeaveRoomBu
 import DeleteRoomButtonWithModal from '@/app/features/room/components/DeleteRoomButtonWithModal';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import useNavigation from '@/app/hooks/useNavigation';
+import GameStartButton from '@/app/features/room/components/GameStartButton';
 
 export default function RoomPage() {
   const params = useParams();
@@ -129,6 +130,7 @@ export default function RoomPage() {
             </div>
             <div className={styles.right}>
               <RoomVoiceChat />
+              <GameStartButton disabled={!isHost} />
             </div>
           </div>
         </div>

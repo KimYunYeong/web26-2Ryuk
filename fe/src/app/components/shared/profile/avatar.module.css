@@ -6,7 +6,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: content-box;
   font: var(--heading-2);
   padding: .5px;
   outline: 2px solid var(--neutral-1);
@@ -14,13 +13,17 @@
 }
 
 .avatar .nickname {
+  position: absolute;
+  inset: 0;
   display: flex;
-  width: 36px;
-  height: 36px;
-  z-index: 1;
-  border-radius: 50%;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font: var(--heading-2);
+  line-height: 1;
+  text-align: center;
 }
 
 .avatar.primary .nickname {
@@ -41,7 +44,6 @@
 .avatar.warning .nickname {
   background: var(--warning-bg);
   color: var(--warning);
-
 }
 
 .avatar img {
