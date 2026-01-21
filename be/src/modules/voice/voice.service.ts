@@ -397,6 +397,16 @@ export class VoiceService implements OnModuleInit {
   }
 
   /**
+   * Consumer를 종료
+   */
+  async closeConsumer(consumerId: string, userId: string): Promise<{ success: boolean }> {
+    const consumer = await this._getAndValidateConsumer(consumerId, userId);
+    consumer.close();
+    // 리소스 정리는 consumer.on('@close') 이벤트 리스너에서 처리됩니다.
+    return { success: true };
+  }
+
+  /**
    * Producer를 종료
    */
   async closeProducer(producerId: string, userId: string): Promise<{ success: boolean }> {

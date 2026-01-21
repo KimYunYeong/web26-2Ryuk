@@ -329,6 +329,27 @@ export class VoiceGateway {
   }
 
   /**
+   * Consumer 종료
+   */
+  @SubscribeMessage('voice:consumer:close')
+  async handleCloseConsumer(
+    @MessageBody() data: ConsumerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: unknown) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.closeConsumer(data.consumer_id, userId);
+
+      ack({ data: { success: true } });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Consumer 종료 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
    * 클라이언트 Transport 종료
    * @param data room_id, transport_id
    * @param client Socket
