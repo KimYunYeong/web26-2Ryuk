@@ -360,8 +360,14 @@ export class GameService {
       throw new ForbiddenException('방장만 게임 모집을 닫을 수 있습니다.');
     }
 
-    // Redis에서 게임 모집 상태를 0으로 변경
+    // 게임 시작 후에는 게임 닫기 불가능
     const gameKey = this.getGameKey(roomId);
+    const startTime = await this.redisClient.hGet(gameKey, 'start_time');
+    if (startTime) {
+      throw new ForbiddenException('게임 시작 후에는 게임을 닫을 수 없습니다.');
+    }
+
+    // Redis에서 게임 모집 상태를 0으로 변경
     await this.redisClient.hSet(gameKey, 'is_recruiting', '0');
 
     // 게임 정보 삭제
@@ -373,9 +379,6 @@ export class GameService {
     if (keys.length > 0) {
       await this.redisClient.del(keys);
     }
-
-    // 실시간 브로드캐스트 타이머 정리
-    this.stopRealtimeBroadcast(roomId);
 
     // 해당 방의 모든 참여자에게 브로드캐스트
     server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_CLOSE, new GameCloseBroadcastDto(false));
