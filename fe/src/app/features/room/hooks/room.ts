@@ -18,13 +18,14 @@ export interface UseRoomResult {
   isHost: boolean;
   isGameRecruiting: boolean;
   isGameReadyModalOpen: boolean;
-  myStatus?: GamePlayerData;
+  myStatus: GamePlayerData;
   gamePlayers: GamePlayerData[];
   showPasswordAuth: boolean;
   handlePasswordConfirm: (password: string) => Promise<void>;
   handlePasswordCancel: () => void;
   handleGameRecruitClick: () => Promise<void>;
   handleLeaveGame: () => Promise<void>;
+  handleCloseGame: () => Promise<void>;
 }
 
 export function useRoom(roomId: string): UseRoomResult {
@@ -43,6 +44,7 @@ export function useRoom(roomId: string): UseRoomResult {
     isReadyModalOpen,
     handleGameRecruitClick,
     handleLeaveGame,
+    handleCloseGame,
     myStatus,
     gamePlayers,
   } = useGame(roomId, isHost);
@@ -144,5 +146,6 @@ export function useRoom(roomId: string): UseRoomResult {
     handlePasswordCancel,
     handleGameRecruitClick,
     handleLeaveGame,
+    handleCloseGame,
   };
 }

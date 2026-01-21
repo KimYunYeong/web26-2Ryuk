@@ -26,12 +26,12 @@ export default function RoomPage() {
     roomJoinInfoData,
     isHost,
     isGameRecruiting,
-    isGameReadyModalOpen,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
     handleGameRecruitClick,
     handleLeaveGame,
+    handleCloseGame,
     myStatus,
     gamePlayers,
   } = useRoom(roomId);
@@ -72,7 +72,12 @@ export default function RoomPage() {
         onCancel={handlePasswordCancel}
       />
 
-      <Modal id="game-ready" closeOnBackdropClick={false} showCloseButton onClose={handleLeaveGame}>
+      <Modal
+        id="game-ready"
+        closeOnBackdropClick={false}
+        showCloseButton
+        onClose={isHost ? handleCloseGame : handleLeaveGame}
+      >
         <GameReadyModalContent
           myStatus={myStatus}
           players={gamePlayers}

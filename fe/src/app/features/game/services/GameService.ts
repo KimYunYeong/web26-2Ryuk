@@ -6,60 +6,91 @@ import {
   GameJoinData,
   GamePlayerJoinData,
   GamePlayerLeaveData,
+  GamePlayerCloseData,
   GameRecruitAckData,
   GameRecruitData,
   GamePlayerRecruitData,
   GameLeaveData,
+  GameCloseData,
 } from '@/app/features/game/dtos/data';
 import {
   GameJoinAckDto,
   GameJoinDto,
   GamePlayerJoinDto,
   GamePlayerLeaveDto,
+  GamePlayerCloseDto,
   GameRecruitAckDto,
   GameRecruitDto,
   GamePlayerRecruitDto,
   GameLeaveDto,
+  GameCloseDto,
 } from '@/app/features/game/dtos/dto';
 
 type PlayerJoinCallback = (data: GamePlayerJoinData) => void;
 type PlayerLeaveCallback = (data: GamePlayerLeaveData) => void;
 type RecruitCallback = (data: GamePlayerRecruitData) => void;
+type CloseCallback = (data: GamePlayerCloseData) => void;
 
 /**
- * 게임 관련 WebSocket 요청/리스너 서비스
- * - DTO ↔ Data 변환을 일관되게 사용
+ * GameService
+ *
+ * - 게임 관련 WebSocket 요청 및 브로드캐스트 구독을 담당
+ * - 모든 송수신 데이터는 Converter를 통해 DTO ↔ Data 변환
+ * - ACK 응답이 필요한 요청과 브로드캐스트 이벤트를 명확히 분리
  */
 class GameService {
   private playerJoinCallbacks: Set<PlayerJoinCallback> = new Set();
   private playerLeaveCallbacks: Set<PlayerLeaveCallback> = new Set();
   private recruitCallbacks: Set<RecruitCallback> = new Set();
+  private closeCallbacks: Set<CloseCallback> = new Set();
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
 
   /**
-   * 게임 모집 시작 (방장만)
+   * 게임 참가 요청
+   * - ACK 응답 반환
+   */
+  async join(roomId: string): Promise<GameJoinAckData> {
+    await WebSocketService.ensureConnected();
+
+    const data: GameJoinData = { roomId };
+    const dto: GameJoinDto = GameConverter.toGameJoinDto(data);
+
+    const ackDto = (await WebSocketService.request(WS_EVENTS.GAME_JOIN, dto)) as GameJoinAckDto;
+
+    return GameConverter.toGameJoinAckData(ackDto);
+  }
+
+  /**
+   * 플레이어 참가 브로드캐스트 구독
+   */
+  onPlayerJoin(callback: PlayerJoinCallback): () => void {
+    this.playerJoinCallbacks.add(callback);
+    this.registerEventHandlers();
+    return () => this.playerJoinCallbacks.delete(callback);
+  }
+
+  /* ==============================
+   * 게임 모집 흐름
+   * ============================== */
+
+  /**
+   * 게임 모집 시작 요청
+   * - 방장만 가능
+   * - ACK 응답 반환
    */
   async recruit(roomId: string): Promise<GameRecruitAckData> {
     await WebSocketService.ensureConnected();
 
     const data: GameRecruitData = { roomId };
     const dto: GameRecruitDto = GameConverter.toGameRecruitDto(data);
+
     const ackDto = (await WebSocketService.request(
       WS_EVENTS.GAME_RECRUIT,
       dto,
     )) as GameRecruitAckDto;
-    return GameConverter.toGameRecruitData(ackDto);
-  }
 
-  /**
-   * 게임 나가기 (브로드캐스트만 수신)
-   */
-  async leave(roomId: string): Promise<void> {
-    await WebSocketService.ensureConnected();
-    const data: GameLeaveData = { roomId };
-    const dto: GameLeaveDto = GameConverter.toGameLeaveDto(data);
-    WebSocketService.send(WS_EVENTS.GAME_LEAVE, dto);
+    return GameConverter.toGameRecruitData(ackDto);
   }
 
   /**
@@ -71,12 +102,67 @@ class GameService {
     return () => this.recruitCallbacks.delete(callback);
   }
 
+  /* ==============================
+   * 게임 상태 변경
+   * ============================== */
+
+  /**
+   * 플레이어 퇴장 브로드캐스트 구독
+   */
   onPlayerLeave(callback: PlayerLeaveCallback): () => void {
     this.playerLeaveCallbacks.add(callback);
     this.registerEventHandlers();
     return () => this.playerLeaveCallbacks.delete(callback);
   }
 
+  /**
+   * 게임 나가기 요청
+   * - ACK 없음
+   * - 브로드캐스트만 발생
+   */
+  async leave(roomId: string): Promise<void> {
+    await WebSocketService.ensureConnected();
+
+    const data: GameLeaveData = { roomId };
+    const dto: GameLeaveDto = GameConverter.toGameLeaveDto(data);
+
+    WebSocketService.send(WS_EVENTS.GAME_LEAVE, dto);
+  }
+
+  /* ==============================
+   * 게임 종료 흐름
+   * ============================== */
+
+  /**
+   * 게임 모집 종료 요청
+   * - 방장만 가능
+   */
+  async close(roomId: string): Promise<void> {
+    await WebSocketService.ensureConnected();
+
+    const data: GameCloseData = { roomId };
+    const dto: GameCloseDto = GameConverter.toGameCloseDto(data);
+
+    WebSocketService.send(WS_EVENTS.GAME_CLOSE, dto);
+  }
+
+  /**
+   * 게임 모집 종료 브로드캐스트 구독
+   */
+  onClose(callback: CloseCallback): () => void {
+    this.closeCallbacks.add(callback);
+    this.registerEventHandlers();
+    return () => this.closeCallbacks.delete(callback);
+  }
+
+  /* ==============================
+   * 내부 이벤트 핸들러 등록
+   * ============================== */
+
+  /**
+   * WebSocket 브로드캐스트 이벤트 핸들러 등록
+   * - 최초 1회만 실행
+   */
   private registerEventHandlers(): void {
     if (this.handlersRegistered) return;
     this.handlersRegistered = true;
@@ -96,37 +182,15 @@ class GameService {
       this.recruitCallbacks.forEach((cb) => cb(data));
     };
 
-    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_JOIN, playerJoinHandler);
+    const closeHandler = (dto: GamePlayerCloseDto) => {
+      const data = GameConverter.toGamePlayerCloseData(dto);
+      this.closeCallbacks.forEach((cb) => cb(data));
+    };
+
     WebSocketService.on(WS_EVENTS.GAME_PLAYER_JOIN, playerJoinHandler);
-
-    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_LEAVE, playerLeaveHandler);
     WebSocketService.on(WS_EVENTS.GAME_PLAYER_LEAVE, playerLeaveHandler);
-
-    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_RECRUIT, recruitHandler);
     WebSocketService.on(WS_EVENTS.GAME_PLAYER_RECRUIT, recruitHandler);
-  }
-
-  /**
-   * 게임 참가 (ACK 반환)
-   */
-  async join(roomId: string): Promise<GameJoinAckData> {
-    await WebSocketService.ensureConnected();
-
-    const data: GameJoinData = { roomId };
-    const dto: GameJoinDto = GameConverter.toGameJoinDto(data);
-    const ackDto = (await WebSocketService.request(WS_EVENTS.GAME_JOIN, dto)) as GameJoinAckDto;
-    const ackData = GameConverter.toGameJoinAckData(ackDto);
-
-    return ackData;
-  }
-
-  /**
-   * 플레이어 참가 브로드캐스트 구독
-   */
-  onPlayerJoin(callback: PlayerJoinCallback): () => void {
-    this.playerJoinCallbacks.add(callback);
-    this.registerEventHandlers();
-    return () => this.playerJoinCallbacks.delete(callback);
+    WebSocketService.on(WS_EVENTS.GAME_PLAYER_CLOSE, closeHandler);
   }
 }
 

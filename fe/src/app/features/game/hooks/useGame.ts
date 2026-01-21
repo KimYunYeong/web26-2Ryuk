@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { gameService } from '@/app/features/game/services/GameService';
 import { showInfoToast, useToast } from '@/app/components/shared/toast/useToast';
 import { modalStore } from '@/app/components/shared/modal/modal.store';
 import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
 import { GamePlayerData, GameJoinAckData } from '@/app/features/game/dtos/data';
+import { GameConverter } from '@/app/features/game/dtos/converter';
+import { gameService } from '@/app/features/game/services/GameService';
 
 export function useGame(roomId: string, isHost: boolean) {
   const { showSuccessToast, showErrorToast } = useToast();
@@ -17,13 +18,13 @@ export function useGame(roomId: string, isHost: boolean) {
   const [gamePlayers, setGamePlayers] = useState<GamePlayerData[]>([]);
   const [myStatus, setMyStatus] = useState<GamePlayerData>();
 
-  const initialPlayer = {
+  const initialPlayer: GamePlayerData = {
     userId: userId ?? '',
-    nickname: '',
-    profileImage: '',
+    nickname: authStore.getState().user?.nickname ?? '',
+    profileImage: authStore.getState().user?.profileImage ?? '',
     isHost,
     isReady: false,
-  } as GamePlayerData;
+  };
 
   // 초기 방 정보에 isGameRecruiting이 포함되어 있으면 반영
   useEffect(() => {
@@ -141,7 +142,7 @@ export function useGame(roomId: string, isHost: boolean) {
 
   const closeReadyModal = useCallback(() => {
     modalStore.getState().closeModal('game-ready');
-    setIsReadyModalOpen(false);
+    if (isHost) setIsReadyModalOpen(false);
   }, []);
 
   useEffect(() => {
@@ -165,6 +166,31 @@ export function useGame(roomId: string, isHost: boolean) {
     }
   }, [roomId, userId, closeReadyModal, showErrorToast]);
 
+  // 방장 모달 닫기 = game:close, 참가자 모달 닫기 = game:leave
+  const handleCloseGame = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      if (isHost) await gameService.close(roomId);
+      else await handleLeaveGame();
+    } catch (error) {
+      console.error('[useGame] 게임 닫기 실패:', error);
+    }
+  }, [roomId, isHost, handleLeaveGame]);
+
+  // game:player:close 브로드캐스트 수신 시 상태 초기화
+  useEffect(() => {
+    const unsubscribeClose = gameService.onClose((data) => {
+      if (!data.isGameRecruiting) {
+        if (isHost) showSuccessToast('게임 모집을 종료했습니다.');
+        else showInfoToast('게임 모집이 종료되었습니다.');
+        setIsGameRecruiting(false);
+        setGamePlayers([]);
+        closeReadyModal();
+      }
+    });
+    return () => unsubscribeClose();
+  }, [closeReadyModal, showInfoToast]);
+
   return {
     isGameRecruiting,
     isReadyModalOpen,
@@ -173,5 +199,6 @@ export function useGame(roomId: string, isHost: boolean) {
     myStatus,
     gamePlayers,
     handleLeaveGame,
+    handleCloseGame,
   };
 }
