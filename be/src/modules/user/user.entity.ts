@@ -1,10 +1,11 @@
 import { Entity, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { PrimaryUuidColumn } from '@src/common/decorators/primary-uuid-column.decorator';
+import { v4 as uuidv4 } from 'uuid';
 
 @Entity('user')
 export class User {
   @PrimaryUuidColumn()
-  id: string;
+  id: string = uuidv4();
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
