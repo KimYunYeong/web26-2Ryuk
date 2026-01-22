@@ -6,9 +6,10 @@ import { RoomController } from './room.controller';
 import { RoomService } from './room.service';
 import { RoomGateway } from './room.gateway';
 import { GameModule } from '../game/game.module';
+import { VoiceModule } from '../voice/voice.module';
 
 @Module({
-  imports: [AuthModule, TypeOrmModule.forFeature([User]), forwardRef(() => GameModule)], // RoomService에서 UserRepository 사용하므로 유지
+  imports: [AuthModule, TypeOrmModule.forFeature([User]), forwardRef(() => GameModule), forwardRef(() => VoiceModule)],
   controllers: [RoomController],
   providers: [RoomService, RoomGateway],
   exports: [RoomService],
