@@ -25,7 +25,7 @@ export default function SelectedGameCard({ game, onChange, isHost }: SelectedGam
     <article className={styles.card} aria-label="선택된 게임">
       <div className={styles.hero}>
         <Image
-          src={Paths.games(game.id)}
+          src={Paths.games(game.id, 'thumbnail')}
           alt={`${game.title} 이미지`}
           width={64}
           height={64}

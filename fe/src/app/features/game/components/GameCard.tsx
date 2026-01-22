@@ -40,7 +40,12 @@ export default function GameCard(game?: GameCardProps) {
   return (
     <article className={styles.card}>
       <div className={styles.hero}>
-        <Image src={Paths.games(id)} alt={`${title} 게임 이미지`} width={100} height={100} />
+        <Image
+          src={Paths.games(id, 'thumbnail')}
+          alt={`${title} 게임 이미지`}
+          width={100}
+          height={100}
+        />
       </div>
       <div className={styles.info}>
         <div className={styles.meta}>

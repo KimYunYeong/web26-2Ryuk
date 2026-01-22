@@ -34,6 +34,7 @@ import gamesMock from '@/mocks/data/games.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
+import BeakerFillViewShowcase from '@/app/features/game/components/BeakerFillViewShowcase';
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
@@ -462,13 +463,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="my-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <MyReadyStatusCard nickname="강하늘" isHost isReady={false} />
+            <MyReadyStatusCard userId="1" nickname="강하늘" isHost isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+            <MyReadyStatusCard userId="2" nickname="김지영" isHost={false} isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard nickname="박철수" isHost={false} isReady />
+            <MyReadyStatusCard userId="3" nickname="박철수" isHost={false} isReady />
           </Component>
         </div>
       </section>
@@ -478,13 +479,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="other-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <OtherReadyStatusCard nickname="강하늘" isHost isReady />
+            <OtherReadyStatusCard userId="1" nickname="강하늘" isHost isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard nickname="김영희" isHost={false} isReady />
+            <OtherReadyStatusCard userId="2" nickname="김영희" isHost={false} isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+            <OtherReadyStatusCard userId="3" nickname="김지영" isHost={false} isReady={false} />
           </Component>
         </div>
       </section>
@@ -495,10 +496,10 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <OtherReadyStatusCardGrid
-              participants={[
-                { nickname: '강하늘', isHost: true, isReady: true },
-                { nickname: '김영희', isHost: false, isReady: true },
-                { nickname: '김지영', isHost: false, isReady: false },
+              players={[
+                { userId: '1', nickname: '강하늘', isHost: true, isReady: true },
+                { userId: '2', nickname: '김영희', isHost: false, isReady: true },
+                { userId: '3', nickname: '김지영', isHost: false, isReady: false },
               ]}
             />
           </Component>
@@ -515,6 +516,14 @@ export default function FeatureComponents() {
         </div>
       </section>
 
+      <section id="beaker-fill-view" className={styles.section}>
+        <h2 className={styles.sectionTitle}>BeakerFillView</h2>
+        <ComponentRelations componentId="beaker-fill-view" />
+        <div className={styles.showcaseBlock}>
+          <BeakerFillViewShowcase />
+        </div>
+      </section>
+
       <section id="game-ready-modal" className={styles.section}>
         <h2 className={styles.sectionTitle}>GameReadyModalContent</h2>
         <ComponentRelations componentId="game-ready-modal" />
@@ -527,14 +536,14 @@ export default function FeatureComponents() {
             />
             <Modal id="game-ready-modal">
               <GameReadyModalContent
-                myStatus={{ nickname: '강하늘', isHost: true, isReady: false }}
-                participants={[
-                  { nickname: '박철수', isHost: false, isReady: true },
-                  { nickname: '김영희', isHost: false, isReady: true },
-                  { nickname: '김지영', isHost: false, isReady: false },
+                myStatus={{ userId: '1', nickname: '강하늘', isHost: true, isReady: false }}
+                players={[
+                  { userId: '1', nickname: '박철수', isHost: false, isReady: true },
+                  { userId: '2', nickname: '김영희', isHost: false, isReady: true },
+                  { userId: '3', nickname: '김지영', isHost: false, isReady: false },
                 ]}
                 selectedGame={sampleGames[0]}
-                maxParticipants={4}
+                maxPlayers={4}
               />
             </Modal>
           </Component>

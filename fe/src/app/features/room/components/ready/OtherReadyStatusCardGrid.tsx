@@ -3,15 +3,14 @@
 import { GamePlayerData } from '@/app/features/game/dtos/data';
 import OtherReadyStatusCard, { EmptyOtherReadyStatusCard } from './OtherReadyStatusCard';
 import styles from './readyStatusCard.module.css';
-import { OtherReadyStatusCardProps } from '@/app/features/room/components/type';
 
 interface OtherReadyStatusCardGridProps {
-  players: GamePlayerData[];
+  players?: GamePlayerData[];
 }
 
 const TOTAL_SLOTS = 9;
 
-export default function OtherReadyStatusCardGrid({ players }: OtherReadyStatusCardGridProps) {
+export default function OtherReadyStatusCardGrid({ players = [] }: OtherReadyStatusCardGridProps) {
   const slots = [
     ...players.slice(0, TOTAL_SLOTS),
     ...Array(Math.max(0, TOTAL_SLOTS - players.length)).fill(null),
