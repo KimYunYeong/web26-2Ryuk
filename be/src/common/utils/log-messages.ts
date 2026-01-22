@@ -215,6 +215,14 @@ export const LOG = {
       message: `방 삭제 완료: roomId=${roomId}, hostId=${hostId}`,
       level: 'log',
     }),
+    ROOM_DELETE_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `방 삭제 실패: roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
+    ROOM_DELETE_FORCE_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `방 강제 삭제 실패: roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
     PARTICIPANTS_UPDATE_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 업데이트 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',

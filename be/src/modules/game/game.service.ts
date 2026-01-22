@@ -597,7 +597,7 @@ export class GameService {
     return false;
   }
 
-  private async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
+  async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
 
@@ -713,13 +713,17 @@ export class GameService {
     }
 
     // 처음 스케줄링 시 타이머 설정
-    const broadcastTimer = setInterval(async () => {
+    const handleRealtimeBroadcast = async () => {
       try {
         await this.broadcastRealtimeState(server, roomId);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.error(`브로드캐스트 중 오류: roomId=${roomId}, error=${errorMessage}`);
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`브로드캐스트 중 오류: roomId=${roomId}, error=${message}`);
       }
+    };
+
+    const broadcastTimer = setInterval(() => {
+      void handleRealtimeBroadcast();
     }, this.REALTIME_BROADCAST_INTERVAL_MS);
 
     this.realtimeBroadcastTimers.set(timerKey, broadcastTimer);
@@ -738,15 +742,19 @@ export class GameService {
       return;
     }
 
-    const endTimer = setTimeout(async () => {
+    const handleGameEnd = async () => {
       try {
         await this.endGameAndBroadcastResults(server, roomId, gameId);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.error(`게임 자동 종료 처리 중 오류: roomId=${roomId}, error=${errorMessage}`);
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`게임 자동 종료 처리 중 오류: roomId=${roomId}, error=${message}`);
       } finally {
         this.gameEndTimers.delete(timerKey);
       }
+    };
+
+    const endTimer = setTimeout(() => {
+      void handleGameEnd();
     }, durationMs);
 
     this.gameEndTimers.set(timerKey, endTimer);

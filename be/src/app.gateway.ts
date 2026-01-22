@@ -168,7 +168,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // 현재 참여 중인 방 목록 저장
     const rooms = await this.roomService.getUserRooms(userId);
-    console.log('연결 끊긴 사용자의 룸 리스트: ', rooms);
     await this.roomService.saveUserSession(userId, rooms);
 
     // 내가 속해있는 로컬 방 id 찾아서 해당 게임 정보 삭제
@@ -188,13 +187,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (existingTimer) clearTimeout(existingTimer);
 
     // 30초 후 실제 종료 여부 확인하는 타이머 설정
-    const timer = setTimeout(async () => {
-      // 세션 복구 여부 확인
+    const handleSessionExpire = async () => {
       const sessionKey = `user:session:${userId}:rooms`;
       const stillDisconnected = !(await this.redisClient.exists(sessionKey));
 
       if (stillDisconnected) {
-        // 실제 종료로 간주하고 방에서 제거
         await this.roomService.leaveAllRooms(this.server, userId);
         await this.roomService.clearUserSession(userId);
 
@@ -206,9 +203,13 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.disconnectTimers.delete(userId);
+    };
+
+    const timer = setTimeout(() => {
+      void handleSessionExpire();
     }, USER_SESSION_EXPIRATION_TIME * 1000);
 
-    // 타이머를 Map에 저장 (로그아웃 시 취소하기 위해)
+    // 타이머 저장
     this.disconnectTimers.set(userId, timer);
   }
 

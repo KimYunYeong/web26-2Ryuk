@@ -49,7 +49,7 @@ export class RoomService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.initializeGlobalRoom();
+    void this.initializeGlobalRoom();
     logMessage(this.logger, LOG.ROOM.INITIALIZED);
   }
 
@@ -167,7 +167,6 @@ export class RoomService implements OnModuleInit {
     // 만약 방장이면 방 삭제 처리
     const isHost = await this.isHost(userId, roomId);
     if (isHost) {
-      console.log('방장이 나가서 방 삭제 처리:', roomId);
       await this.deleteRoom(userId, roomId, server);
       return;
     }
@@ -175,7 +174,7 @@ export class RoomService implements OnModuleInit {
     // 빈 Local 방 삭제
     if ((await this.getRoomType(roomId)) === ROOM_TYPE.GLOBAL) return;
     const currentParticipants = await this.getCurrentParticipants(roomId);
-    if (currentParticipants < 1) this.deleteRoomForce(roomId);
+    if (currentParticipants < 1) void this.deleteRoomForce(roomId);
   }
 
   /**
@@ -217,7 +216,7 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자가 참여 중인 GLOBAL 타입 방 조회
    */
-  async getUserGlobalRoom(userId: string): Promise<string | null> {
+  async getUserGlobalRoom(): Promise<string | null> {
     return GLOBAL_ROOM_ID;
 
     // TODO: 추후 글로벌 방이 여러 개가 될 경우 구현 필요
@@ -470,6 +469,7 @@ export class RoomService implements OnModuleInit {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.ROOM_DELETE_ERROR(roomId, errorMessage));
     } finally {
       // 게임 실시간 브로드캐스트 타이머 정리
       this.gameService.stopRealtimeBroadcast(roomId);
@@ -507,6 +507,7 @@ export class RoomService implements OnModuleInit {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.ROOM_DELETE_FORCE_ERROR(roomId, errorMessage));
     } finally {
       // 게임 실시간 브로드캐스트 타이머 정리
       this.gameService.stopRealtimeBroadcast(roomId);
@@ -701,21 +702,31 @@ export class RoomService implements OnModuleInit {
 
     const roomData = await this.redisClient.hGetAll(`room:${roomId}`);
     const tags = await this.redisClient.sMembers(`room:${roomId}:tags`);
+    const isRecruiting = await this.redisClient.hGet(`room:${roomId}:game`, 'is_recruiting');
 
     // 멤버 정보 조회 (id, 닉네임, 프로필 이미지) - 제한 없이 모든 참여자 조회
     const participants = await this.getRoomMembers(roomId);
+    const players = await this.gameService.getGameParticipants(roomId);
+    const hostId = roomData.host_id || '';
 
     return {
       id: roomId,
       title: roomData.title || '',
       tags: tags || [],
-      host_id: roomData.host_id || '',
+      host_id: hostId,
       current_participants: parseInt(roomData.current_participants || '0', 10),
       max_participants: parseInt(roomData.max_participants || '0', 10),
       is_mic_available: roomData.is_mic_available === '1',
       is_private: roomData.is_private === '1',
-      is_game_recruiting: roomData.isGameRecruiting === '1',
+      is_game_recruiting: isRecruiting === '1',
       participants,
+      players: players.map((player) => ({
+        user_id: player.user_id,
+        nickname: player.nickname,
+        profile_image: player.profile_image,
+        is_host: player.user_id === hostId,
+        is_ready: player.is_ready,
+      })),
       create_date: new Date(roomData.create_date || new Date().toISOString()),
     };
   }

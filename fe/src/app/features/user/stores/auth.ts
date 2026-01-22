@@ -67,7 +67,7 @@ export const authStore = create<AuthStore>()(
           });
 
           // WebSocket 구독
-          if (!IS.undefined(window)) {
+          if (typeof window !== 'undefined') {
             await globalChatService.subscribe();
           }
         } catch (e) {
@@ -93,10 +93,12 @@ export const authStore = create<AuthStore>()(
           user,
         });
 
-        if (IS.undefined(window)) return;
+        if (typeof window === 'undefined') return;
         const { globalChatService } =
           await import('@/app/features/chat/services/GlobalChatService');
         await globalChatService.subscribe();
+        // 로그인 시 글로벌 채팅 참가자 수 낙관적 +1
+        globalChatService.incrementParticipantsOptimistic();
       },
 
       /* ---------- logout ---------- */
@@ -108,7 +110,9 @@ export const authStore = create<AuthStore>()(
           user: null,
         });
 
-        if (IS.undefined(window)) return;
+        if (typeof window === 'undefined') return;
+        // 로그아웃 시 글로벌 채팅 참가자 수 낙관적 -1
+        globalChatService.decrementParticipantsOptimistic();
         globalChatService.notifyLogout();
       },
     }),
@@ -153,7 +157,7 @@ export const authStore = create<AuthStore>()(
           }
         };
 
-        if (!IS.undefined(window)) {
+        if (typeof window !== 'undefined') {
           window.addEventListener('storage', onStorage);
         }
       },

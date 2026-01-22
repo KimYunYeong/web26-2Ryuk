@@ -3,7 +3,7 @@
 import styles from './chat.module.css';
 import { SecondaryChip } from '@/app/components/shared/chip/Chip';
 import { roomStore, RoomStore } from '@/app/features/room/stores/room';
-import { ParticipantData } from '@/app/features/room/dtos/type';
+import { ParticipantData } from '@/app/features/room/dtos/data';
 import { useEffect, useMemo, useState } from 'react';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import VoiceParticipantCard from './VoiceParticipantCard';
