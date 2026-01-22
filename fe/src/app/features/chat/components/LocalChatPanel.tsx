@@ -14,9 +14,9 @@ import { useRouter } from 'next/navigation';
 import Avatar from '@/app/components/shared/profile/Avatar';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import roomService from '@/app/features/room/services/RoomService';
-import { RoomConverter } from '@/app/features/room/dtos/Room';
+import { RoomConverter } from '@/app/features/room/dtos/converter';
 import useNavigation from '@/app/hooks/useNavigation';
-import { ParticipantData } from '@/app/features/room/dtos/type';
+import { ParticipantData } from '@/app/features/room/dtos/data';
 
 export default function LocalChatPanel() {
   const myId = authStore((state: AuthStore) => state.userId);
@@ -55,9 +55,9 @@ export default function LocalChatPanel() {
 
   const handleMicChange = (state: boolean) => setMicState(state);
   const handleSpeakerChange = (state: boolean) => setSpeakerState(state);
-  const handleMessageSubmit = (message: string) => {
+  const handleMessageSubmit = async (message: string) => {
     if (!message.trim()) return;
-    roomChatService.sendMessage(message.trim());
+    await roomChatService.sendMessage(message.trim());
   };
 
   const handleGoRoomClick = () => {

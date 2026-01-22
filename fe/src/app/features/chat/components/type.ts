@@ -1,4 +1,4 @@
-import { ChatReceiveData } from '@/app/features/chat/dtos/type';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { Position } from '@/app/components/shared/floatingWidget/type';
 
 export type ChatPanelType = 'global' | 'local';
