@@ -1,22 +1,21 @@
 'use client';
 
+import * as TextButton from '@/app/components/shared/button/TextButton';
+import { Position } from '@/app/components/shared/floatingWidget/type';
+import Avatar from '@/app/components/shared/profile/Avatar';
+import { roomChatService } from '@/app/features/chat/services/RoomChatService';
+import { RoomConverter } from '@/app/features/room/dtos/Room';
+import { ParticipantData } from '@/app/features/room/dtos/type';
+import roomService from '@/app/features/room/services/RoomService';
+import { roomStore, RoomStore } from '@/app/features/room/stores/room';
+import { AuthStore, authStore } from '@/app/features/user/stores/auth';
+import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
+import useNavigation from '@/app/hooks/useNavigation';
 import { useEffect, useState } from 'react';
+import { useRoomChat } from '../hooks/useRoomChat';
 import ChatPanel from './ChatPanel';
 import styles from './chat.module.css';
-import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
-import { roomChatService } from '@/app/features/chat/services/RoomChatService';
-import { useRoomChat } from '../hooks/useRoomChat';
-import { Position } from '@/app/components/shared/floatingWidget/type';
 import { PANEL_CONFIG } from './type';
-import * as TextButton from '@/app/components/shared/button/TextButton';
-import { useRouter } from 'next/navigation';
-import Avatar from '@/app/components/shared/profile/Avatar';
-import { AuthStore, authStore } from '@/app/features/user/stores/auth';
-import roomService from '@/app/features/room/services/RoomService';
-import { RoomConverter } from '@/app/features/room/dtos/Room';
-import useNavigation from '@/app/hooks/useNavigation';
-import { ParticipantData } from '@/app/features/room/dtos/type';
 
 export default function LocalChatPanel() {
   const myId = authStore((state: AuthStore) => state.userId);
@@ -67,8 +66,8 @@ export default function LocalChatPanel() {
   const headerChildren = (
     <div className={styles.roomChatHeaderControls}>
       <AudioControlButtons
-        initialMicState={micState}
-        initialSpeakerState={speakerState}
+        micOn={micState}
+        speakerOn={speakerState}
         onMicChange={handleMicChange}
         onSpeakerChange={handleSpeakerChange}
       />

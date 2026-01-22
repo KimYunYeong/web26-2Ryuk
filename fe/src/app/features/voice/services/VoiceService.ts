@@ -63,9 +63,8 @@ export class VoiceService {
       await this.setupTransport(roomId, false);
 
       // (5) 서버의 기존 참여자들 확인을 위한 리스너 등록은 WebSocketService에서 처리
-      console.log('음성 채널 연결 준비 완료');
     } catch (error) {
-      console.error('채널 입장 실패:', error);
+      throw new Error('음성 채널 입장 실패: ' + error);
     }
   }
 
@@ -120,7 +119,13 @@ export class VoiceService {
    */
   static async startMic() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true, // 에코 제거
+          noiseSuppression: true, // 소음 억제
+          autoGainControl: true, // 자동 볼륨 조절
+        },
+      });
       const track = stream.getAudioTracks()[0];
 
       this.myProducer = await this.webRtc.produceAudio(track);
@@ -135,13 +140,22 @@ export class VoiceService {
   }
 
   static async stopMic() {
-    if (!this.myProducer) return;
-    await WebSocketService.request('voice:producer:close', {
-      room_id: this.roomId,
-      producer_id: this.myProducer.id,
-    });
-    this.myProducer.close();
-    this.myProducer = null;
+    const producer = this.myProducer;
+    if (!producer) return;
+
+    if (producer.track) producer.track.stop();
+
+    try {
+      // 3. 서버에 알림
+      await WebSocketService.request('voice:producer:close', {
+        room_id: this.roomId,
+        producer_id: producer.id,
+      });
+    } finally {
+      // 4. 어떤 상황에서도 로컬 객체는 정리
+      producer.close();
+      this.myProducer = null;
+    }
   }
 
   /**
@@ -223,6 +237,18 @@ export class VoiceService {
   static async leaveChannel() {
     if (!this.roomId) return;
 
+    // 모든 상대방 스트림 트랙 정지
+    this.consumers.forEach((consumer) => {
+      consumer.track.stop();
+      consumer.close();
+    });
+
+    // 내 마이크 트랙 정지
+    if (this.myProducer && this.myProducer.track) {
+      this.myProducer.track.stop();
+      this.myProducer.close();
+    }
+
     await WebSocketService.request('voice:room:leave', { room_id: this.roomId });
     this.webRtc.cleanup();
     this.consumers.clear();
@@ -284,6 +310,7 @@ export class VoiceService {
 
     const consumer = this.consumers.get(data.producer_id);
     if (consumer) {
+      consumer.track.stop();
       consumer.close();
       this.consumers.delete(data.producer_id);
       console.log(`[Voice] 컨슈머 제거 완료: ${data.producer_id}`);
