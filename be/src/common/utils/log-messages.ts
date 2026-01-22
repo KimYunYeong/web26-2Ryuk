@@ -219,6 +219,14 @@ export const LOG = {
       message: `방 삭제 완료: roomId=${roomId}, hostId=${hostId}`,
       level: 'log',
     }),
+    ROOM_DELETE_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `방 삭제 실패: roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
+    ROOM_DELETE_FORCE_ERROR: (roomId: string, error: string): LogMessage => ({
+      message: `방 강제 삭제 실패: roomId=${roomId}, error=${error}`,
+      level: 'error',
+    }),
     PARTICIPANTS_UPDATE_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `참여자 업데이트 실패 (roomId: ${roomId}): ${error}`,
       level: 'error',
@@ -321,6 +329,13 @@ export const LOG = {
     }),
     REALTIME_BROADCAST_STOPPED: (roomId: string): LogMessage => ({
       message: `게임 실시간 브로드캐스트 중지: roomId=${roomId}`,
+      level: 'log',
+    }),
+    RESULT_BROADCAST: (
+      roomId: string,
+      results: Array<{ player_id: string; score: number; rank: number }>,
+    ): LogMessage => ({
+      message: `게임 결과 브로드캐스트: roomId=${roomId}, participants=${results.length}`,
       level: 'log',
     }),
   },

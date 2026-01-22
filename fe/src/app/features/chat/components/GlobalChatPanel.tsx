@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
-import { ChatReceiveData } from '@/app/features/chat/dtos/type';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { authStore, type AuthStore } from '@/app/features/user/stores/auth';
 import ChatPanel from './ChatPanel';
 import { Position } from '@/app/components/shared/floatingWidget/type';
@@ -66,13 +66,13 @@ export default function GlobalChatPanel() {
       unsubscribeMessage();
       unsubscribeConnection();
       unsubscribeParticipants();
-      globalChatService.unsubscribe();
+      globalChatService.unsubscribe().catch(console.error);
     };
   }, []);
 
   // 메시지 전송 핸들러
-  const handleMessageSubmit = useCallback((message: string) => {
-    globalChatService.sendMessage(message);
+  const handleMessageSubmit = useCallback(async (message: string) => {
+    await globalChatService.sendMessage(message);
   }, []);
 
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);

@@ -64,7 +64,7 @@ export class HttpService {
 
     // 204 No Content 응답 처리
     if (response.status === 204) {
-      return { success: true, message: 'No Content', data: {} } as T;
+      return { success: true, message: 'No Content' } as T;
     }
 
     const contentType = response.headers.get('content-type');

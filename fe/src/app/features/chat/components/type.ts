@@ -1,4 +1,5 @@
-import { ChatReceiveData } from '@/app/features/chat/dtos/type';
+import { ReactNode } from 'react';
+import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { Position } from '@/app/components/shared/floatingWidget/type';
 
 export type ChatPanelType = 'global' | 'local';
@@ -33,7 +34,7 @@ export interface ChatPanelHeaderProps {
   participantCount: number;
   isCollapsed: boolean;
   onToggle: () => void;
-  headerChildren?: React.ReactNode;
+  headerChildren?: ReactNode;
   isConnected?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -47,8 +48,8 @@ export interface ChatPanelProps {
   participantCount: number;
   chats: ChatReceiveData[];
   onMessageSubmit?: (message: string) => void;
-  headerChildren?: React.ReactNode;
-  children?: React.ReactNode;
+  headerChildren?: ReactNode;
+  children?: ReactNode;
   isConnected?: boolean;
   disabled?: boolean;
   initialPosition?: { x: number; y: number };

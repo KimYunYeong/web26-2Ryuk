@@ -16,6 +16,7 @@ import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
 import { WS_EVENTS_AUTH, WS_EVENTS_ROOM, WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
+import { GameService } from './modules/game/game.service';
 
 @UseFilters(new WsExceptionFilter()) // 필터
 @WebSocketGateway({ namespace: '/' })
@@ -41,6 +42,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly roomService: RoomService,
+    private readonly gameService: GameService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
   ) {}
 
@@ -168,19 +170,29 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const rooms = await this.roomService.getUserRooms(userId);
     await this.roomService.saveUserSession(userId, rooms);
 
+    // 내가 속해있는 로컬 방 id 찾아서 해당 게임 정보 삭제
+    const localRoomId = await this.roomService.getUserLocalRoom(userId);
+    if (localRoomId && localRoomId !== null) {
+      await this.gameService.leaveGame(this.server, localRoomId, userId);
+
+      // 만약 내가 게임에 속해있는 마지막 사람이라면 game hash 정보도 삭제
+      const pattern = `room:${localRoomId}:game:players:*`;
+      const keys = await this.redisClient.keys(pattern);
+
+      if (keys.length == 1) await this.redisClient.del(`room:${localRoomId}:game`);
+    }
+
     // 기존 타이머가 있으면 취소
     const existingTimer = this.disconnectTimers.get(userId);
     if (existingTimer) clearTimeout(existingTimer);
 
     // 30초 후 실제 종료 여부 확인하는 타이머 설정
-    const timer = setTimeout(async () => {
-      // 세션 복구 여부 확인
+    const handleSessionExpire = async () => {
       const sessionKey = `user:session:${userId}:rooms`;
       const stillDisconnected = !(await this.redisClient.exists(sessionKey));
 
       if (stillDisconnected) {
-        // 실제 종료로 간주하고 방에서 제거
-        await this.roomService.leaveAllRooms(userId);
+        await this.roomService.leaveAllRooms(this.server, userId);
         await this.roomService.clearUserSession(userId);
 
         const globalRoomId = GLOBAL_ROOM_ID;
@@ -191,9 +203,13 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.disconnectTimers.delete(userId);
+    };
+
+    const timer = setTimeout(() => {
+      void handleSessionExpire();
     }, USER_SESSION_EXPIRATION_TIME * 1000);
 
-    // 타이머를 Map에 저장 (로그아웃 시 취소하기 위해)
+    // 타이머 저장
     this.disconnectTimers.set(userId, timer);
   }
 
@@ -215,7 +231,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!globalRoomId) return;
 
       // 참여한 모든 방에서 제거 (참여자 수 감소)
-      await this.roomService.leaveAllRooms(userId);
+      await this.roomService.leaveAllRooms(this.server, userId);
 
       // disconnect 타이머 취소 (로그아웃 시 세션 복구 불필요)
       const existingTimer = this.disconnectTimers.get(userId);

@@ -2,7 +2,7 @@
 
 import GameCard, { EmptyGameCard } from './GameCard';
 import styles from './gameCardGrid.module.css';
-import { GameData } from '@/app/features/game/dtos/type';
+import { GameData } from '@/app/features/game/dtos/data';
 import { GameCardProps } from '@/app/features/game/components/type';
 import { CSSProperties } from 'react';
 
@@ -26,8 +26,8 @@ export default function GameCardGrid({
     title: game.title,
     description: game.description,
     type: game.type,
-    min_participants: game.minParticipants,
-    max_participants: game.maxParticipants,
+    minPlayers: game.minPlayers,
+    maxPlayers: game.maxPlayers,
     onSelect,
   }));
 

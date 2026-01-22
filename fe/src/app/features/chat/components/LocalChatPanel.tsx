@@ -1,21 +1,21 @@
 'use client';
 
-import * as TextButton from '@/app/components/shared/button/TextButton';
-import { Position } from '@/app/components/shared/floatingWidget/type';
-import Avatar from '@/app/components/shared/profile/Avatar';
-import { roomChatService } from '@/app/features/chat/services/RoomChatService';
-import { RoomConverter } from '@/app/features/room/dtos/Room';
-import { ParticipantData } from '@/app/features/room/dtos/type';
-import roomService from '@/app/features/room/services/RoomService';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
-import { AuthStore, authStore } from '@/app/features/user/stores/auth';
-import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
-import useNavigation from '@/app/hooks/useNavigation';
 import { useEffect, useState } from 'react';
-import { useRoomChat } from '../hooks/useRoomChat';
 import ChatPanel from './ChatPanel';
 import styles from './chat.module.css';
+import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
+import { roomStore, RoomStore } from '@/app/features/room/stores/room';
+import { roomChatService } from '@/app/features/chat/services/RoomChatService';
+import { useRoomChat } from '../hooks/useRoomChat';
+import { Position } from '@/app/components/shared/floatingWidget/type';
 import { PANEL_CONFIG } from './type';
+import * as TextButton from '@/app/components/shared/button/TextButton';
+import Avatar from '@/app/components/shared/profile/Avatar';
+import { AuthStore, authStore } from '@/app/features/user/stores/auth';
+import roomService from '@/app/features/room/services/RoomService';
+import { RoomConverter } from '@/app/features/room/dtos/converter';
+import useNavigation from '@/app/hooks/useNavigation';
+import { ParticipantData } from '@/app/features/room/dtos/data';
 
 export default function LocalChatPanel() {
   const myId = authStore((state: AuthStore) => state.userId);
@@ -54,9 +54,9 @@ export default function LocalChatPanel() {
 
   const handleMicChange = (state: boolean) => setMicState(state);
   const handleSpeakerChange = (state: boolean) => setSpeakerState(state);
-  const handleMessageSubmit = (message: string) => {
+  const handleMessageSubmit = async (message: string) => {
     if (!message.trim()) return;
-    roomChatService.sendMessage(message.trim());
+    await roomChatService.sendMessage(message.trim());
   };
 
   const handleGoRoomClick = () => {

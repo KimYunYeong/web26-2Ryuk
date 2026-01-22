@@ -7,6 +7,8 @@ import * as IconButton from '@/app/components/shared/icon/IconButton';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import * as Textfield from '@/app/components/shared/textfield/Textfield';
 import * as Slider from '@/app/components/shared/slider/Slider';
+import ProgressBar from '@/app/components/shared/progressBar/ProgressBar';
+import RemainingTimeBar from '@/app/components/shared/remainingTimeBar/RemainingTimeBar';
 import * as Chip from '@/app/components/shared/chip/Chip';
 import * as ChipButton from '@/app/components/shared/chip/ChipButton';
 import Toggle from '@/app/components/shared/toggle/Toggle';
@@ -692,6 +694,43 @@ export default function SharedComponents() {
         </div>
       </section>
 
+      <section id="progress-bar" className={styles.section}>
+        <h2 className={styles.sectionTitle}>ProgressBar</h2>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>Static Values</h3>
+          <div className={styles.iconRow}>
+            <div className={styles.circleItem}>
+              <Component fullWidth>
+                <ProgressBar value={0} />
+              </Component>
+              <span className={styles.iconLabel}>0%</span>
+            </div>
+            <div className={styles.circleItem}>
+              <Component fullWidth>
+                <ProgressBar value={0.35} />
+              </Component>
+              <span className={styles.iconLabel}>35%</span>
+            </div>
+            <div className={styles.circleItem}>
+              <Component fullWidth>
+                <ProgressBar value={0.75} />
+              </Component>
+              <span className={styles.iconLabel}>75%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="remaining-time-bar" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RemainingTimeBar</h2>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>10초 카운트다운</h3>
+          <Component fullWidth>
+            <RemainingTimeBar durationMs={10000} />
+          </Component>
+        </div>
+      </section>
+
       <section id="chip" className={styles.section}>
         <h2 className={styles.sectionTitle}>Chip</h2>
         <div className={styles.chipTable}>
@@ -812,73 +851,151 @@ export default function SharedComponents() {
 
       <section id="success-variants" className={styles.section}>
         <h2 className={styles.sectionTitle}>Success Variants</h2>
-        <div className={styles.iconRow}>
-          <Component>
-            <TextButton.SuccessPrimary text="Success Primary" size="medium" />
-          </Component>
-          <Component>
-            <TextButton.SuccessSecondary text="Success Secondary" size="medium" />
-          </Component>
-          <Component>
-            <Chip.SuccessPrimary label="Success Primary" size="medium" />
-          </Component>
-          <Component>
-            <Chip.SuccessSecondary label="Success Secondary" size="medium" />
-          </Component>
-          <Component>
-            <IconCircle.SuccessPrimary name="send" size="medium" />
-          </Component>
-          <Component>
-            <IconCircle.SuccessSecondary name="send" size="medium" />
-          </Component>
+        <div className={styles.chipTable}>
+          <div className={styles.chipTableHeader}>
+            <div className={styles.chipTableCell}></div>
+            <div className={styles.chipTableCell}>Success Primary</div>
+            <div className={styles.chipTableCell}>Success Secondary</div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>TextButton</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <TextButton.SuccessPrimary text="Success Primary" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <TextButton.SuccessSecondary text="Success Secondary" size="medium" />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>Chip</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <Chip.SuccessPrimary label="Success Primary" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <Chip.SuccessSecondary label="Success Secondary" size="medium" />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>IconCircle</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <IconCircle.SuccessPrimary name="send" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <IconCircle.SuccessSecondary name="send" size="medium" />
+              </Component>
+            </div>
+          </div>
         </div>
       </section>
 
       <section id="warning-variants" className={styles.section}>
         <h2 className={styles.sectionTitle}>Warning Variants</h2>
-        <div className={styles.iconRow}>
-          <Component>
-            <TextButton.WarningPrimary text="Warning Primary" size="medium" />
-          </Component>
-          <Component>
-            <TextButton.WarningSecondary text="Warning Secondary" size="medium" />
-          </Component>
-          <Component>
-            <Chip.WarningPrimary label="Warning Primary" size="medium" />
-          </Component>
-          <Component>
-            <Chip.WarningSecondary label="Warning Secondary" size="medium" />
-          </Component>
-          <Component>
-            <IconCircle.WarningPrimary name="send" size="medium" />
-          </Component>
-          <Component>
-            <IconCircle.WarningSecondary name="send" size="medium" />
-          </Component>
+        <div className={styles.chipTable}>
+          <div className={styles.chipTableHeader}>
+            <div className={styles.chipTableCell}></div>
+            <div className={styles.chipTableCell}>Warning Primary</div>
+            <div className={styles.chipTableCell}>Warning Secondary</div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>TextButton</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <TextButton.WarningPrimary text="Warning Primary" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <TextButton.WarningSecondary text="Warning Secondary" size="medium" />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>Chip</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <Chip.WarningPrimary label="Warning Primary" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <Chip.WarningSecondary label="Warning Secondary" size="medium" />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>IconCircle</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <IconCircle.WarningPrimary name="send" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <IconCircle.WarningSecondary name="send" size="medium" />
+              </Component>
+            </div>
+          </div>
         </div>
       </section>
 
       <section id="error-variants" className={styles.section}>
         <h2 className={styles.sectionTitle}>Error Variants</h2>
-        <div className={styles.iconRow}>
-          <Component>
-            <TextButton.ErrorPrimary text="Error Primary" size="medium" />
-          </Component>
-          <Component>
-            <TextButton.ErrorSecondary text="Error Secondary" size="medium" />
-          </Component>
-          <Component>
-            <Chip.ErrorPrimary label="Error Primary" size="medium" />
-          </Component>
-          <Component>
-            <Chip.ErrorSecondary label="Error Secondary" size="medium" />
-          </Component>
-          <Component>
-            <IconCircle.ErrorPrimary name="send" size="medium" />
-          </Component>
-          <Component>
-            <IconCircle.ErrorSecondary name="send" size="medium" />
-          </Component>
+        <div className={styles.chipTable}>
+          <div className={styles.chipTableHeader}>
+            <div className={styles.chipTableCell}></div>
+            <div className={styles.chipTableCell}>Error Primary</div>
+            <div className={styles.chipTableCell}>Error Secondary</div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>TextButton</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <TextButton.ErrorPrimary text="Error Primary" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <TextButton.ErrorSecondary text="Error Secondary" size="medium" />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>Chip</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <Chip.ErrorPrimary label="Error Primary" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <Chip.ErrorSecondary label="Error Secondary" size="medium" />
+              </Component>
+            </div>
+          </div>
+          <div className={styles.chipTableRow}>
+            <div className={styles.chipTableCell}>IconCircle</div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <IconCircle.ErrorPrimary name="send" size="medium" />
+              </Component>
+            </div>
+            <div className={styles.chipTableCell}>
+              <Component>
+                <IconCircle.ErrorSecondary name="send" size="medium" />
+              </Component>
+            </div>
+          </div>
         </div>
       </section>
 

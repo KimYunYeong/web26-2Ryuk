@@ -2,7 +2,7 @@
 
 import { AudioControlsProps } from './type';
 import styles from './audioControlButtons.module.css';
-import { OutlineIconButton } from '@/app/components/shared/icon/IconButton';
+import { IconButtonBase } from '@/app/components/shared/icon/IconButton';
 
 export default function AudioControlButtons({
   micOn, // 현재 마이크 상태 (true/false)
@@ -20,27 +20,27 @@ export default function AudioControlButtons({
 
   // 로직도 props인 micOn, speakerOn을 기준으로 판단합니다.
   const getMicThemeColor = () => {
-    if (!micOn) return speakerOn ? 'secondary' : 'error';
-    return 'default';
+    if (!micOn) return speakerOn ? 'secondary' : 'error-secondary';
+    return 'outline';
   };
 
   const getSpeakerThemeColor = () => {
-    if (!speakerOn) return 'error';
-    return 'default';
+    if (!speakerOn) return 'error-secondary';
+    return 'outline';
   };
 
   return (
     <div className={styles.audioControls}>
-      <OutlineIconButton
+      <IconButtonBase
         name={micOn ? 'mic' : 'micoff'}
         size="small"
-        themeColor={getMicThemeColor()}
+        variant={getMicThemeColor()}
         onClick={handleMicToggle}
       />
-      <OutlineIconButton
+      <IconButtonBase
         name={speakerOn ? 'volume' : 'mute'}
         size="small"
-        themeColor={getSpeakerThemeColor()}
+        variant={getSpeakerThemeColor()}
         onClick={handleSpeakerToggle}
       />
     </div>

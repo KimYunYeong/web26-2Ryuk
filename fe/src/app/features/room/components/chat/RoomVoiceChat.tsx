@@ -1,8 +1,8 @@
 'use client';
 
 import { SecondaryChip } from '@/app/components/shared/chip/Chip';
-import { ParticipantData } from '@/app/features/room/dtos/type';
 import { roomStore, RoomStore } from '@/app/features/room/stores/room';
+import { ParticipantData } from '@/app/features/room/dtos/data';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import { useVoiceChat } from '@/app/features/voice/hooks/useVoiceChat';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -44,7 +44,6 @@ export default function RoomVoiceChat() {
   const currentParticipants = roomData?.currentParticipants;
   const maxParticipants = roomData?.maxParticipants;
   const showChip = currentParticipants || maxParticipants;
-
   const { voiceUsers, isMyMicOn, toggleMic, toggleUserAudio, changeUserVolume } = useVoiceChat(
     roomId,
     isJoined,
