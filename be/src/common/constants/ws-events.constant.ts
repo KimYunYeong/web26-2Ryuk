@@ -32,6 +32,7 @@ export const WS_EVENTS_ROOM = {
   // 송신 이벤트
   PARTICIPANT_JOIN: 'room:participant:join',
   PARTICIPANT_LEAVE: 'room:participant:leave',
+  PARTICIPANT_DELETE: 'room:participant:delete',
 } as const;
 
 /**

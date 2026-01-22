@@ -18,8 +18,8 @@ export class GameParticipantDto {
   nickname: string;
   profile_image: string;
   is_ready: boolean;
-  score?: string;
-  rank?: string;
+  score?: number;
+  rank?: number;
 }
 
 // 게임 참가자 정보 (게임 플레이어)
@@ -43,78 +43,51 @@ export class GameInfoPayloadDto {
   title: string;
   description?: string;
   type: string;
-  min_players: string;
-  max_players: string;
-  duration_ms: number;
+  min_players: number;
+  max_players: number;
+  time: number;
 
   constructor(
     id: string,
     title: string,
     description: string,
     type: string,
-    min_players: string,
-    max_players: string,
-    duration_ms: number,
+    min_players: number,
+    max_players: number,
+    time: number,
   ) {
     this.id = id;
     this.title = title;
     this.description = description || '';
     this.type = type || '';
-    this.min_players = min_players || '';
-    this.max_players = max_players || '';
-    this.duration_ms = duration_ms || 0;
-  }
-}
-
-// 게임 선택 dto
-export class GameSelectPayloadDto {
-  id: string;
-  title: string;
-  description?: string;
-  type: string;
-  min_players: string;
-  max_players: string;
-
-  constructor(
-    id: string,
-    title: string,
-    description: string,
-    type: string,
-    min_players: string,
-    max_players: string,
-    duration_ms: number,
-  ) {
-    this.id = id;
-    this.title = title;
-    this.description = description || '';
-    this.type = type || '';
-    this.min_players = min_players || '';
-    this.max_players = max_players || '';
+    this.min_players = min_players || 0;
+    this.max_players = max_players || 0;
+    this.time = time || 0;
   }
 }
 
 // 게임 선택 브로드캐스트
 export class GameSelectBroadcastDto {
-  game: GameSelectPayloadDto;
+  game: GameInfoPayloadDto;
 }
 
 // 게임 참가 응답
 export class GameJoinAckResponseDto {
-  current_players: string;
-  max_players: string;
+  current_players: number;
+  max_players: number;
   host: GameHostDto;
   players: GamePlayerDto[];
-  game?: GameSelectPayloadDto;
+  game?: GameInfoPayloadDto;
 
   constructor(
     currentPlayers: number,
     maxPlayers: number,
     host: GameHostDto,
     players: GamePlayerDto[],
-    game?: GameSelectPayloadDto,
+    game?: GameInfoPayloadDto,
   ) {
-    this.current_players = currentPlayers.toString();
-    this.max_players = maxPlayers.toString();
+    this.current_players = currentPlayers;
+    this.max_players = maxPlayers;
     this.host = host;
     this.players = players;
     if (game) {
@@ -145,9 +118,9 @@ export class GameCloseBroadcastDto {
 
 // 게임 실시간 상태 브로드캐스트
 export class GameRealtimeBroadcastDto {
-  highest_score: string;
-  average_score: string;
-  ranks: string[];
+  highest_score: number;
+  average_score: number;
+  ranks: number[];
 }
 
 // 게임 종료 결과 브로드캐스트
@@ -155,7 +128,7 @@ export class GameResultItemDto {
   player_id: string;
   nickname: string;
   profile_image: string;
-  score: string;
+  score: number;
   rank: number;
 }
 

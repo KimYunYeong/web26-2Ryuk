@@ -22,7 +22,6 @@ import {
   GameRealtimeBroadcastDto,
   GameResultBroadcastDto,
   GameResultItemDto,
-  GameSelectPayloadDto,
 } from './dto/game-response.dto';
 import { WS_EVENTS_GAME } from '@src/common/constants/ws-events.constant';
 
@@ -135,7 +134,7 @@ export class GameService {
     }));
 
     // max_players는 선택된 게임의 최대 인원을 우선 사용, 없으면 방 최대 인원으로 대체
-    const maxPlayers = selectedGame?.max_players ? parseInt(selectedGame.max_players, 10) : roomInfo.max_participants;
+    const maxPlayers = selectedGame?.max_players ?? roomInfo.max_participants;
 
     const ackPayload = new GameJoinAckResponseDto(currentPlayers, maxPlayers, hostProfile, players, selectedGame);
 
@@ -196,28 +195,17 @@ export class GameService {
     }
 
     // 브로드캐스트 용 페이로드
-    const broadcastPayload: GameSelectPayloadDto = {
-      id: game.id,
-      title: game.title,
-      description: game.description || '',
-      type: game.type,
-      min_players: game.min_players?.toString() || '',
-      max_players: game.max_players?.toString() || '',
-    };
-
-    // Redis에 선택된 게임 정보 저장
-    const cachePayload = {
-      id: broadcastPayload.id,
-      title: broadcastPayload.title,
-      description: broadcastPayload.description || '',
-      type: broadcastPayload.type,
-      min_players: broadcastPayload.min_players,
-      max_players: broadcastPayload.max_players,
-      duration_ms: (game.time ?? 0) * 1000,
-    };
-    await this.redisClient.hSet(this.getGameKey(roomId), cachePayload);
-
-    const roomBroadcast: GameSelectBroadcastDto = { game: broadcastPayload };
+    const payload = new GameInfoPayloadDto(
+      game.id,
+      game.title,
+      game.description || '',
+      game.type,
+      game.min_players || 0,
+      game.max_players || 0,
+      (game.time ?? 0) * 1000,
+    );
+    await this.redisClient.hSet(this.getGameKey(roomId), { ...payload });
+    const roomBroadcast: GameSelectBroadcastDto = { game: payload };
     server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_SELECT, roomBroadcast);
 
     logMessage(this.logger, LOG.GAME.SELECT(roomId, userId, gameId));
@@ -237,8 +225,8 @@ export class GameService {
     // 선택된 게임 정보 조회
     const selectedGame = await this.getSelectedGame(roomId);
     if (selectedGame) {
-      const maxPlayers = parseInt(selectedGame.max_players, 10);
-      if (!isNaN(maxPlayers)) {
+      const maxPlayers = selectedGame.max_players;
+      if (maxPlayers) {
         // 현재 준비 완료한 참가자 수 조회 (본인 포함 전)
         const currentReadyPlayers = await this.getCurrentReadyPlayers(roomId);
 
@@ -358,8 +346,8 @@ export class GameService {
 
     const [currentReadyPlayers] = await Promise.all([this.getCurrentReadyPlayers(roomId)]);
 
-    const minParticipants = parseInt(selectedGame.min_players, 10);
-    if (!isNaN(minParticipants) && currentReadyPlayers < minParticipants) {
+    const minParticipants = selectedGame.min_players;
+    if (minParticipants && currentReadyPlayers < minParticipants) {
       throw new ForbiddenException('게임 최소 인원 조건을 충족하지 못했습니다.');
     }
 
@@ -391,8 +379,8 @@ export class GameService {
 
     logMessage(this.logger, LOG.GAME.START(roomId, userId, startTime));
 
-    // 게임 자동 종료 타이머 스케줄링 (start_time + duration 기준)
-    const durationMs = selectedGame.duration_ms;
+    // 게임 자동 종료 타이머 스케줄링 (start_time + time 기준)
+    const durationMs = selectedGame.time;
     if (durationMs > 0) {
       this.scheduleGameEnd(server, roomId, selectedGame.id, this.GAME_START_DELAY_MS + durationMs);
     }
@@ -490,7 +478,7 @@ export class GameService {
         player_id: userId,
         nickname: playerData.nickname || '',
         profile_image: playerData.profile_image || '',
-        score: score.toString(),
+        score: score,
         rank: currentRank,
       };
 
@@ -506,7 +494,7 @@ export class GameService {
     // game_record 테이블에 최고 점수 기준으로 upsert
     for (const item of results) {
       const userId = item.player_id;
-      const score = parseInt(item.score, 10);
+      const score = item.score;
 
       if (isNaN(score)) {
         continue;
@@ -626,8 +614,8 @@ export class GameService {
         nickname: playerData.nickname || '',
         profile_image: playerData.profile_image || '',
         is_ready: playerData.is_ready === '1',
-        score: playerData.score || '0',
-        rank: playerData.rank || '0',
+        score: parseInt(playerData.score, 10) || 0,
+        rank: parseInt(playerData.rank, 10) || 0,
       });
     }
 
@@ -648,9 +636,9 @@ export class GameService {
         gameData.title,
         gameData.description,
         gameData.type,
-        gameData.min_players,
-        gameData.max_players,
-        parseInt(gameData.duration_ms, 10),
+        parseInt(gameData.min_players, 10),
+        parseInt(gameData.max_players, 10),
+        parseInt(gameData.time, 10),
       );
 
       return gamePayload;
@@ -792,9 +780,9 @@ export class GameService {
 
       // 브로드캐스트
       const broadcast: GameRealtimeBroadcastDto = {
-        highest_score: highestScore.toString(),
-        average_score: averageScore,
-        ranks,
+        highest_score: highestScore,
+        average_score: parseFloat(averageScore),
+        ranks: ranks.map((_, index) => index + 1),
       };
 
       server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_REALTIME, broadcast);

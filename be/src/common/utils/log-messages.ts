@@ -321,7 +321,7 @@ export const LOG = {
     }),
     RESULT_BROADCAST: (
       roomId: string,
-      results: Array<{ player_id: string; score: string; rank: number }>,
+      results: Array<{ player_id: string; score: number; rank: number }>,
     ): LogMessage => ({
       message: `게임 결과 브로드캐스트: roomId=${roomId}, participants=${results.length}`,
       level: 'log',

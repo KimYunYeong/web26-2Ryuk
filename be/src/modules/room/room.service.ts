@@ -168,7 +168,7 @@ export class RoomService implements OnModuleInit {
     const isHost = await this.isHost(userId, roomId);
     if (isHost) {
       console.log('방장이 나가서 방 삭제 처리:', roomId);
-      await this.deleteRoom(userId, roomId);
+      await this.deleteRoom(userId, roomId, server);
       return;
     }
 
@@ -425,7 +425,7 @@ export class RoomService implements OnModuleInit {
   /**
    * 방 삭제 비즈니스 로직 (권한 검증 후 삭제)
    */
-  async deleteRoom(hostId: string, roomId: string): Promise<RoomDeleteResponseDto> {
+  async deleteRoom(hostId: string, roomId: string, server: Server): Promise<RoomDeleteResponseDto> {
     const roomKey = `room:${roomId}`;
     const tagKey = `room:${roomId}:tags`;
 
@@ -438,6 +438,20 @@ export class RoomService implements OnModuleInit {
 
     // 멤버 ID 목록 가져오기
     const memberIds = await this.getRoomMemberIds(roomId);
+
+    // 방 참가자가 남아있는 경우 삭제된다고 브로드캐스팅 해주기
+    if (memberIds.length > 0) {
+      // 방장 제외 참가자들에게 알림-> 방장은 이미 나가는 중
+      const otherMemberIds = memberIds.filter((id) => id !== hostUuid);
+      if (otherMemberIds.length > 0) {
+        server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_DELETE, {
+          room_id: roomId,
+        });
+
+        // 브로드캐스트가 전송되고 클라이언트가 처리할 시간 확보
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
 
     // 방 정보, 멤버 상세 정보, 태그 삭제
     const memberKeys = memberIds.map((uuid) => `room:${roomId}:members:${uuid}`);
