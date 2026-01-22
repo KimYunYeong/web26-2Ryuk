@@ -275,12 +275,55 @@ export const LOG = {
       message: `게임 참가 요청: roomId=${roomId}, userId=${userId}`,
       level: 'debug',
     }),
+    SELECT: (roomId: string, userId: string, gameId: string): LogMessage => ({
+      message: `게임 선택: roomId=${roomId}, userId=${userId}, gameId=${gameId}`,
+      level: 'log',
+    }),
+    READY: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 준비 완료: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    UNREADY: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 준비 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    START: (roomId: string, userId: string, startTime: string): LogMessage => ({
+      message: `게임 시작 카운트다운: roomId=${roomId}, userId=${userId}, startTime=${startTime}`,
+      level: 'log',
+    }),
     GAME_STATE_FETCH_ERROR: (roomId: string, error: string): LogMessage => ({
       message: `게임 상태 조회 실패: roomId=${roomId}, error=${error}`,
       level: 'error',
     }),
     LEAVE: (roomId: string, userId: string): LogMessage => ({
       message: `게임 참가 취소: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    CLOSE: (roomId: string, userId: string): LogMessage => ({
+      message: `게임 모집 닫기: roomId=${roomId}, userId=${userId}`,
+      level: 'log',
+    }),
+    REALTIME_INPUT: (roomId: string, userId: string, delta: string): LogMessage => ({
+      message: `게임 실시간 입력: roomId=${roomId}, userId=${userId}, delta=${delta}`,
+      level: 'debug',
+    }),
+    REALTIME_INPUT_ERROR: (roomId: string, userId: string, error: string): LogMessage => ({
+      message: `게임 실시간 입력 처리 실패: roomId=${roomId}, userId=${userId}, error=${error}`,
+      level: 'error',
+    }),
+    REALTIME_BROADCAST: (roomId: string, highestScore: number, averageScore: string, ranks: string[]): LogMessage => ({
+      message: `게임 실시간 상태 브로드캐스트: roomId=${roomId}, highest_score=${highestScore}, average_score=${averageScore}, ranks_count=${ranks.length}`,
+      level: 'debug',
+    }),
+    REALTIME_BROADCAST_STOPPED: (roomId: string): LogMessage => ({
+      message: `게임 실시간 브로드캐스트 중지: roomId=${roomId}`,
+      level: 'log',
+    }),
+    RESULT_BROADCAST: (
+      roomId: string,
+      results: Array<{ player_id: string; score: number; rank: number }>,
+    ): LogMessage => ({
+      message: `게임 결과 브로드캐스트: roomId=${roomId}, participants=${results.length}`,
       level: 'log',
     }),
   },

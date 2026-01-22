@@ -7,6 +7,7 @@ import {
   MessageCallback,
   ConnectionCallback,
   ParticipantsCallback,
+  RecentsCallback,
   WebSocketErrorDto,
   ParticipantsUpdatedDto,
   GlobalChatRecentsDto,
@@ -23,6 +24,7 @@ export class GlobalChatService implements ChatChannel {
   private messageCallbacks: Set<MessageCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
   private participantsCallbacks: Set<ParticipantsCallback> = new Set();
+  private recentsCallbacks: Set<RecentsCallback> = new Set();
   private isSubscribed = false;
   private messages: ChatReceiveData[] = [];
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
@@ -117,11 +119,11 @@ export class GlobalChatService implements ChatChannel {
   private handleGlobalChatRecents(dto: GlobalChatRecentsDto): void {
     this.messages = [];
 
-    dto.messages.forEach((msg) => {
-      const chatData = ChatConverter.toReceiveData(msg);
-      this.messages.push(chatData);
-      this.notifyMessage(chatData);
-    });
+    const chatMessages = dto.messages.map((msg) => ChatConverter.toReceiveData(msg));
+    this.messages = chatMessages;
+
+    // recents는 일괄 업데이트 콜백으로 전달 (개별 메시지 콜백 호출 X)
+    this.notifyRecents(chatMessages);
 
     if (dto.current_participants != null) this.notifyParticipants(dto.current_participants);
   }
@@ -165,6 +167,11 @@ export class GlobalChatService implements ChatChannel {
     return () => this.participantsCallbacks.delete(callback);
   }
 
+  onRecents(callback: RecentsCallback): () => void {
+    this.recentsCallbacks.add(callback);
+    return () => this.recentsCallbacks.delete(callback);
+  }
+
   isConnected(): boolean {
     return WebSocketService.isConnected();
   }
@@ -183,6 +190,10 @@ export class GlobalChatService implements ChatChannel {
 
   private notifyParticipants(count: number): void {
     this.participantsCallbacks.forEach((callback) => callback(count));
+  }
+
+  private notifyRecents(messages: ChatReceiveData[]): void {
+    this.recentsCallbacks.forEach((callback) => callback(messages));
   }
 }
 

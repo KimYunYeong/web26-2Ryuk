@@ -13,18 +13,16 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { RoomRequestDto, JoinRoomRequestDto, RoomJoinDto, RoomSearchQueryDto } from './dto/room.dto';
 import {
-  RoomRequestDto,
   RoomCreateResponseDto,
   RoomDeleteResponseDto,
-  JoinRoomRequestDto,
-  RoomJoinDto,
   RoomListResponseDto,
-  RoomSearchQueryDto,
   RoomReadResponseDto,
   RoomJoinInfoResponseDto,
-} from './dto/room.dto';
+} from './dto/room-response.dto';
 import { RoomService } from './room.service';
+import { RoomGateway } from './room.gateway';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
 import { AuthGuard } from '@src/modules/auth/auth.guard';
 
@@ -32,7 +30,10 @@ import { AuthGuard } from '@src/modules/auth/auth.guard';
 export class RoomController {
   private readonly logger = new Logger(RoomController.name);
 
-  constructor(private readonly roomService: RoomService) {}
+  constructor(
+    private readonly roomService: RoomService,
+    private readonly roomGateway: RoomGateway,
+  ) {}
 
   /**
    * 대화방 생성
@@ -70,8 +71,7 @@ export class RoomController {
   @ApiResponseMessage('대화방이 성공적으로 삭제되었습니다.')
   async deleteRoom(@Req() req, @Param('roomId') roomId: string): Promise<RoomDeleteResponseDto> {
     const userId = req.user.id;
-
-    return await this.roomService.deleteRoom(userId, roomId);
+    return await this.roomService.deleteRoom(userId, roomId, this.roomGateway.server);
   }
 
   /**

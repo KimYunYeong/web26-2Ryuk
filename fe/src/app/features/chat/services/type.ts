@@ -10,6 +10,7 @@ import { ChatReceiveData, ChatReceiveDto } from '@/app/features/chat/dtos/type';
 export type MessageCallback = (message: ChatReceiveData) => void;
 export type ConnectionCallback = (isConnected: boolean) => void;
 export type ParticipantsCallback = (count: number) => void;
+export type RecentsCallback = (messages: ChatReceiveData[]) => void;
 
 // WebSocket 에러 DTO
 export interface WebSocketErrorDto {
