@@ -1,3 +1,5 @@
+import { GamePlayerDto } from '@src/modules/game/dto/game-response.dto';
+
 export class ParticipantDto {
   user_id: string;
   nickname: string;
@@ -26,6 +28,7 @@ export class RoomReadResponseDto {
   is_private: boolean;
   is_game_recruiting: boolean;
   participants: ParticipantDto[];
+  players?: GamePlayerDto[];
   create_date: Date;
 }
 

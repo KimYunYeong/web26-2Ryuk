@@ -27,14 +27,17 @@ import Dialog from '@/app/components/shared/dialog/Dialog';
 import Paths from '@/app/shared/path';
 import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
-import { GameConverter } from '@/app/features/game/dtos/Game';
+import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
+import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
+import { GameConverter } from '@/app/features/game/dtos/converter';
 import gamesMock from '@/mocks/data/games.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
+import BeakerFillViewShowcase from '@/app/features/game/components/BeakerFillViewShowcase';
 
 export default function FeatureComponents() {
-  const sampleGames = gamesMock.map(GameConverter.toData);
+  const sampleGames = gamesMock.map(GameConverter.toGameData);
 
   return (
     <>
@@ -140,7 +143,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Both Active</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState={true} initialSpeakerState={true} />
+                <AudioControlButtons initialMicState initialSpeakerState />
               </Component>
             </div>
           </div>
@@ -148,7 +151,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Mic Muted</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState={false} initialSpeakerState={true} />
+                <AudioControlButtons initialMicState={false} initialSpeakerState />
               </Component>
             </div>
           </div>
@@ -388,9 +391,9 @@ export default function FeatureComponents() {
             <RoomInfo
               title="같이 수다 떨어요~"
               tags={['게임', '친목']}
-              isHost={true}
-              isMicAvailable={true}
-              isPrivate={true}
+              isHost
+              isMicAvailable
+              isPrivate
             />
           </Component>
         </div>
@@ -417,8 +420,8 @@ export default function FeatureComponents() {
                 title="비커 채우기"
                 description="제한 시간 동안 스페이스바를 빠르게 연타하여 비커를 채우세요!"
                 type="competition"
-                min_participants={1}
-                max_participants={10}
+                minPlayers={1}
+                maxPlayers={10}
               />
             </Component>
           </div>
@@ -430,18 +433,43 @@ export default function FeatureComponents() {
         </div>
       </section>
 
+      <section id="selected-game-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>SelectedGameCard</h2>
+        <ComponentRelations componentId="selected-game-card" />
+        <div className={styles.chatRow}>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Host (with change)</h3>
+            <Component fullWidth>
+              <SelectedGameCard game={sampleGames[0]} isHost />
+            </Component>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Participant</h3>
+            <Component fullWidth>
+              <SelectedGameCard game={sampleGames[0]} />
+            </Component>
+          </div>
+        </div>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>Empty</h3>
+          <Component fullWidth>
+            <SelectedGameCard />
+          </Component>
+        </div>
+      </section>
+
       <section id="my-ready-status-card" className={styles.section}>
         <h2 className={styles.sectionTitle}>MyReadyStatusCard</h2>
         <ComponentRelations componentId="my-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <MyReadyStatusCard nickname="강하늘" isHost isReady={false} />
+            <MyReadyStatusCard userId="1" nickname="강하늘" isHost isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+            <MyReadyStatusCard userId="2" nickname="김지영" isHost={false} isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard nickname="박철수" isHost={false} isReady />
+            <MyReadyStatusCard userId="3" nickname="박철수" isHost={false} isReady />
           </Component>
         </div>
       </section>
@@ -451,13 +479,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="other-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <OtherReadyStatusCard nickname="강하늘" isHost isReady />
+            <OtherReadyStatusCard userId="1" nickname="강하늘" isHost isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard nickname="김영희" isHost={false} isReady />
+            <OtherReadyStatusCard userId="2" nickname="김영희" isHost={false} isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard nickname="김지영" isHost={false} isReady={false} />
+            <OtherReadyStatusCard userId="3" nickname="김지영" isHost={false} isReady={false} />
           </Component>
         </div>
       </section>
@@ -468,10 +496,10 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <OtherReadyStatusCardGrid
-              participants={[
-                { nickname: '강하늘', isHost: true, isReady: true },
-                { nickname: '김영희', isHost: false, isReady: true },
-                { nickname: '김지영', isHost: false, isReady: false },
+              players={[
+                { userId: '1', nickname: '강하늘', isHost: true, isReady: true },
+                { userId: '2', nickname: '김영희', isHost: false, isReady: true },
+                { userId: '3', nickname: '김지영', isHost: false, isReady: false },
               ]}
             />
           </Component>
@@ -484,6 +512,40 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <GameCardGrid games={sampleGames} viewRows={2} viewColumns={4} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="beaker-fill-view" className={styles.section}>
+        <h2 className={styles.sectionTitle}>BeakerFillView</h2>
+        <ComponentRelations componentId="beaker-fill-view" />
+        <div className={styles.showcaseBlock}>
+          <BeakerFillViewShowcase />
+        </div>
+      </section>
+
+      <section id="game-ready-modal" className={styles.section}>
+        <h2 className={styles.sectionTitle}>GameReadyModalContent</h2>
+        <ComponentRelations componentId="game-ready-modal" />
+        <div className={styles.showcaseBlock}>
+          <Component>
+            <TextButton.Primary
+              modalId="game-ready-modal"
+              text="게임 준비 모달 열기"
+              size="medium"
+            />
+            <Modal id="game-ready-modal">
+              <GameReadyModalContent
+                myStatus={{ userId: '1', nickname: '강하늘', isHost: true, isReady: false }}
+                players={[
+                  { userId: '1', nickname: '박철수', isHost: false, isReady: true },
+                  { userId: '2', nickname: '김영희', isHost: false, isReady: true },
+                  { userId: '3', nickname: '김지영', isHost: false, isReady: false },
+                ]}
+                selectedGame={sampleGames[0]}
+                maxPlayers={4}
+              />
+            </Modal>
           </Component>
         </div>
       </section>

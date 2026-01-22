@@ -1,9 +1,9 @@
-import { Controller, Post, Get, Body, Headers, UsePipes, ValidationPipe } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { MockAuthService } from './mock-auth.service';
-import { MockLoginDto, MockUserResponseDto } from './dto/mock-login.dto';
-import { GetMeResponseDto } from './dto/auth-response.dto';
+import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
 import { toUuid } from '@src/common/utils/user-id';
+import { AuthService } from './auth.service';
+import { GetMeResponseDto } from './dto/auth-response.dto';
+import { MockLoginDto, MockUserResponseDto } from './dto/mock-login.dto';
+import { MockAuthService } from './mock-auth.service';
 
 @Controller('auth')
 export class AuthController {

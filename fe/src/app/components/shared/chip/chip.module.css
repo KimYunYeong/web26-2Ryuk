@@ -121,7 +121,9 @@
 
 /* ChipButton */
 .chipButton {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 52px;
   padding: 0;
   border: none;
   background: transparent;

@@ -2,18 +2,18 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { RoomData, ParticipantData } from '@/app/features/room/dtos/type';
+import { RoomData, ParticipantData } from '@/app/features/room/dtos/data';
 
 interface RoomState {
   roomId: string | null;
   isJoined: boolean;
-  roomData: RoomData<ParticipantData> | null;
+  roomData: RoomData | null;
 }
 
 interface RoomActions {
   setRoom: (roomId: string | null) => void;
-  setRoomData: (roomData: RoomData<ParticipantData> | null) => void;
-  updateRoomData: (updates: Partial<RoomData<ParticipantData>>) => void;
+  setRoomData: (roomData: RoomData | null) => void;
+  updateRoomData: (updates: Partial<RoomData>) => void;
   addParticipant: (participant: ParticipantData) => void;
   removeParticipant: (userId: string) => void;
   setJoined: (isJoined: boolean) => void;
@@ -35,21 +35,27 @@ export const roomStore = create<RoomStore>()(
           return { roomId, isJoined: false, roomData };
         }),
 
-      setRoomData: (roomData: RoomData<ParticipantData> | null) => {
+      setRoomData: (roomData: RoomData | null) => {
         const roomId = roomData?.id || null;
         set({ roomData, roomId });
       },
 
-      updateRoomData: (updates: Partial<RoomData<ParticipantData>>) =>
+      updateRoomData: (updates: Partial<RoomData>) =>
         set((state) => {
           const next: Partial<RoomState> = {};
           if (state.roomData) next.roomData = { ...state.roomData, ...updates };
           else if (updates.currentParticipants != null && state.roomId) {
             next.roomData = {
               id: state.roomId,
+              title: updates.title ?? '',
+              tags: updates.tags ?? [],
+              hostId: updates.hostId ?? '',
+              maxParticipants: updates.maxParticipants ?? 0,
               currentParticipants: updates.currentParticipants,
               participants: [],
               createDate: updates.createDate ?? new Date(),
+              isMicAvailable: updates.isMicAvailable ?? false,
+              isPrivate: updates.isPrivate ?? false,
             };
           }
           return next;

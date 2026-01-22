@@ -34,6 +34,13 @@ export const componentRelations: ComponentRelation[] = [
   },
   { id: 'stepper', title: 'Stepper', category: 'shared' },
   { id: 'toggle', title: 'Toggle', category: 'shared' },
+  { id: 'progress-bar', title: 'ProgressBar', category: 'shared' },
+  {
+    id: 'remaining-time-bar',
+    title: 'RemainingTimeBar',
+    category: 'shared',
+    children: ['progress-bar'],
+  },
   {
     id: 'tag-selector',
     title: 'TagSelector',
@@ -183,11 +190,13 @@ export const componentRelations: ComponentRelation[] = [
     category: 'feature',
     children: ['game-card'],
   },
+  { id: 'beaker-fill-view', title: 'BeakerFillView', category: 'feature' },
 
   // Sprite Components
   { id: 'logo-image', title: 'LogoImage', category: 'sprite' },
   { id: 'logo', title: 'Logo', category: 'sprite', children: ['logo-image'] },
   { id: 'sprite-animation', title: 'SpriteAnimation', category: 'sprite' },
+  { id: 'water-drop', title: 'WaterDrop', category: 'sprite' },
 ];
 
 export function getComponentRelation(id: string): ComponentRelation | undefined {
@@ -234,6 +243,8 @@ export const sharedSections = [
   { id: 'message-form', title: 'MessageForm' },
   { id: 'toggle', title: 'Toggle' },
   { id: 'slider', title: 'Slider' },
+  { id: 'progress-bar', title: 'ProgressBar' },
+  { id: 'remaining-time-bar', title: 'RemainingTimeBar' },
   { id: 'chip', title: 'Chip' },
   { id: 'toggle-chip', title: 'ToggleChip' },
   { id: 'status-chip', title: 'StatusChip' },
@@ -275,10 +286,12 @@ export const featureSections = [
   { id: 'realtime-rooms', title: 'RealtimeRoomsSection' },
   { id: 'game-card', title: 'GameCard' },
   { id: 'game-card-grid', title: 'GameCardGrid' },
+  { id: 'beaker-fill-view', title: 'BeakerFillView' },
 ];
 
 export const spriteSections = [
   { id: 'logo-image', title: 'LogoImage' },
   { id: 'logo', title: 'Logo' },
   { id: 'sprite-animation', title: 'SpriteAnimation' },
+  { id: 'water-drop', title: 'WaterDrop' },
 ];

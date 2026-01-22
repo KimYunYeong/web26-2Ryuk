@@ -53,7 +53,7 @@ export default function RoomInfo({
           </div>
         )}
       </div>
-      {isHost && <GhostIconButton name="pencil" size="medium" onClick={onEditClick} />}
+      <div>{isHost && <GhostIconButton name="pencil" size="medium" onClick={onEditClick} />}</div>
     </div>
   );
 }

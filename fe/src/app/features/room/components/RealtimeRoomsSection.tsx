@@ -5,8 +5,8 @@ import RoomCard from './card/RoomCard';
 import * as IconCircle from '@/app/components/shared/icon/IconCircle';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
-import { ParticipantData, RoomData, RoomEditData } from '@/app/features/room/dtos/type';
-import { RoomConverter } from '@/app/features/room/dtos/Room';
+import { RoomData, RoomEditData } from '@/app/features/room/dtos/data';
+import { RoomConverter } from '@/app/features/room/dtos/converter';
 import useResponsive from '@/app/hooks/useResponsive';
 import CSSUtil from '@/utils/css';
 import Modal from '@/app/components/shared/modal/Modal';
@@ -19,13 +19,12 @@ import { useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { loadingStore } from '@/app/features/loading/stores/loading';
-import { RoomCardProps } from '@/app/features/room/components/type';
 
 export default function RealtimeRoomsSection() {
   const { isDesktop } = useResponsive();
   const { goToRoom } = useNavigation();
   const { closeModal } = useModal();
-  const [rooms, setRooms] = useState<RoomData<ParticipantData>[]>([]);
+  const [rooms, setRooms] = useState<RoomData[]>([]);
   const { setRoom, setRoomData } = roomStore();
   const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
   const roomId = roomStore((state: RoomStore) => state.roomId);

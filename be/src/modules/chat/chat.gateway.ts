@@ -1,6 +1,6 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, Inject, UsePipes, ValidationPipe, BadRequestException, UseFilters } from '@nestjs/common';
+import { Logger, Inject, UsePipes, ValidationPipe, UseFilters } from '@nestjs/common';
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { ChatService } from './chat.service';
@@ -9,10 +9,9 @@ import { AuthService } from '@src/modules/auth/auth.service';
 import { GlobalChatSendDto, RoomChatSendDto } from './dto/chat-message.dto';
 import {
   GlobalChatRecentMessageDto,
-  GlobalChatRecentsResponseDto,
-  GlobalChatParticipantsUpdatedResponseDto,
   GlobalChatMessageResponseDto,
   LocalChatMessageResponseDto,
+  GlobalChatJoinAckResponseDto,
 } from './dto/chat-response.dto';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
@@ -71,11 +70,9 @@ export class ChatGateway {
         timestamp: msg.create_date,
       }));
 
-      const recentsResponse = new GlobalChatRecentsResponseDto(messages, currentParticipants);
-      client.emit(WS_EVENTS_CHAT.GLOBAL_RECENTS, recentsResponse);
-
-      const participantsResponse = new GlobalChatParticipantsUpdatedResponseDto(globalRoomId, currentParticipants);
-      client.emit(WS_EVENTS_CHAT.GLOBAL_PARTICIPANTS_UPDATED, participantsResponse);
+      // chat:global:join ACK 응답 (명세 기준)
+      const joinAck = new GlobalChatJoinAckResponseDto(globalRoomId, currentParticipants, messages);
+      return joinAck.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.GLOBAL_CHAT_HANDLE_ERROR(errorMessage));
@@ -97,7 +94,7 @@ export class ChatGateway {
       }
 
       // 사용자가 참여 중인 글로벌 방 찾기
-      const globalRoomId = await this.roomService.getUserGlobalRoom(userId);
+      const globalRoomId = await this.roomService.getUserGlobalRoom();
       if (!globalRoomId) {
         logMessage(this.logger, LOG.CHAT.NOT_MEMBER_SEND(userId, 'global'));
         client.emit(WS_EVENTS_ERROR.ERROR, createWsError('NOT_FOUND', '글로벌 채팅방에 참여하지 않았습니다.'));

@@ -1,52 +1,46 @@
 'use client';
 
-import { useState } from 'react';
 import { AudioControlsProps } from './type';
 import styles from './audioControlButtons.module.css';
-import { OutlineIconButton } from '@/app/components/shared/icon/IconButton';
+import { IconButtonBase } from '@/app/components/shared/icon/IconButton';
 
 export default function AudioControlButtons({
-  initialMicState = true,
-  initialSpeakerState = true,
-  onMicChange,
+  micOn, // 현재 마이크 상태 (true/false)
+  speakerOn, // 현재 스피커 상태
+  onMicChange, // 상태 변경 핸들러
   onSpeakerChange,
 }: AudioControlsProps) {
-  const [micState, setMicState] = useState(initialMicState);
-  const [speakerState, setSpeakerState] = useState(initialSpeakerState);
-
   const handleMicToggle = () => {
-    setMicState((prev) => !prev);
-    onMicChange?.(micState);
+    onMicChange?.(!micOn);
   };
 
   const handleSpeakerToggle = () => {
-    if (micState) setMicState(false);
-    setSpeakerState((prev) => !prev);
-    onSpeakerChange?.(speakerState);
+    onSpeakerChange?.(!speakerOn);
   };
 
+  // 로직도 props인 micOn, speakerOn을 기준으로 판단합니다.
   const getMicThemeColor = () => {
-    if (!micState) return speakerState ? 'secondary' : 'error';
-    return 'default';
+    if (!micOn) return speakerOn ? 'secondary' : 'error-secondary';
+    return 'outline';
   };
 
   const getSpeakerThemeColor = () => {
-    if (!speakerState) return 'error';
-    return 'default';
+    if (!speakerOn) return 'error-secondary';
+    return 'outline';
   };
 
   return (
     <div className={styles.audioControls}>
-      <OutlineIconButton
-        name={micState ? 'mic' : 'micoff'}
+      <IconButtonBase
+        name={micOn ? 'mic' : 'micoff'}
         size="small"
-        themeColor={getMicThemeColor()}
+        variant={getMicThemeColor()}
         onClick={handleMicToggle}
       />
-      <OutlineIconButton
-        name={speakerState ? 'volume' : 'mute'}
+      <IconButtonBase
+        name={speakerOn ? 'volume' : 'mute'}
         size="small"
-        themeColor={getSpeakerThemeColor()}
+        variant={getSpeakerThemeColor()}
         onClick={handleSpeakerToggle}
       />
     </div>

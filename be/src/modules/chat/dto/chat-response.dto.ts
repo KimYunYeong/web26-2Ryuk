@@ -71,7 +71,7 @@ export class GlobalChatRecentMessageDto {
   sender: {
     role: string;
     nickname: string;
-    profile_image: string;
+    profile_image?: string;
     is_me: boolean;
   };
   timestamp: string;
@@ -84,6 +84,23 @@ export class GlobalChatRecentsResponseDto {
   constructor(messages: GlobalChatRecentMessageDto[], currentParticipants: number) {
     this.messages = messages;
     this.current_participants = currentParticipants;
+  }
+}
+
+// 글로벌 채팅 입장 ACK 응답 DTO (chat:global:join)
+export class GlobalChatJoinAckResponseDto {
+  data: {
+    room_id: string;
+    current_participants: string;
+    recents: GlobalChatRecentMessageDto[];
+  };
+
+  constructor(roomId: string, currentParticipants: number, recents: GlobalChatRecentMessageDto[]) {
+    this.data = {
+      room_id: roomId,
+      current_participants: String(currentParticipants),
+      recents,
+    };
   }
 }
 

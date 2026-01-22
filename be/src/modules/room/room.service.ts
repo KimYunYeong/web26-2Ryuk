@@ -48,8 +48,8 @@ export class RoomService implements OnModuleInit {
     @Inject(forwardRef(() => GameService)) private readonly gameService: GameService,
   ) {}
 
-  async onModuleInit() {
-    await this.initializeGlobalRoom();
+  onModuleInit() {
+    void this.initializeGlobalRoom();
     logMessage(this.logger, LOG.ROOM.INITIALIZED);
   }
 
@@ -154,7 +154,7 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자 방 제거 처리
    */
-  async leaveRoom(userId: string, roomId: string): Promise<void> {
+  async leaveRoom(server: Server, userId: string, roomId: string): Promise<void> {
     const uuid = toUuid(userId);
     // 방 멤버 목록에서 제거 (Hash), 사용자의 참여 방 목록에서 제거 (Set)
     await this.redisClient.del(`room:${roomId}:members:${uuid}`);
@@ -162,11 +162,18 @@ export class RoomService implements OnModuleInit {
     await this.redisClient.sRem(`user:${uuid}:rooms`, roomId);
 
     // 게임 참가자 목록에서도 제거 (게임 중일 경우)
-    await this.gameService.leaveGame(roomId, userId);
+    await this.gameService.leaveGame(server, roomId, userId);
 
     // 참여자 수 감소
     await this.updateCurrentParticipants(roomId);
     logMessage(this.logger, LOG.ROOM.USER_LEFT(userId, roomId));
+
+    // 만약 방장이면 방 삭제 처리
+    const isHost = await this.isHost(userId, roomId);
+    if (isHost) {
+      await this.deleteRoom(userId, roomId, server);
+      return;
+    }
 
     // 빈 Local 방 삭제
     if ((await this.getRoomType(roomId)) === ROOM_TYPE.GLOBAL) return;
@@ -213,7 +220,7 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자가 참여 중인 GLOBAL 타입 방 조회
    */
-  async getUserGlobalRoom(_userId: string): Promise<string | null> {
+  async getUserGlobalRoom(): Promise<string | null> {
     return GLOBAL_ROOM_ID;
 
     // TODO: 추후 글로벌 방이 여러 개가 될 경우 구현 필요
@@ -315,11 +322,11 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자 연결 해제 시 모든 방에서 제거
    */
-  async leaveAllRooms(userId: string): Promise<void> {
+  async leaveAllRooms(server: Server, userId: string): Promise<void> {
     const uuid = toUuid(userId);
     const rooms = await this.redisClient.sMembers(`user:${uuid}:rooms`);
     for (const roomId of rooms) {
-      await this.leaveRoom(userId, roomId);
+      await this.leaveRoom(server, userId, roomId);
     }
   }
 
@@ -437,7 +444,7 @@ export class RoomService implements OnModuleInit {
   /**
    * 방 삭제 비즈니스 로직 (권한 검증 후 삭제)
    */
-  async deleteRoom(hostId: string, roomId: string): Promise<RoomDeleteResponseDto> {
+  async deleteRoom(hostId: string, roomId: string, server: Server): Promise<RoomDeleteResponseDto> {
     const roomKey = `room:${roomId}`;
     const tagKey = `room:${roomId}:tags`;
 
@@ -451,6 +458,20 @@ export class RoomService implements OnModuleInit {
     // 멤버 ID 목록 가져오기
     const memberIds = await this.getRoomMemberIds(roomId);
 
+    // 방 참가자가 남아있는 경우 삭제된다고 브로드캐스팅 해주기
+    if (memberIds.length > 0) {
+      // 방장 제외 참가자들에게 알림-> 방장은 이미 나가는 중
+      const otherMemberIds = memberIds.filter((id) => id !== hostUuid);
+      if (otherMemberIds.length > 0) {
+        server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_DELETE, {
+          room_id: roomId,
+        });
+
+        // 브로드캐스트가 전송되고 클라이언트가 처리할 시간 확보
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
     // 방 정보, 멤버 상세 정보, 태그 삭제
     const memberKeys = memberIds.map((uuid) => `room:${roomId}:members:${uuid}`);
     await Promise.all([
@@ -460,6 +481,20 @@ export class RoomService implements OnModuleInit {
       this.redisClient.del(roomKey),
       this.redisClient.del(tagKey),
     ]);
+
+    // room에 연관된 기타 키들 (game, recents) 정리
+    try {
+      const relatedKeys = await this.redisClient.keys(`room:${roomId}:*`);
+      if (relatedKeys.length > 0) {
+        await Promise.all(relatedKeys.map((key) => this.redisClient.del(key)));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.ROOM_DELETE_ERROR(roomId, errorMessage));
+    } finally {
+      // 게임 실시간 브로드캐스트 타이머 정리
+      this.gameService.stopRealtimeBroadcast(roomId);
+    }
 
     logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId, hostUuid));
 
@@ -485,6 +520,20 @@ export class RoomService implements OnModuleInit {
       this.redisClient.del(roomKey),
       this.redisClient.del(tagKey),
     ]);
+
+    // room에 연관된 기타 키들 (game, recents) 정리
+    try {
+      const relatedKeys = await this.redisClient.keys(`room:${roomId}:*`);
+      if (relatedKeys.length > 0) {
+        await Promise.all(relatedKeys.map((key) => this.redisClient.del(key)));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logMessage(this.logger, LOG.ROOM.ROOM_DELETE_FORCE_ERROR(roomId, errorMessage));
+    } finally {
+      // 게임 실시간 브로드캐스트 타이머 정리
+      this.gameService.stopRealtimeBroadcast(roomId);
+    }
 
     logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId, 'FORCED'));
   }
@@ -675,22 +724,32 @@ export class RoomService implements OnModuleInit {
 
     const roomData = await this.redisClient.hGetAll(`room:${roomId}`);
     const tags = await this.redisClient.sMembers(`room:${roomId}:tags`);
+    const isRecruiting = await this.redisClient.hGet(`room:${roomId}:game`, 'is_recruiting');
 
     // 멤버 정보 조회 (id, 닉네임, 프로필 이미지) - 제한 없이 모든 참여자 조회
     const participants = await this.getRoomMembers(roomId);
+    const players = await this.gameService.getGameParticipants(roomId);
+    const hostId = roomData.host_id || '';
 
     return {
       id: roomId,
-      title: roomData.title ?? '',
-      tags: tags ?? [],
-      host_id: roomData.host_id ?? '',
-      current_participants: parseInt(roomData.current_participants ?? '0', 10),
-      max_participants: parseInt(roomData.max_participants ?? '0', 10),
+      title: roomData.title || '',
+      tags: tags || [],
+      host_id: hostId,
+      current_participants: parseInt(roomData.current_participants || '0', 10),
+      max_participants: parseInt(roomData.max_participants || '0', 10),
       is_mic_available: roomData.is_mic_available === '1',
       is_private: roomData.is_private === '1',
-      is_game_recruiting: roomData.isGameRecruiting === '1',
+      is_game_recruiting: isRecruiting === '1',
       participants,
-      create_date: new Date(roomData.create_date ?? new Date().toISOString()),
+      players: players.map((player) => ({
+        user_id: player.user_id,
+        nickname: player.nickname,
+        profile_image: player.profile_image,
+        is_host: player.user_id === hostId,
+        is_ready: player.is_ready,
+      })),
+      create_date: new Date(roomData.create_date || new Date().toISOString()),
     };
   }
 
