@@ -145,13 +145,13 @@ export default function SpriteComponents() {
           <div className={styles.iconRow}>
             <div className={styles.iconItem}>
               <Component>
-                <WaterDrop width={48} height={64} style={{ color: 'var(--primary-6)' }} />
+                <WaterDrop type="me" />
               </Component>
               <span className={styles.iconLabel}>Primary</span>
             </div>
             <div className={styles.iconItem}>
               <Component>
-                <WaterDrop width={48} height={64} style={{ color: 'var(--secondary)' }} />
+                <WaterDrop type="other" />
               </Component>
               <span className={styles.iconLabel}>Secondary</span>
             </div>
