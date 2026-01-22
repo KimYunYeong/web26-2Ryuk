@@ -6,7 +6,6 @@ import { modalStore } from '@/app/components/shared/modal/modal.store';
 import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
 import { GamePlayerData, GameJoinAckData } from '@/app/features/game/dtos/data';
-import { GameConverter } from '@/app/features/game/dtos/converter';
 import { gameService } from '@/app/features/game/services/GameService';
 
 export function useGame(roomId: string, isHost: boolean) {
@@ -44,7 +43,7 @@ export function useGame(roomId: string, isHost: boolean) {
       roomData.players
         ?.filter((p: GamePlayerData) => p.userId !== userId)
         .map((p: GamePlayerData) => ({
-          playerId: p.userId,
+          userId: p.userId,
           nickname: p.nickname,
           profileImage: p.profileImage ?? '',
           isHost: p.isHost,
@@ -135,7 +134,7 @@ export function useGame(roomId: string, isHost: boolean) {
       showSuccessToast('게임 모집에 참여했습니다.');
       modalStore.getState().openModal('game-ready');
       setIsReadyModalOpen(true);
-    } catch (error) {
+    } catch {
       showErrorToast('게임 요청에 실패했습니다.');
     }
   }, [roomId, isHost, isGameRecruiting, showErrorToast, showSuccessToast, applyJoinAck]);
@@ -161,7 +160,7 @@ export function useGame(roomId: string, isHost: boolean) {
       showSuccessToast('게임에서 퇴장했습니다.');
       setGamePlayers((prev) => prev.filter((p) => p.userId !== userId));
       closeReadyModal();
-    } catch (error) {
+    } catch {
       showErrorToast('게임 나가기에 실패했습니다.');
     }
   }, [roomId, userId, closeReadyModal, showErrorToast]);
