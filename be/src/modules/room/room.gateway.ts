@@ -1,6 +1,6 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, ValidationPipe, BadRequestException, UsePipes, UseFilters, forwardRef, Inject } from '@nestjs/common';
+import { Logger, ValidationPipe, UsePipes, UseFilters, forwardRef, Inject } from '@nestjs/common';
 import { WsExceptionFilter } from '@src/common/filters/ws-exception.filter';
 import { WsJsonParsePipe } from '@src/common/pipes/ws-json-parse.pipe';
 import { RoomService } from './room.service';
@@ -90,7 +90,7 @@ export class RoomGateway {
         logMessage(this.logger, LOG.ROOM.ALREADY_IN(userId, dto.room_id));
 
         // Redis에는 참여 중이지만 Socket.io room에 참여하지 않았을 수 있으므로 재참여만
-        client.join(dto.room_id);
+        void client.join(dto.room_id);
         const currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
         const recents = await this.chatService.getRoomChatRecents(dto.room_id, userId);
         return { room_id: dto.room_id, current_participants: currentParticipants, recents };
@@ -118,7 +118,7 @@ export class RoomGateway {
       currentParticipants = await this.roomService.getCurrentParticipants(dto.room_id);
 
       // Socket.io room에 참여
-      client.join(dto.room_id);
+      void client.join(dto.room_id);
 
       // 브로드캐스트: 사용자 정보 및 현재 참여자 수 조회
       // Service를 통해 MySQL에서 사용자 정보 조회
@@ -216,10 +216,10 @@ export class RoomGateway {
    */
   private async leaveRoomProcess(client: Socket, userId: string, roomId: string) {
     // Redis에서 제거
-    await this.roomService.leaveRoom(userId, roomId);
+    await this.roomService.leaveRoom(this.server, userId, roomId);
 
     // 소켓 room 탈퇴
-    client.leave(roomId);
+    void client.leave(roomId);
 
     // 퇴장 후 참여자 수 조회
     const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
