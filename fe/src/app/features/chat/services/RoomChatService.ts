@@ -45,7 +45,7 @@ export class RoomChatService {
     if (this.isSubscribed && !isMyRoom) await this.unsubscribe();
 
     // 동일 대화방 소속 중
-    if (this.isSubscribed && isMyRoom && isConnected) return this.registerEventHandlers();
+    if (this.isSubscribed && isMyRoom && isConnected) return;
 
     try {
       // GlobalChatService를 통해 연결 보장
@@ -150,7 +150,7 @@ export class RoomChatService {
     WebSocketService.on(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
 
     // room:leave ACK 핸들러 (방 퇴장 성공)
-    const leaveAckHandler = (data: RoomLeaveAckDto) => {
+    const leaveAckHandler = (_data: RoomLeaveAckDto) => {
       // ACK는 특별한 처리가 필요 없을 수 있음
     };
     this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
