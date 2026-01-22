@@ -32,7 +32,7 @@ export class GameGateway {
   constructor(private readonly gameService: GameService) {}
 
   /**
-   * 게임 플레이어 모집
+   * 플레이어 모집
    */
   @SubscribeMessage(WS_EVENTS_GAME.RECRUIT)
   async handleGameRecruit(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
@@ -79,10 +79,7 @@ export class GameGateway {
         return;
       }
 
-      const payload = await this.gameService.joinGame(this.server, dto.room_id, userId);
-
-      // 요청한 클라이언트에게 응답 전송
-      return payload;
+      return await this.gameService.joinGame(this.server, dto.room_id, userId);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 참가 중 문제가 발생했습니다.');
       try {
@@ -173,7 +170,7 @@ export class GameGateway {
   }
 
   /**
-   * 게임 시작 (카운트다운)
+   * 게임 시작
    */
   @SubscribeMessage(WS_EVENTS_GAME.START)
   async handleGameStart(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
@@ -199,7 +196,7 @@ export class GameGateway {
   }
 
   /**
-   * 게임 모집 닫기 (방장)
+   * 게임 닫기 (방장)
    */
   @SubscribeMessage(WS_EVENTS_GAME.CLOSE)
   async handleGameClose(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRoomIdDto) {
@@ -232,23 +229,13 @@ export class GameGateway {
     try {
       const userId = client.data.userId;
       const isAuthenticated = client.data.authenticated;
-
       if (!isAuthenticated || !userId) {
         client.emit(WS_EVENTS_ERROR.ERROR, createWsError('UNAUTHORIZED', '인증이 필요합니다.'));
         return;
       }
 
-      // 게임 참가 취소 처리
-      await this.gameService.leaveGame(dto.room_id, userId);
-
-      // 남은 참여자 수 계산
-      const currentPlayers = await this.gameService.getCurrentPlayers(dto.room_id);
-
-      // 브로드캐스트
-      this.server.to(dto.room_id).emit(WS_EVENTS_GAME.PLAYER_LEAVE, {
-        player_id: userId,
-        current_players: currentPlayers,
-      });
+      // 게임 참가 취소 처리 및 브로드캐스트
+      await this.gameService.leaveGame(this.server, dto.room_id, userId);
     } catch (error) {
       const errorResponse = createWsErrorResponse(error, '게임 나가기 중 문제가 발생했습니다.');
       try {
@@ -262,8 +249,6 @@ export class GameGateway {
 
   /**
    * 게임 실시간 입력 처리
-   * - 클라이언트로부터 100ms 주기로 쓰로틀된 입력 받음
-   * - 서버에서 300ms 주기로 배치하여 브로드캐스트
    */
   @SubscribeMessage(WS_EVENTS_GAME.REALTIME)
   async handleGameRealtime(@ConnectedSocket() client: Socket, @MessageBody() dto: GameRealtimeInputDto) {
