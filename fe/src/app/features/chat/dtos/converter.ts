@@ -23,7 +23,6 @@ import {
   ChatRoomSendAckData,
   GlobalChatRecentsData,
   ChatGlobalJoinAckData,
-  ChatSendData,
 } from './data';
 
 export const toGlobalSendDto = (data: ChatGlobalSendData): ChatGlobalSendDto => ({
@@ -119,22 +118,8 @@ export const toGlobalSendAckData = (dto: ChatGlobalSendAckDto): ChatGlobalSendAc
   userId: undefined,
 });
 
-export const toSendDto = (data: ChatSendData): ChatRoomSendDto | ChatGlobalSendDto => {
-  if (data.roomId) {
-    return {
-      room_id: data.roomId,
-      message: data.message,
-    };
-  }
-
-  return {
-    message: data.message,
-  };
-};
-
 export const ChatConverter = {
   toReceiveData,
-  toSendDto,
   toGlobalSendDto,
   toRoomSendDto,
   toGlobalNewMessageData,

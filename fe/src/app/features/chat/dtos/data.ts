@@ -13,11 +13,6 @@ export type ChatReceiveData = {
   userId?: string;
 };
 
-export type ChatSendData = {
-  message: string;
-  roomId?: string;
-};
-
 export type ChatGlobalSendData = {
   message: string;
 };

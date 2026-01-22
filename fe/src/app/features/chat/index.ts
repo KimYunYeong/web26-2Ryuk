@@ -5,8 +5,8 @@ export { default as RoomChatPanel } from './components/LocalChatPanel';
 export { default as ChatBubbles } from './components/ChatBubbles';
 export { default as ChatBubble } from './components/ChatBubble';
 export { ChatConverter } from './dtos/converter';
-export type { ChatReceiveDto, ChatSendDto } from './dtos/dto';
-export type { ChatReceiveData, ChatSendData } from './dtos/data';
+export type { ChatReceiveDto } from './dtos/dto';
+export type { ChatReceiveData } from './dtos/data';
 export type { ChatBubblesProps, ChatPanelType } from './components/type';
 
 // Chat Services
