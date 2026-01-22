@@ -8,11 +8,20 @@ import {
   VoiceTransportCreateDto,
   VoiceTransportConnectDto,
   VoiceTransportCloseDto,
+  CreateProducerDto,
+  ProducerStateChangeDto,
+  GetProducersDto,
 } from './dto/voice.dto';
 import { Socket } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { AuthService } from '../auth/auth.service';
 import { createWsErrorResponse } from '@src/common/utils/ws-error-code';
+
+interface SocketWithAuth extends Socket {
+  data: {
+    userId: string;
+  };
+}
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({ namespace: '/' })
@@ -40,7 +49,7 @@ export class VoiceGateway {
   /**
    * 클라이언트의 인증 및 인가(방 참여 여부)를 확인하는 헬퍼 메서드
    */
-  private async _authorizeClient(client: Socket, roomId: string): Promise<string> {
+  private async _authorizeClient(client: SocketWithAuth, roomId: string): Promise<string> {
     const { userId } = client.data;
     if (!userId) {
       throw new Error('UNAUTHORIZED');
@@ -59,7 +68,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:router:capabilities')
   async handleGetRouterRtpCapabilities(
     @MessageBody() data: GetRouterRtpCapabilitiesDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
@@ -80,7 +89,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:transport:create')
   async handleCreateTransport(
     @MessageBody() data: VoiceTransportCreateDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
@@ -100,7 +109,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:transport:connect')
   async handleConnectTransport(
     @MessageBody() data: VoiceTransportConnectDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;
@@ -115,6 +124,133 @@ export class VoiceGateway {
   }
 
   /**
+   * Producer 생성
+   */
+  @SubscribeMessage('voice:producer:create')
+  async handleCreateProducer(
+    @MessageBody() data: CreateProducerDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      const producer = await this.voiceService.createProducer(data, userId);
+
+      ack({ data: { producer_id: producer.id } });
+
+      // 다른 참여자들에게 새 producer 생성 알림
+      client.to(data.room_id).emit('voice:producer:new', {
+        producerUserId: userId,
+        producerId: producer.id,
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Producer 생성 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * 방의 모든 Producer 목록 조회
+   */
+  @SubscribeMessage('voice:room:producers')
+  async handleGetProducers(
+    @MessageBody() data: GetProducersDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      await this._authorizeClient(client, data.room_id);
+      const producers = await this.voiceService.getProducersForRoom(data.room_id);
+      ack({ data: { producers } });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, '방의 Producer 목록 조회 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * Producer 일시 중지
+   */
+  @SubscribeMessage('voice:producer:pause')
+  async handlePauseProducer(
+    @MessageBody() data: ProducerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.pauseProducer(data.producer_id, userId);
+
+      ack({ data: { success: true } });
+
+      // 다른 참여자들에게 상태 변경 알림
+      client.to(data.room_id).emit('voice:producer:update', {
+        user_id: userId,
+        is_mic_on: 'false',
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Producer 일시 중지 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * Producer 재개
+   */
+  @SubscribeMessage('voice:producer:resume')
+  async handleResumeProducer(
+    @MessageBody() data: ProducerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.resumeProducer(data.producer_id, userId);
+
+      ack({ data: { success: true } });
+
+      // 다른 참여자들에게 상태 변경 알림
+      client.to(data.room_id).emit('voice:producer:update', {
+        user_id: userId,
+        is_mic_on: 'true',
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Producer 재개 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
+   * Producer 종료
+   */
+  @SubscribeMessage('voice:producer:close')
+  async handleCloseProducer(
+    @MessageBody() data: ProducerStateChangeDto,
+    @ConnectedSocket() client: SocketWithAuth,
+    ack: (response: any) => void,
+  ) {
+    if (typeof ack !== 'function') return;
+    try {
+      const userId = await this._authorizeClient(client, data.room_id);
+      await this.voiceService.closeProducer(data.producer_id, userId);
+
+      ack({ data: { success: true } });
+
+      // 다른 참여자들에게 producer 종료 알림
+      client.to(data.room_id).emit('voice:producer:closed', {
+        user_id: userId,
+      });
+    } catch (error) {
+      const errorResponse = createWsErrorResponse(error, 'Producer 종료 중 오류가 발생했습니다.');
+      ack({ error: errorResponse });
+    }
+  }
+
+  /**
    * 클라이언트 Transport 종료
    * @param data room_id, transport_id
    * @param client Socket
@@ -122,7 +258,7 @@ export class VoiceGateway {
   @SubscribeMessage('voice:transport:close')
   async handleCloseTransport(
     @MessageBody() data: VoiceTransportCloseDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithAuth,
     ack: (response: any) => void,
   ) {
     if (typeof ack !== 'function') return;

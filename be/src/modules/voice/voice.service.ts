@@ -5,13 +5,26 @@ import {
   InternalServerErrorException,
   NotFoundException,
   ForbiddenException,
+  Inject,
+  BadRequestException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as mediasoup from 'mediasoup';
-import { Worker, Router, RtpCodecCapability, WebRtcTransport, TransportListenIp } from 'mediasoup/node/lib/types';
+import {
+  Worker,
+  Router,
+  RtpCodecCapability,
+  WebRtcTransport,
+  TransportListenIp,
+  Producer,
+} from 'mediasoup/node/lib/types';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
-import { VoiceTransportConnectDto, VoiceTransportCloseDto } from './dto/voice.dto';
+import { VoiceTransportConnectDto, VoiceTransportCloseDto, CreateProducerDto } from './dto/voice.dto';
 import { Socket } from 'socket.io';
+import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
+import { RedisClientType } from 'redis';
+import { RoomService } from '../room/room.service';
 
 /**
  * 서버(Router)에서 지원할 미디어 코덱 설정
@@ -27,18 +40,30 @@ const mediaCodecs: RtpCodecCapability[] = [
   },
 ];
 
+interface SocketWithAuth extends Socket {
+  data: {
+    userId: string;
+  };
+}
+
 @Injectable()
 export class VoiceService implements OnModuleInit {
   private worker: Worker;
-  // roomId를 키로 실제 mediasoup Router 객체를 저장하는 맵
+  // roomId를 키로 실제 mediasoup Router 객체를 저장하는 맵 (프로세스 메모리)
   private routers: Map<string, Router> = new Map();
-  // transportId를 키로 실제 mediasoup WebRtcTransport 객체를 저장하는 맵
+  // transportId를 키로 실제 mediasoup WebRtcTransport 객체를 저장하는 맵 (프로세스 메모리)
   private transports: Map<string, WebRtcTransport> = new Map();
+  // producerId를 키로 실제 mediasoup Producer 객체를 저장하는 맵 (프로세스 메모리)
+  private producers: Map<string, Producer> = new Map();
 
   private mediasoupListenIps: TransportListenIp[];
   private readonly logger = new Logger(VoiceService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
+    @Inject(forwardRef(() => RoomService)) private readonly roomService: RoomService,
+  ) {}
 
   /**
    * 모듈 초기화 시 mediasoup Worker를 생성하고 IP 설정을 로드
@@ -51,9 +76,7 @@ export class VoiceService implements OnModuleInit {
     const listenIp = this.configService.get<string>('MEDIASOUP_LISTEN_IP');
 
     if (!rtcMinPort || !rtcMaxPort || !announcedIp || !listenIp) {
-      throw new InternalServerErrorException(
-        'Mediasoup environment variables (RTC ports, listen IP, announced IP) are not fully configured.',
-      );
+      throw new InternalServerErrorException(LOG.VOICE.MEDIASOUP_CONFIG_ERROR.message);
     }
 
     this.mediasoupListenIps = [
@@ -83,15 +106,31 @@ export class VoiceService implements OnModuleInit {
    * Router는 특정 방의 모든 참여자 간의 미디어를 라우팅하는 역할
    */
   async getOrCreateRouter(roomId: string): Promise<Router> {
-    if (this.routers.has(roomId)) {
-      return this.routers.get(roomId)!;
+    const existingRouter = this.routers.get(roomId);
+    if (existingRouter) {
+      return existingRouter;
+    }
+
+    const routerDataFromRedis = await this.redisClient.hGetAll(`mediasoup:router:${roomId}`);
+    if (Object.keys(routerDataFromRedis).length > 0) {
+      logMessage(this.logger, LOG.VOICE.ROUTER_IN_REDIS_NOT_IN_MEMORY(routerDataFromRedis.id, roomId));
     }
 
     const router = await this.worker.createRouter({ mediaCodecs });
     this.routers.set(roomId, router);
 
+    this.redisClient
+      .hSet(`mediasoup:router:${roomId}`, {
+        id: router.id,
+        worker_pid: this.worker.pid.toString(),
+      })
+      .catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(router.id, String(err))));
+
     router.on('@close', () => {
       this.routers.delete(roomId);
+      this.redisClient
+        .del(`mediasoup:router:${roomId}`)
+        .catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(router.id, String(err))));
       logMessage(this.logger, LOG.VOICE.ROUTER_CLOSED(router.id, roomId));
     });
 
@@ -112,73 +151,41 @@ export class VoiceService implements OnModuleInit {
    * 클라이언트의 WebRTC Transport를 생성
    * 이 Transport는 클라이언트와 mediasoup Router 간의 미디어 송수신 경로 역할
    */
-  async createTransport(roomId: string, producing: boolean, client: Socket) {
+  async createTransport(roomId: string, producing: boolean, client: SocketWithAuth) {
     const router = await this.getOrCreateRouter(roomId);
-
-    const appData = {
-      roomId,
-      producing,
-      userId: client.data.userId,
-    };
+    const userId = client.data.userId;
 
     const webRtcTransportOptions = {
       listenIps: this.mediasoupListenIps,
       enableUdp: true,
       enableTcp: true,
       preferUdp: true,
-      initialAvailableOutgoingBitrate: 1000000, // 1 Mbps
-      maxSctpMessageSize: 262144, // 256 KB
-      enableSctp: false, // 음성 통화는 일반적으로 SCTP는 필요하지 않습니다.
-      appData: appData,
+      initialAvailableOutgoingBitrate: 1000000,
+      maxSctpMessageSize: 262144,
+      enableSctp: false,
+      appData: { roomId, producing, userId },
     };
 
-    let transport: WebRtcTransport;
-    try {
-      transport = await router.createWebRtcTransport(webRtcTransportOptions);
-      this.transports.set(transport.id, transport); // Transport 객체를 로컬 맵에 저장
-    } catch (error) {
-      logMessage(
-        this.logger,
-        LOG.VOICE.TRANSPORT_CREATE_ERROR(roomId, producing, error instanceof Error ? error.message : String(error)),
-      );
-      throw new InternalServerErrorException('WebRTC Transport 생성 실패.');
-    }
+    const transport = await router.createWebRtcTransport(webRtcTransportOptions);
+    this.transports.set(transport.id, transport);
 
-    // 송신용 Transport에 대한 최대 수신 비트레이트 설정 (QoS)
-    if (producing) {
-      try {
-        await transport.setMaxIncomingBitrate(1500000); // 1.5 Mbps for producing
-      } catch (error) {
-        logMessage(
-          this.logger,
-          LOG.VOICE.TRANSPORT_SET_MAX_BITRATE_ERROR(roomId, error instanceof Error ? error.message : String(error)),
-        );
-      }
-    }
+    Promise.all([
+      this.redisClient.hSet(`mediasoup:transport:${transport.id}`, {
+        room_id: roomId,
+        user_id: userId,
+        producing: producing.toString(),
+        socket_id: client.id,
+      }),
+      this.redisClient.sAdd(`mediasoup:room:${roomId}:user:${userId}:transports`, transport.id),
+    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(transport.id, String(err))));
 
-    // Transport DTLS 연결 상태 변경 이벤트 처리
-    // DTLS는 WebRTC의 보안 레이어를 담당하며, 상태 변화에 따라 적절한 조치(Transport 닫기)
-    transport.on('dtlsstatechange', async (dtlsState) => {
-      if (dtlsState === 'failed' || dtlsState === 'closed') {
-        logMessage(this.logger, LOG.VOICE.TRANSPORT_DTLS_FAILED(transport.id, dtlsState));
-        transport.close(); // DTLS 연결 실패 시 Transport 명시적으로 닫기
-      }
-    });
-
-    // Transport 객체가 mediasoup에 의해 닫힐 때 로컬 맵에서 제거
-    transport.on('@close', async () => {
+    transport.on('@close', () => {
+      this.transports.delete(transport.id);
+      Promise.all([
+        this.redisClient.del(`mediasoup:transport:${transport.id}`),
+        this.redisClient.sRem(`mediasoup:room:${roomId}:user:${userId}:transports`, transport.id),
+      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(transport.id, String(err))));
       logMessage(this.logger, LOG.VOICE.TRANSPORT_CLOSED(transport.id));
-      this.transports.delete(transport.id); // 로컬 맵에서 실제 Transport 객체 제거
-    });
-
-    // ICE Candidate 이벤트 처리
-    // mediasoup Transport가 발견한 ICE 후보를 클라이언트에 전송하여 P2P 연결 경로를 설정하는 데 도움을 줌
-    (transport as any).on('icecandidate', (candidate: any) => {
-      logMessage(this.logger, LOG.VOICE.TRANSPORT_ICE_CANDIDATE(transport.id, JSON.stringify(candidate)));
-      client.emit('voice:transport:ice-candidate', {
-        transport_id: transport.id,
-        candidate,
-      });
     });
 
     logMessage(this.logger, LOG.VOICE.TRANSPORT_CREATED(transport.id, roomId, producing));
@@ -196,19 +203,21 @@ export class VoiceService implements OnModuleInit {
    * 로컬 존재 여부 및 방 소유권을 검증
    */
   private async _getAndValidateTransport(transportId: string, roomId: string): Promise<WebRtcTransport> {
-    const transport = this.transports.get(transportId);
-    if (!transport) {
+    const transportData = await this.redisClient.hGetAll(`mediasoup:transport:${transportId}`);
+    if (Object.keys(transportData).length === 0) {
       logMessage(this.logger, LOG.VOICE.TRANSPORT_NOT_FOUND(transportId));
-      throw new NotFoundException(`Transport with ID "${transportId}" not found.`);
+      throw new NotFoundException(LOG.VOICE.TRANSPORT_NOT_FOUND_REDIS(transportId).message);
     }
 
-    // 전송하려는 transport가 요청된 방에 속하는지 검증 (appData와 DTO 비교)
-    if ((transport.appData as { roomId: string }).roomId !== roomId) {
-      logMessage(
-        this.logger,
-        LOG.VOICE.TRANSPORT_ROOM_MISMATCH(transportId, (transport.appData as { roomId: string }).roomId, roomId),
-      );
-      throw new ForbiddenException(`Transport with ID "${transportId}" does not belong to room "${roomId}".`);
+    if (transportData.room_id !== roomId) {
+      logMessage(this.logger, LOG.VOICE.TRANSPORT_ROOM_MISMATCH(transportId, transportData.room_id, roomId));
+      throw new ForbiddenException(LOG.VOICE.TRANSPORT_ROOM_FORBIDDEN(transportId, roomId).message);
+    }
+
+    const transport = this.transports.get(transportId);
+    if (!transport) {
+      logMessage(this.logger, LOG.VOICE.TRANSPORT_IN_REDIS_NOT_IN_MEMORY(transportId));
+      throw new InternalServerErrorException(LOG.VOICE.TRANSPORT_IN_REDIS_NOT_IN_MEMORY(transportId).message);
     }
     return transport;
   }
@@ -226,12 +235,159 @@ export class VoiceService implements OnModuleInit {
   }
 
   /**
+   * 오디오/비디오 스트림을 서버로 전송하기 위한 Producer 생성
+   */
+  async createProducer(dto: CreateProducerDto, userId: string): Promise<Producer> {
+    const { room_id, transport_id, kind, rtp_parameters } = dto;
+    const transport = await this._getAndValidateTransport(transport_id, room_id);
+
+    const transportData = await this.redisClient.hGetAll(`mediasoup:transport:${transport.id}`);
+    if (transportData.producing !== 'true') {
+      throw new BadRequestException(LOG.VOICE.TRANSPORT_NOT_FOR_PRODUCING(transport.id).message);
+    }
+
+    const producer = await transport.produce({
+      kind,
+      rtpParameters: rtp_parameters,
+      appData: { roomId: room_id, userId, transportId: transport_id },
+    });
+    this.producers.set(producer.id, producer);
+
+    // Redis에 Producer 메타데이터 저장
+    Promise.all([
+      this.redisClient.hSet(`mediasoup:producer:${producer.id}`, {
+        room_id,
+        user_id: userId,
+        kind,
+        transport_id,
+        rtp_parameters: JSON.stringify(rtp_parameters),
+        paused: 'false',
+      }),
+      this.redisClient.sAdd(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
+    ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, String(err))));
+
+    producer.on('@close', () => {
+      this.producers.delete(producer.id);
+      Promise.all([
+        this.redisClient.del(`mediasoup:producer:${producer.id}`),
+        this.redisClient.sRem(`mediasoup:room:${room_id}:user:${userId}:producers`, producer.id),
+      ]).catch((err) => logMessage(this.logger, LOG.VOICE.REDIS_CLEANUP_ERROR(producer.id, String(err))));
+    });
+
+    logMessage(this.logger, LOG.VOICE.PRODUCER_CREATED(producer.id, transport.id, userId));
+
+    return producer;
+  }
+
+  /**
+   * Producer 객체를 조회하고 소유권을 검증
+   */
+  private async _getAndValidateProducer(producerId: string, userId: string): Promise<Producer> {
+    const producer = this.producers.get(producerId);
+    if (!producer) {
+      logMessage(this.logger, LOG.VOICE.PRODUCER_NOT_FOUND(producerId));
+      throw new NotFoundException(LOG.VOICE.PRODUCER_NOT_FOUND(producerId).message);
+    }
+
+    const producerData = await this.redisClient.hGetAll(`mediasoup:producer:${producerId}`);
+    if (producerData.user_id !== userId) {
+      logMessage(this.logger, LOG.VOICE.PRODUCER_OWNERSHIP_MISMATCH(producerId, producerData.user_id, userId));
+      throw new ForbiddenException(
+        LOG.VOICE.PRODUCER_OWNERSHIP_MISMATCH(producerId, producerData.user_id, userId).message,
+      );
+    }
+    return producer;
+  }
+
+  /**
+   * Producer의 일시 중지/재개 상태를 변경
+   */
+  private async _setProducerPausedState(producerId: string, userId: string, pause: boolean): Promise<void> {
+    const producer = await this._getAndValidateProducer(producerId, userId);
+
+    if (pause) {
+      await producer.pause();
+      await this.redisClient.hSet(`mediasoup:producer:${producerId}`, 'paused', 'true');
+      logMessage(this.logger, LOG.VOICE.PRODUCER_PAUSED(producerId, userId));
+    } else {
+      await producer.resume();
+      await this.redisClient.hSet(`mediasoup:producer:${producerId}`, 'paused', 'false');
+      logMessage(this.logger, LOG.VOICE.PRODUCER_RESUMED(producerId, userId));
+    }
+  }
+
+  /**
+   * Producer를 일시 중지
+   */
+  async pauseProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
+    await this._setProducerPausedState(producerId, userId, true);
+    return { success: true };
+  }
+
+  /**
+   * Producer를 재개
+   */
+  async resumeProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
+    await this._setProducerPausedState(producerId, userId, false);
+    return { success: true };
+  }
+
+  /**
+   * Producer를 종료
+   */
+  async closeProducer(producerId: string, userId: string): Promise<{ success: boolean }> {
+    const producer = await this._getAndValidateProducer(producerId, userId);
+    producer.close();
+    logMessage(this.logger, LOG.VOICE.PRODUCER_CLOSED(producerId, userId));
+    return { success: true };
+  }
+
+  /**
+   * 특정 방의 모든 활성 Producer 목록을 조회
+   */
+  async getProducersForRoom(roomId: string): Promise<{ producer_id: string; user_id: string }[]> {
+    const userIds = await this.roomService.getRoomMemberIds(roomId);
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const producerSetKeys = userIds.map((userId) => `mediasoup:room:${roomId}:user:${userId}:producers`);
+
+    const multi = this.redisClient.multi();
+    producerSetKeys.forEach((key) => multi.sMembers(key));
+    const producerIdLists = (await multi.exec()) as unknown as string[][];
+
+    const allProducerIds = producerIdLists.flat().filter((id): id is string => !!id);
+    if (allProducerIds.length === 0) {
+      return [];
+    }
+
+    const producerPipeline = this.redisClient.multi();
+    allProducerIds.forEach((id) => producerPipeline.hGetAll(`mediasoup:producer:${id}`));
+    const producerDataArray = (await producerPipeline.exec()) as unknown as (Record<string, string> | null)[];
+
+    const activeProducers: { producer_id: string; user_id: string }[] = [];
+    producerDataArray.forEach((data, i) => {
+      if (data?.paused === 'false' && data.user_id) {
+        activeProducers.push({
+          producer_id: allProducerIds[i],
+          user_id: data.user_id,
+        });
+      }
+    });
+
+    logMessage(this.logger, LOG.VOICE.PRODUCERS_FOR_ROOM_FETCHED(roomId, activeProducers.length));
+
+    return activeProducers;
+  }
+
+  /**
    * 클라이언트의 WebRTC Transport를 종료하고 관련 리소스 정리
    * Transport 객체 닫힘 이벤트에 로컬 맵 메타데이터 정리 로직 연결
    */
   async closeTransport(dto: VoiceTransportCloseDto) {
     const transport = await this._getAndValidateTransport(dto.transport_id, dto.room_id);
-    transport.close(); // mediasoup Transport 객체를 닫으면 '@close' 이벤트가 발생하고, 해당 리스너가 로컬 맵에서 정리
+    transport.close();
     logMessage(this.logger, LOG.VOICE.TRANSPORT_CLOSED(transport.id));
     return { success: true };
   }
@@ -242,10 +398,9 @@ export class VoiceService implements OnModuleInit {
    */
   async closeRouter(roomId: string) {
     const router = this.routers.get(roomId);
-    if (!router) {
-      return;
+    if (router) {
+      router.close();
+      logMessage(this.logger, LOG.VOICE.ROUTER_CLOSED(router.id, roomId));
     }
-    router.close(); // mediasoup Router 객체를 닫으면 '@close' 이벤트가 발생하고, 해당 리스너가 로컬 맵에서 정리
-    logMessage(this.logger, LOG.VOICE.ROUTER_CLOSED(router.id, roomId));
   }
 }
