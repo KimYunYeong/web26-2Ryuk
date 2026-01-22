@@ -17,9 +17,13 @@ export default function RoomVoiceChat() {
   const roomData = roomStore((state: RoomStore) => state.roomData);
   const currentParticipants = roomData?.currentParticipants;
   const maxParticipants = roomData?.maxParticipants;
-  const participants = roomData?.participants?.filter((p) => p.userId !== myId) ?? [];
+  const participants =
+    roomData?.participants?.filter((p: ParticipantData) => p.userId !== myId) ?? [];
   const showChip = currentParticipants || maxParticipants;
-  const participantIds = useMemo(() => participants.map((p) => p.userId).join(','), [participants]);
+  const participantIds = useMemo(
+    () => participants.map((p: ParticipantData) => p.userId).join(','),
+    [participants],
+  );
 
   useEffect(() => {
     // TODO: mount/refresh 시 BE 에서 ParticipantDetailData (mic/audio/speaking/role) 로드
