@@ -7,6 +7,8 @@ import * as IconButton from '@/app/components/shared/icon/IconButton';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import * as Textfield from '@/app/components/shared/textfield/Textfield';
 import * as Slider from '@/app/components/shared/slider/Slider';
+import ProgressBar from '@/app/components/shared/progressBar/ProgressBar';
+import RemainingTimeBar from '@/app/components/shared/remainingTimeBar/RemainingTimeBar';
 import * as Chip from '@/app/components/shared/chip/Chip';
 import * as ChipButton from '@/app/components/shared/chip/ChipButton';
 import Toggle from '@/app/components/shared/toggle/Toggle';
@@ -689,6 +691,43 @@ export default function SharedComponents() {
               <span className={styles.iconLabel}>Secondary Disabled</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="progress-bar" className={styles.section}>
+        <h2 className={styles.sectionTitle}>ProgressBar</h2>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>Static Values</h3>
+          <div className={styles.iconRow}>
+            <div className={styles.circleItem}>
+              <Component fullWidth>
+                <ProgressBar value={0} />
+              </Component>
+              <span className={styles.iconLabel}>0%</span>
+            </div>
+            <div className={styles.circleItem}>
+              <Component fullWidth>
+                <ProgressBar value={0.35} />
+              </Component>
+              <span className={styles.iconLabel}>35%</span>
+            </div>
+            <div className={styles.circleItem}>
+              <Component fullWidth>
+                <ProgressBar value={0.75} />
+              </Component>
+              <span className={styles.iconLabel}>75%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="remaining-time-bar" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RemainingTimeBar</h2>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>10초 카운트다운</h3>
+          <Component fullWidth>
+            <RemainingTimeBar durationMs={10000} />
+          </Component>
         </div>
       </section>
 

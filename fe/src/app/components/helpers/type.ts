@@ -34,6 +34,13 @@ export const componentRelations: ComponentRelation[] = [
   },
   { id: 'stepper', title: 'Stepper', category: 'shared' },
   { id: 'toggle', title: 'Toggle', category: 'shared' },
+  { id: 'progress-bar', title: 'ProgressBar', category: 'shared' },
+  {
+    id: 'remaining-time-bar',
+    title: 'RemainingTimeBar',
+    category: 'shared',
+    children: ['progress-bar'],
+  },
   {
     id: 'tag-selector',
     title: 'TagSelector',
@@ -234,6 +241,8 @@ export const sharedSections = [
   { id: 'message-form', title: 'MessageForm' },
   { id: 'toggle', title: 'Toggle' },
   { id: 'slider', title: 'Slider' },
+  { id: 'progress-bar', title: 'ProgressBar' },
+  { id: 'remaining-time-bar', title: 'RemainingTimeBar' },
   { id: 'chip', title: 'Chip' },
   { id: 'toggle-chip', title: 'ToggleChip' },
   { id: 'status-chip', title: 'StatusChip' },
