@@ -9,10 +9,12 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  UseGuards,
 } from '@nestjs/common';
 import { GameRecordService } from '@src/modules/game-record/game-record.service';
 import { GameRecordRankResponseDto } from '@src/modules/game-record/dto/game-record-response.dto';
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('game_records')
 export class GameRecordController {
@@ -24,6 +26,7 @@ export class GameRecordController {
    * 게임 랭킹 조회 -> GET /api/game_records/:game_id?page=1&limit=10
    */
   @Get(':game_id')
+  @UseGuards(AuthGuard)
   @ApiResponseMessage('게임 랭킹을 성공적으로 조회했습니다.')
   async getGameRecordsRanking(
     @Req() req,
@@ -32,7 +35,6 @@ export class GameRecordController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<GameRecordRankResponseDto> {
     const userId = req.user?.id || null;
-    // page 쿼리 파라미터가 명시적으로 전달되었는지 확인
     const page = pageQuery ? parseInt(pageQuery, 10) : undefined;
     try {
       return await this.gameRecordService.getGameRecordsRanking(userId, gameId, page, limit);

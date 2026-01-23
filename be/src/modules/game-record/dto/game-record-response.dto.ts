@@ -11,5 +11,6 @@ export class GameRecordRankItemDto {
 export class GameRecordRankResponseDto {
   total: number;
   page: number;
-  records: GameRecordRankItemDto[];
+  podium: GameRecordRankItemDto[];
+  rankings: GameRecordRankItemDto[];
 }

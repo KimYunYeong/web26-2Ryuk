@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, HttpStatus, HttpException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameRecord } from '@src/modules/game-record/game-record.entity';
@@ -21,7 +21,7 @@ export class GameRecordService {
    * 게임 전체 랭킹 조회 (페이지네이션)
    * @param userId 로그인한 사용자 ID (null이면 비로그인)
    * @param gameId 게임 ID
-   * @param page 쿼리 파라미터로 전달된 페이지 번호 (undefined면 명시적으로 전달되지 않음)
+   * @param page 쿼리 파라미터로 전달된 페이지 번호 (undefined면 명시적으로 전달되지 않은거)
    * @param limit 페이지당 항목 수
    */
   async getGameRecordsRanking(
@@ -31,61 +31,27 @@ export class GameRecordService {
     limit: number = 10,
   ): Promise<GameRecordRankResponseDto> {
     try {
-      // 게임 존재 여부 확인
       const game = await this.gameRepository.findOne({ where: { id: gameId } });
       if (!game) {
         throw new NotFoundException('존재하지 않는 게임입니다.');
       }
 
-      let gameRecord: GameRecord | null = null;
-      let finalPage: number;
-
-      // 전체 개수 조회
+      // 전체 레코드 개수
       const total = await this.gameRecordRepository.count({
         where: { game_id: gameId },
       });
 
-      // 전체 레코드를 점수 내림차순으로 조회 (정확한 랭킹 계산을 위해)
+      // 전체 레코드를 점수 기준으로 내림차순
       const allRecords = await this.gameRecordRepository.find({
         where: { game_id: gameId },
         relations: ['user'],
         order: { score: 'DESC' },
       });
-
-      // 로그인 안 한 사용자인 경우 무조건 첫번째 페이지
-      if (!userId) {
-        finalPage = 1;
-      } else {
-        // 로그인 한 사용자의 경우 게임 기록 조회
-        gameRecord = await this.gameRecordRepository.findOne({ where: { user_id: userId, game_id: gameId } });
-
-        // 쿼리 파라미터로 page가 명시적으로 전달된 경우
-        if (page !== undefined) {
-          finalPage = page;
-        } else {
-          // 쿼리 파라미터가 없고 기록이 존재하면 내 랭킹 페이지 계산
-          if (gameRecord && allRecords.length > 0) {
-            const rank = allRecords.findIndex((record) => record.id === gameRecord!.id) + 1;
-            finalPage = rank > 0 ? Math.ceil(rank / limit) : 1;
-          } else {
-            // 기록이 없으면 첫 페이지
-            finalPage = 1;
-          }
-        }
-      }
-
       if (allRecords.length === 0) {
-        return {
-          total,
-          page: finalPage,
-          records: [],
-        };
+        throw new HttpException('게임 랭킹이 없습니다.', HttpStatus.NO_CONTENT);
       }
 
-      // 페이지네이션 계산
-      const start = (finalPage - 1) * limit;
-
-      // 랭킹 계산 (동점자 처리: 같은 점수는 같은 순위, 다음 순위는 건너뜀)
+      // 랭킹 계산 (같은 점수는 같은 순위, 다음 순위는 건너뜀)
       let currentRank = 1;
       let previousScore: number | null = null;
 
@@ -110,13 +76,46 @@ export class GameRecordService {
         return rankItem;
       });
 
+      // 페이지 계산
+      let targetPage: number;
+      if (page !== undefined) {
+        // FE에서 page를 보냈으면 그대로 사용
+        targetPage = page;
+      } else {
+        // FE가 page를 못 보낸 경우 (로그인 O, 최초 조회)
+        if (!userId) {
+          // 로그인 X -> 1페이지로
+          targetPage = 1;
+          console.log('로그인 안됨: ', targetPage);
+        } else {
+          // 로그인 O -> 내 랭킹 찾기
+          const userRankItem = allRankItems.find((item) => item.user_id === userId);
+          if (userRankItem) {
+            // 기록 O -> 내 랭킹이 있는 페이지 계산
+            targetPage = Math.ceil(userRankItem.rank / limit);
+            console.log('기록 있음: ', targetPage);
+          } else {
+            // 기록 X -> 1페이지로
+            targetPage = 1;
+            console.log('기록 없음: ', targetPage);
+          }
+        }
+      }
+
+      // 페이지네이션 계산
+      const start = (targetPage - 1) * limit;
+
       // 페이지네이션 적용
       const rankItems = allRankItems.slice(start, start + limit);
 
+      // 1~3등 랭킹
+      const podiumItems = allRankItems.slice(0, 3);
+
       return {
         total,
-        page: finalPage,
-        records: rankItems,
+        page: targetPage,
+        podium: podiumItems,
+        rankings: rankItems,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
