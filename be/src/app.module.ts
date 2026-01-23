@@ -21,7 +21,7 @@ import { PostPicture } from './modules/post/post-picture.entity';
 import { PostLike } from './modules/post/post-like.entity';
 import { ChattingLog } from './modules/log/chatting-log.entity';
 import { Game } from './modules/game/game.entity';
-import { GameRecord } from './modules/game/game-record.entity';
+import { GameRecord } from './modules/game-record/game-record.entity';
 import { Comment } from './modules/comment/comment.entity';
 
 @Module({
