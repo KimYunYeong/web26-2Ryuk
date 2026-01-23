@@ -164,11 +164,18 @@ export class RoomService implements OnModuleInit {
     await this.updateCurrentParticipants(roomId);
     logMessage(this.logger, LOG.ROOM.USER_LEFT(userId, roomId));
 
-    // 만약 방장이면 방 삭제 처리
+    // 만약 방장이면 방장 권한 랜덤으로 넘기기
     const isHost = await this.isHost(userId, roomId);
     if (isHost) {
-      await this.deleteRoom(userId, roomId, server);
-      return;
+      // await this.deleteRoom(userId, roomId, server);
+      const memberIds = await this.getRoomMemberIds(roomId);
+      if (memberIds.length > 0) {
+        const newHostId = memberIds[Math.floor(Math.random() * memberIds.length)];
+        await this.redisClient.hSet(`room:${roomId}`, 'host_id', newHostId);
+        logMessage(this.logger, LOG.ROOM.HOST_CHANGED(roomId, newHostId));
+
+        return;
+      }
     }
 
     // 빈 Local 방 삭제
