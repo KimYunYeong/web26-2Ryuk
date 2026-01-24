@@ -3,16 +3,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { UserService, User } from '../services/UserService';
-import IS from '@/utils/is';
 import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
 
 /* ================== Types ================== */
 
 interface AuthState {
   isAuthenticated: boolean;
-  userId: string | null;
-  token: string | null;
-  user: User | null;
+  userId?: string;
+  token?: string;
+  user?: User;
   hasHydrated: boolean;
 }
 
@@ -31,9 +30,9 @@ export const authStore = create<AuthStore>()(
     (set, get) => ({
       /* ---------- state ---------- */
       isAuthenticated: false,
-      userId: null,
-      token: null,
-      user: null,
+      userId: undefined,
+      token: undefined,
+      user: undefined,
       hasHydrated: false,
 
       /* ---------- initialize ---------- */
@@ -44,8 +43,8 @@ export const authStore = create<AuthStore>()(
         if (!token || !userId) {
           set({
             isAuthenticated: false,
-            userId: null,
-            user: null,
+            userId: undefined,
+            user: undefined,
           });
           return;
         }
@@ -72,7 +71,7 @@ export const authStore = create<AuthStore>()(
           }
         } catch (e) {
           console.warn('[Auth] initialize failed', e);
-          set({ isAuthenticated: false, user: null });
+          set({ isAuthenticated: false, user: undefined });
         }
       },
 
@@ -105,9 +104,9 @@ export const authStore = create<AuthStore>()(
       logout: () => {
         set({
           isAuthenticated: false,
-          userId: null,
-          token: null,
-          user: null,
+          userId: undefined,
+          token: undefined,
+          user: undefined,
         });
 
         if (typeof window === 'undefined') return;

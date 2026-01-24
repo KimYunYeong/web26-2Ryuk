@@ -60,7 +60,7 @@ export type RoomValidateJoinResponseData = {
 };
 
 export type RoomMyCurrentData = {
-  roomId: string | null;
+  roomId?: string;
 };
 
 // WebSocket data shapes for room events (camelCase and parsed types)

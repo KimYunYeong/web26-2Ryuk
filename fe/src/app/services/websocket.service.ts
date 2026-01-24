@@ -2,8 +2,8 @@ import IS from '@/utils/is';
 import { io, Socket } from 'socket.io-client';
 
 export class WebSocketService {
-  private static socket: Socket | null = null;
-  private static connectPromise: Promise<void> | null = null;
+  private static socket?: Socket;
+  private static connectPromise?: Promise<void>;
   private static connectResolvers: Set<() => void> = new Set();
 
   /**
@@ -63,7 +63,7 @@ export class WebSocketService {
 
     this.socket.on('disconnect', (reason: string) => {
       console.warn('[WebSocket] 연결 해제:', reason);
-      this.connectPromise = null;
+      this.connectPromise = undefined;
     });
 
     // 모든 이벤트를 onMessage로 전달
@@ -77,7 +77,7 @@ export class WebSocketService {
   /**
    * Socket 인스턴스 가져오기
    */
-  static getSocket(): Socket | null {
+  static getSocket(): Socket | undefined {
     return this.socket;
   }
 
@@ -87,8 +87,8 @@ export class WebSocketService {
   static disconnect(): void {
     if (!this.socket) return;
     this.socket.disconnect();
-    this.socket = null;
-    this.connectPromise = null;
+    this.socket = undefined;
+    this.connectPromise = undefined;
     this.connectResolvers.clear();
   }
 
@@ -159,14 +159,16 @@ export class WebSocketService {
   /**
    * Mock 토큰 가져오기
    */
-  private static getMockToken(): string | null {
-    if (IS.undefined(window)) return null;
+  private static getMockToken(): string | undefined {
+    if (IS.undefined(window)) return undefined;
     try {
       const { authStore } = require('@/app/features/user/stores/auth');
       const token = authStore.getState().token;
-      return token || localStorage.getItem('mock_token');
+      const storedToken = localStorage.getItem('mock_token');
+      return token || (storedToken === null ? undefined : storedToken);
     } catch {
-      return localStorage.getItem('mock_token');
+      const storedToken = localStorage.getItem('mock_token');
+      return storedToken === null ? undefined : storedToken;
     }
   }
 

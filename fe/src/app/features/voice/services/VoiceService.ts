@@ -12,9 +12,9 @@ type VoiceStatusPayload = {
 export class VoiceService {
   private static isInitialized = false;
   private static webRtc = new WebRtcService();
-  private static roomId: string | null = null;
+  private static roomId?: string;
 
-  private static myProducer: Producer | null = null;
+  private static myProducer?: Producer;
   private static consumers: Map<string, Consumer> = new Map(); // Key: remoteProducerId
 
   private static statusListeners: Set<(payload: VoiceStatusPayload) => void> = new Set();
@@ -141,7 +141,7 @@ export class VoiceService {
       producer_id: this.myProducer.id,
     });
     this.myProducer.close();
-    this.myProducer = null;
+    this.myProducer = undefined;
   }
 
   /**
@@ -226,8 +226,8 @@ export class VoiceService {
     await WebSocketService.request('voice:room:leave', { room_id: this.roomId });
     this.webRtc.cleanup();
     this.consumers.clear();
-    this.myProducer = null;
-    this.roomId = null;
+    this.myProducer = undefined;
+    this.roomId = undefined;
   }
 
   /**

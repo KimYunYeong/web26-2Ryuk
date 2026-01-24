@@ -16,13 +16,13 @@ export default function RemainingTimeBar({
   onComplete,
 }: RemainingTimeBarProps) {
   const [remainingMs, setRemainingMs] = useState(() => Math.max(0, durationMs));
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<number>();
   const completionCalledRef = useRef(false);
 
   useEffect(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
-      intervalRef.current = null;
+      intervalRef.current = undefined;
     }
 
     const safeDuration = Math.max(0, durationMs);
@@ -46,7 +46,7 @@ export default function RemainingTimeBar({
       if (nextRemaining === 0) {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
-          intervalRef.current = null;
+          intervalRef.current = undefined;
         }
         if (!completionCalledRef.current) {
           completionCalledRef.current = true;
@@ -58,7 +58,7 @@ export default function RemainingTimeBar({
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        intervalRef.current = null;
+        intervalRef.current = undefined;
       }
     };
   }, [durationMs, onComplete]);

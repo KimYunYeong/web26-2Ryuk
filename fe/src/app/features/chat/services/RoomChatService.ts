@@ -30,7 +30,7 @@ export class RoomChatService {
   private roomInvalidatedCallbacks: Set<() => void> = new Set();
   private isSubscribed = false;
   private messages: ChatReceiveData[] = [];
-  private currentRoomId: string | null = null;
+  private currentRoomId?: string;
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
 
   /**
@@ -224,7 +224,7 @@ export class RoomChatService {
   clearSubscriptionOnly(): void {
     this.removeEventHandlers();
     this.isSubscribed = false;
-    this.currentRoomId = null;
+    this.currentRoomId = undefined;
     this.messages = [];
     this.notifyConnection(false);
   }
@@ -259,7 +259,7 @@ export class RoomChatService {
     }
 
     this.isSubscribed = false;
-    this.currentRoomId = null;
+    this.currentRoomId = undefined;
     this.messages = [];
     this.notifyConnection(false);
   }

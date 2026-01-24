@@ -33,7 +33,7 @@ export class GlobalChatService implements ChatChannel {
   private isSubscribed = false;
   private messages: ChatReceiveData[] = [];
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
-  private connectPromise: Promise<void> | null = null;
+  private connectPromise?: Promise<void>;
   private currentParticipants = 0;
 
   async connect(): Promise<void> {
@@ -53,7 +53,7 @@ export class GlobalChatService implements ChatChannel {
 
     this.connectPromise = WebSocketService.ensureConnected();
     await this.connectPromise;
-    this.connectPromise = null;
+    this.connectPromise = undefined;
   }
 
   async ensureConnected(): Promise<void> {
@@ -150,7 +150,7 @@ export class GlobalChatService implements ChatChannel {
     this.notifyConnection(false);
     this.removeEventHandlers();
     WebSocketService.disconnect();
-    this.connectPromise = null;
+    this.connectPromise = undefined;
     this.isSubscribed = false;
   }
 

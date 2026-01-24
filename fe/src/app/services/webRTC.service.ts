@@ -2,9 +2,9 @@ import { Device, Transport, Producer, Consumer } from 'mediasoup-client/types';
 import * as mediasoupClient from 'mediasoup-client';
 
 export class WebRtcService {
-  private device: Device | null = null;
-  private sendTransport: Transport | null = null;
-  private recvTransport: Transport | null = null;
+  private device?: Device;
+  private sendTransport?: Transport;
+  private recvTransport?: Transport;
 
   /**
    * 1. 로컬 디바이스 초기화
@@ -72,9 +72,9 @@ export class WebRtcService {
   cleanup() {
     this.sendTransport?.close();
     this.recvTransport?.close();
-    this.sendTransport = null;
-    this.recvTransport = null;
-    this.device = null;
+    this.sendTransport = undefined;
+    this.recvTransport = undefined;
+    this.device = undefined;
   }
 
   // Getters
