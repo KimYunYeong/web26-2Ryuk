@@ -9,7 +9,7 @@ import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import useNavigation from '@/app/hooks/useNavigation';
-import { useGame } from '@/app/features/game/hooks/useGame';
+import { useGame } from '@/app/features/game/hooks/game';
 import { GamePlayerData } from '@/app/features/game/dtos/data';
 
 export interface UseRoomResult {
