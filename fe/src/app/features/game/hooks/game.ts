@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { showInfoToast, useToast } from '@/app/components/shared/toast/useToast';
+import { useToast } from '@/app/components/shared/toast/useToast';
 import { modalStore } from '@/app/components/shared/modal/modal.store';
 import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
@@ -9,8 +9,8 @@ import { GamePlayerData, GameJoinAckData } from '@/app/features/game/dtos/data';
 import { gameService } from '@/app/features/game/services/GameService';
 import { UseGameResult } from '@/app/features/game/hooks/type';
 
-export function useGame(roomId: string, isHost: boolean): UseGameResult {
-  const { showSuccessToast, showErrorToast } = useToast();
+export function useGame(roomId?: string, isHost?: boolean): UseGameResult {
+  const { showSuccessToast, showInfoToast, showErrorToast } = useToast();
   const [isGameRecruiting, setIsGameRecruiting] = useState(false);
   const [isReadyModalOpen, setIsReadyModalOpen] = useState(false);
   const roomData = roomStore((state) => state.roomData);
