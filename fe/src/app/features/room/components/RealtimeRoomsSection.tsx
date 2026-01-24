@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { loadingStore } from '@/app/features/loading/stores/loading';
+import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
 
 export default function RealtimeRoomsSection() {
   const { isDesktop } = useResponsive();
@@ -48,19 +49,18 @@ export default function RealtimeRoomsSection() {
   const handleSubmit = async (data: RoomEditData) => {
     const roomDto = RoomConverter.toEditDto(data);
     show();
-    try {
-      const createdRoom = await roomService.createRoom(roomDto);
-      closeModal('room-creation');
 
-      // 호스트가 방을 만든 직후 Socket.io room에 참여하도록 구독
-      await roomChatService.subscribe(createdRoom.id);
+    const createdRoom = await roomService.createRoom(roomDto);
+    closeModal('room-creation');
 
-      goToRoom(createdRoom.id);
-      setRoom(createdRoom.id);
-      setRoomData(RoomConverter.toData(createdRoom));
-    } finally {
-      hide();
-    }
+    // 호스트가 방을 만든 직후 Socket.io room에 참여하도록 구독
+    await roomChatService.subscribe(createdRoom.id);
+
+    goToRoom(createdRoom.id);
+    setRoom(createdRoom.id);
+    setRoomData(RoomConverter.toData(createdRoom));
+
+    hide();
   };
 
   return (
@@ -76,13 +76,24 @@ export default function RealtimeRoomsSection() {
               <SearchForm placeholder="제목, 내용, 작성자 검색" onSubmit={handleSearch} />
             </div>
             <div className={styles.createRoom}>
-              <TextButton.Primary
-                text="방 만들기"
-                size="medium"
-                iconName="add"
-                modalId="room-creation"
-                disabled={!!roomId || !isAuthenticated}
-              />
+              <TooltipTrigger dataAnchor="create-room-button">
+                <TextButton.Primary
+                  text="방 만들기"
+                  size="medium"
+                  iconName="add"
+                  modalId="room-creation"
+                  disabled={!!roomId || !isAuthenticated}
+                />
+              </TooltipTrigger>
+              {!isAuthenticated && (
+                <TextTooltip text="먼저 로그인을 해주세요!" anchorId="create-room-button" />
+              )}
+              {roomId && (
+                <TextTooltip
+                  text="소속된 방이 있으면 방을 생성할 수 없어요"
+                  anchorId="create-room-button"
+                />
+              )}
             </div>
           </div>
         </div>
