@@ -27,9 +27,10 @@ export default function LocalChatPanel() {
   const { goToRoom } = useNavigation();
   const roomTitle = roomData?.title || '대화방';
 
+  const [initialPosition, setInitialPosition] = useState<Position>(PANEL_CONFIG.DEFAULT_POSITION);
+
   // 초기 위치 계산: 오른쪽 하단
-  const getInitialPosition = (): Position => {
-    if (typeof window === 'undefined') return PANEL_CONFIG.DEFAULT_POSITION;
+  useEffect(() => {
     const x = window.innerWidth - PANEL_CONFIG.WIDTH - PANEL_CONFIG.OFFSET;
     const y =
       window.innerHeight -
@@ -37,10 +38,8 @@ export default function LocalChatPanel() {
       PANEL_CONFIG.OFFSET -
       PANEL_CONFIG.HEIGHT -
       PANEL_CONFIG.GAP;
-    return { x, y };
-  };
-
-  const [initialPosition] = useState<Position>(getInitialPosition());
+    setInitialPosition({ x, y });
+  }, []);
 
   // 채팅 구독, 메시지, 연결 상태를 자동으로 관리
   const { chats, isConnected } = useRoomChat(roomId, isJoined);

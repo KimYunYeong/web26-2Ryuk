@@ -17,14 +17,13 @@ export default function GlobalChatPanel() {
   const [currentParticipants, setCurrentParticipants] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
 
-  const getInitialPosition = (): Position => {
-    if (typeof window === 'undefined') return PANEL_CONFIG.DEFAULT_POSITION;
+  const [initialPosition, setInitialPosition] = useState<Position>(PANEL_CONFIG.DEFAULT_POSITION);
+
+  useEffect(() => {
     const x = window.innerWidth - PANEL_CONFIG.WIDTH - PANEL_CONFIG.OFFSET;
     const y = window.innerHeight - PANEL_CONFIG.HEIGHT - PANEL_CONFIG.OFFSET;
-    return { x, y };
-  };
-
-  const [initialPosition] = useState<Position>(getInitialPosition());
+    setInitialPosition({ x, y });
+  }, []);
 
   // WebSocket 연결 및 구독
   useEffect(() => {
