@@ -10,7 +10,6 @@ import { useRoomChat } from '../hooks/useRoomChat';
 import { Position } from '@/app/components/shared/floatingWidget/type';
 import { PANEL_CONFIG } from './type';
 import * as TextButton from '@/app/components/shared/button/TextButton';
-import { useRouter } from 'next/navigation';
 import Avatar from '@/app/components/shared/profile/Avatar';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import roomService from '@/app/features/room/services/RoomService';
@@ -32,7 +31,12 @@ export default function LocalChatPanel() {
   const getInitialPosition = (): Position => {
     if (typeof window === 'undefined') return PANEL_CONFIG.DEFAULT_POSITION;
     const x = window.innerWidth - PANEL_CONFIG.WIDTH - PANEL_CONFIG.OFFSET;
-    const y = window.innerHeight - PANEL_CONFIG.HEIGHT - PANEL_CONFIG.OFFSET;
+    const y =
+      window.innerHeight -
+      PANEL_CONFIG.HEIGHT -
+      PANEL_CONFIG.OFFSET -
+      PANEL_CONFIG.HEIGHT -
+      PANEL_CONFIG.GAP;
     return { x, y };
   };
 
@@ -85,7 +89,7 @@ export default function LocalChatPanel() {
           <div className={styles.sectionTitle}>{roomTitle}</div>
         </div>
         <TextButton.Outline
-          iconName="right"
+          iconName="open"
           text="방으로"
           size="small"
           onClick={handleGoRoomClick}

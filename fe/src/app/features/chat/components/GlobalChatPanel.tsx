@@ -20,12 +20,7 @@ export default function GlobalChatPanel() {
   const getInitialPosition = (): Position => {
     if (typeof window === 'undefined') return PANEL_CONFIG.DEFAULT_POSITION;
     const x = window.innerWidth - PANEL_CONFIG.WIDTH - PANEL_CONFIG.OFFSET;
-    const y =
-      window.innerHeight -
-      PANEL_CONFIG.HEIGHT -
-      PANEL_CONFIG.OFFSET -
-      PANEL_CONFIG.HEIGHT -
-      PANEL_CONFIG.GAP;
+    const y = window.innerHeight - PANEL_CONFIG.HEIGHT - PANEL_CONFIG.OFFSET;
     return { x, y };
   };
 
