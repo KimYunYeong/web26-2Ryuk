@@ -9,5 +9,15 @@ export interface UseRoomResult {
   showPasswordAuth: boolean;
   handlePasswordConfirm: (password: string) => Promise<void>;
   handlePasswordCancel: () => void;
+  handleLeaveRoom: () => Promise<void>;
+  handleDeleteRoom: () => Promise<void>;
+  deleteModalId: string;
+  leaveModalId: string;
+  openDeleteModal: () => void;
+  openLeaveModal: () => void;
+  handleDeleteModalCancel: () => void;
+  handleDeleteModalConfirm: () => Promise<void>;
+  handleLeaveModalCancel: () => void;
+  handleLeaveModalConfirm: () => Promise<void>;
   game: UseGameResult;
 }

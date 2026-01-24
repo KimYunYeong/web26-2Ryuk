@@ -1,4 +1,3 @@
-// app/components/feature/beaker/BeakerFillView.tsx
 'use client';
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
