@@ -7,8 +7,9 @@ import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
 import { GamePlayerData, GameJoinAckData } from '@/app/features/game/dtos/data';
 import { gameService } from '@/app/features/game/services/GameService';
+import { UseGameResult } from '@/app/features/game/hooks/type';
 
-export function useGame(roomId: string, isHost: boolean) {
+export function useGame(roomId: string, isHost: boolean): UseGameResult {
   const { showSuccessToast, showErrorToast } = useToast();
   const [isGameRecruiting, setIsGameRecruiting] = useState(false);
   const [isReadyModalOpen, setIsReadyModalOpen] = useState(false);
@@ -230,11 +231,11 @@ export function useGame(roomId: string, isHost: boolean) {
   }, [closeReadyModal, showInfoToast]);
 
   return {
+    myStatus: myStatus ?? initialPlayer,
+    gamePlayers,
     isGameRecruiting,
     isReadyModalOpen,
     handleGameRecruitClick,
-    myStatus,
-    gamePlayers,
     handleReadyChange,
     handleLeaveGame,
     handleCloseGame,

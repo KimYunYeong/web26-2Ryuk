@@ -25,17 +25,21 @@ export default function RoomPage() {
     roomData,
     roomJoinInfoData,
     isHost,
-    isGameRecruiting,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
+    game,
+  } = useRoom(roomId);
+
+  const {
+    isGameRecruiting,
+    myStatus,
+    gamePlayers,
     handleGameRecruitClick,
     handleReadyChange,
     handleLeaveGame,
     handleCloseGame,
-    myStatus,
-    gamePlayers,
-  } = useRoom(roomId);
+  } = game;
 
   const isGameButtonEnabled = isHost || isGameRecruiting;
 

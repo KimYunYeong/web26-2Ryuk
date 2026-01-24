@@ -1,122 +1,65 @@
+// features/room/hooks/room.ts
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
-import roomService from '@/app/features/room/services/RoomService';
-import { RoomConverter } from '@/app/features/room/dtos/converter';
-import { RoomJoinInfoData } from '@/app/features/room/dtos/data';
-import { authStore, AuthStore } from '@/app/features/user/stores/auth';
-import { roomChatService } from '@/app/features/chat/services/RoomChatService';
+import { roomStore } from '@/app/features/room/stores/room';
+import { authStore } from '@/app/features/user/stores/auth';
+import * as roomEntry from '@/app/features/room/utils/roomEntry';
+import * as roomActions from '@/app/features/room/utils/roomActions';
+import { useGame } from '@/app/features/game/hooks/game';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import useNavigation from '@/app/hooks/useNavigation';
-import { useGame } from '@/app/features/game/hooks/game';
-import { GamePlayerData } from '@/app/features/game/dtos/data';
-
-export interface UseRoomResult {
-  roomData: RoomStore['roomData'];
-  roomJoinInfoData: RoomJoinInfoData | null;
-  isHost: boolean;
-  isGameRecruiting: boolean;
-  isGameReadyModalOpen: boolean;
-  myStatus: GamePlayerData;
-  gamePlayers: GamePlayerData[];
-  showPasswordAuth: boolean;
-  handlePasswordConfirm: (password: string) => Promise<void>;
-  handlePasswordCancel: () => void;
-  handleGameRecruitClick: () => Promise<void>;
-  handleReadyChange: (isReady: boolean) => Promise<void>;
-  handleLeaveGame: () => Promise<void>;
-  handleCloseGame: () => Promise<void>;
-}
+import { RoomJoinInfoData } from '@/app/features/room/dtos/data';
+import { UseRoomResult } from '@/app/features/room/hooks/type';
 
 export function useRoom(roomId: string): UseRoomResult {
-  const { showSuccessToast, showErrorToast } = useToast();
-  const { goBack, goHome } = useNavigation();
+  const { showSuccessToast } = useToast();
+  const { goHome, goBack } = useNavigation();
 
-  const roomData = roomStore((state: RoomStore) => state.roomData);
-  const userId = authStore((state: AuthStore) => state.userId);
+  const userId = authStore((s) => s.userId) ?? undefined;
+  const roomData = roomStore((s) => s.roomData);
 
-  const [roomJoinInfoData, setRoomJoinInfoData] = useState<RoomJoinInfoData | null>(null);
+  const [roomJoinInfoData, setRoomJoinInfoData] = useState<RoomJoinInfoData>();
   const [showPasswordAuth, setShowPasswordAuth] = useState(false);
   const [isHost, setIsHost] = useState(false);
 
-  const {
-    isGameRecruiting,
-    isReadyModalOpen,
-    handleGameRecruitClick,
-    handleReadyChange,
-    handleLeaveGame,
-    handleCloseGame,
-    myStatus,
-    gamePlayers,
-  } = useGame(roomId, isHost);
+  const game = useGame(roomId, isHost);
 
+  // 초기 진입
   useEffect(() => {
     if (!roomId || !userId) return;
 
-    const syncFromBe = async () => {
-      if (!userId) {
-        showErrorToast('로그인 후 이용해주세요.');
-        goHome();
-        return;
-      }
-
-      if (!roomId) return;
-
+    (async () => {
       try {
-        // 1. 입장 정보
-        const joinInfoDto = await roomService.getRoomJoinInfo(roomId);
-        const joinInfoData = RoomConverter.toRoomJoinInfoData(joinInfoDto);
-        setRoomJoinInfoData(joinInfoData);
+        // 방 입장 가능 여부 조회
+        const joinInfo = await roomEntry.fetchRoomJoinInfo(roomId);
+        setRoomJoinInfoData(joinInfo);
 
-        // 2. 방 정보
-        const roomDto = await roomService.getRoom(roomId);
-        const convertedRoom = RoomConverter.toData(roomDto);
-        roomStore.getState().setRoomData(convertedRoom);
-        setIsHost(convertedRoom.hostId === userId);
+        // 방 세션 진입
+        const result = await roomEntry.enterRoomSession(roomId, joinInfo, userId);
 
-        // 3. 비회원 + 비공개
-        if (!joinInfoData.isMember && joinInfoData.isPrivate) {
-          setShowPasswordAuth(true);
-          return;
-        }
+        // 비밀번호 인증 필요
+        if (result.needPassword) return setShowPasswordAuth(true);
 
-        // 4. 입장 처리
-        if (!joinInfoData.isMember) {
-          await roomService.validateJoin(roomId);
-          await roomChatService.subscribe(roomId);
-          showSuccessToast('방에 입장했습니다!');
-          return;
-        }
+        // 방장 여부 설정
+        setIsHost(result.isHost);
 
-        await roomChatService.subscribe(roomId);
+        showSuccessToast('방에 입장했습니다!');
       } catch {
-        roomStore.getState().leaveRoom();
-        roomChatService.clearSubscriptionOnly();
+        await roomActions.leaveRoom();
         goHome();
       }
-    };
+    })();
+  }, [roomId, userId]);
 
-    const unsubInvalidated = roomChatService.onRoomInvalidated(goHome);
-    syncFromBe();
-
-    return () => unsubInvalidated();
-  }, [roomId, userId, showSuccessToast, showErrorToast]);
-
+  // 비밀번호 인증
   const handlePasswordConfirm = useCallback(
     async (password: string) => {
-      await roomService.validateJoin(roomId, password);
+      await roomEntry.enterRoomWithPassword(roomId, password, userId);
       setShowPasswordAuth(false);
       showSuccessToast('방에 입장했습니다!');
-
-      await roomChatService.subscribe(roomId);
-
-      const roomDto = await roomService.getRoom(roomId);
-      const convertedRoom = RoomConverter.toData(roomDto);
-      roomStore.getState().setRoomData(convertedRoom);
-      setIsHost(convertedRoom.hostId === userId);
     },
-    [roomId, userId, showSuccessToast],
+    [roomId, userId],
   );
 
   const handlePasswordCancel = useCallback(() => {
@@ -124,28 +67,13 @@ export function useRoom(roomId: string): UseRoomResult {
     goBack();
   }, [goBack]);
 
-  const safeMyStatus: GamePlayerData = myStatus ?? {
-    userId: userId ?? '',
-    nickname: '',
-    profileImage: '',
-    isHost,
-    isReady: false,
-  };
-
   return {
     roomData,
     roomJoinInfoData,
     isHost,
-    isGameRecruiting,
-    isGameReadyModalOpen: isReadyModalOpen,
-    myStatus: safeMyStatus,
-    gamePlayers,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
-    handleGameRecruitClick,
-    handleReadyChange,
-    handleLeaveGame,
-    handleCloseGame,
+    game,
   };
 }
