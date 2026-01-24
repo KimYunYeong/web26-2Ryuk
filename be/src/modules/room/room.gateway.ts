@@ -215,6 +215,8 @@ export class RoomGateway {
    * Redis 상태 변경, 소켓 룸 탈퇴, 브로드캐스트 수행
    */
   private async leaveRoomProcess(client: Socket, userId: string, roomId: string) {
+    const nickname = await this.roomService.getRoomMemberNickname(roomId, userId);
+
     // Redis에서 제거
     await this.roomService.leaveRoom(this.server, userId, roomId);
 
@@ -225,6 +227,6 @@ export class RoomGateway {
     const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
 
     // 다른 참여자에게 알림
-    await this.roomService.notifyUserLeft(this.server, roomId, userId, currentParticipants);
+    await this.roomService.notifyUserLeft(this.server, roomId, { userId, nickname }, currentParticipants);
   }
 }

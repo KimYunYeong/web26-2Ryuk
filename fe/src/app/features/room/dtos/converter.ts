@@ -181,7 +181,10 @@ export const toRoomParticipantLeaveData = (
   dto: RoomParticipantLeaveDto,
 ): RoomParticipantLeaveData => ({
   roomId: dto.room_id,
-  userId: dto.user_id,
+  user: {
+    id: dto.user.id,
+    nickname: dto.user.nickname,
+  },
   currentParticipants: Number(dto.current_participants),
 });
 

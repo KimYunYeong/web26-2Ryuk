@@ -32,6 +32,7 @@ export class RoomChatService {
   private messages: ChatReceiveData[] = [];
   private currentRoomId?: string;
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
+  private handlersRegistered = false;
 
   /**
    * 방 채팅 구독 (이미 연결된 WebSocket 세션 사용)
@@ -101,13 +102,11 @@ export class RoomChatService {
    * WebSocket 이벤트 핸들러 등록
    */
   private registerEventHandlers(): void {
-    // 기존 핸들러 제거
-    this.removeEventHandlers();
+    if (this.handlersRegistered) return;
+    this.handlersRegistered = true;
 
     // 소켓 끊김 시 연결 상태만 false
     const disconnectHandler = () => this.notifyConnection(false);
-    this.eventHandlers.set(WS_EVENTS.DISCONNECT, disconnectHandler);
-    WebSocketService.on(WS_EVENTS.DISCONNECT, disconnectHandler);
 
     // 소켓 재연결 시 같은 방이면 room:join 재요청
     const connectHandler = async () => {
@@ -122,8 +121,6 @@ export class RoomChatService {
         }
       }
     };
-    this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
-    WebSocketService.on(WS_EVENTS.CONNECT, connectHandler);
 
     // room:participant:join 브로드캐스트 핸들러
     const joinedBroadcastHandler = (dto: RoomParticipantJoinDto) => {
@@ -146,15 +143,11 @@ export class RoomChatService {
         currentParticipants: data.currentParticipants,
       });
     };
-    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
-    WebSocketService.on(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
 
     // room:leave ACK 핸들러 (방 퇴장 성공)
     const leaveAckHandler = (_data: RoomLeaveAckDto) => {
       // ACK는 특별한 처리가 필요 없을 수 있음
     };
-    this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
-    WebSocketService.on(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
 
     // room:participant:leave 브로드캐스트 핸들러 (다른 사용자 퇴장)
     const leftBroadcastHandler = (dto: RoomParticipantLeaveDto) => {
@@ -162,29 +155,32 @@ export class RoomChatService {
       if (data.roomId !== this.currentRoomId) return;
 
       const currentUserId = authStore.getState().userId;
-      const isOtherUser = !currentUserId || data.userId !== currentUserId;
+      const isOtherUser = !currentUserId || data.user.id !== currentUserId;
 
       if (isOtherUser) {
-        toastStore.getState().showInfoToast('사용자가 퇴장했습니다.');
-        roomStore.getState().removeParticipant(data.userId);
+        toastStore.getState().showInfoToast(`${data.user.nickname}님이 퇴장했습니다.`);
+        roomStore.getState().removeParticipant(data.user.id);
       }
 
       roomStore.getState().updateRoomData({
         currentParticipants: data.currentParticipants,
       });
     };
-    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
-    WebSocketService.on(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
 
     // chat:room:new-message 핸들러
     const messageHandler = (dto: ChatReceiveDto) => this.handleRoomMessage(dto);
-    this.eventHandlers.set(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
-    WebSocketService.on(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
 
     // error 핸들러
     const errorHandler = (error: any) => this.handleError(error);
+    this.eventHandlers.set(WS_EVENTS.DISCONNECT, disconnectHandler);
+    this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
     this.eventHandlers.set(WS_EVENTS.ERROR, errorHandler);
-    WebSocketService.on(WS_EVENTS.ERROR, errorHandler);
+
+    this.eventHandlers.forEach((handler, event) => WebSocketService.on(event, handler));
   }
 
   /**
@@ -193,6 +189,7 @@ export class RoomChatService {
   private removeEventHandlers(): void {
     this.eventHandlers.forEach((handler, event) => WebSocketService.off(event, handler));
     this.eventHandlers.clear();
+    this.handlersRegistered = false;
   }
 
   /**

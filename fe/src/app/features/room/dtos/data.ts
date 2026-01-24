@@ -95,6 +95,9 @@ export type RoomLeaveAckData = {
 
 export type RoomParticipantLeaveData = {
   roomId: string;
-  userId: string;
+  user: {
+    id: string;
+    nickname: string;
+  };
   currentParticipants: number;
 };
