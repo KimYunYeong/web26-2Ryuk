@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { loadingStore } from '@/app/features/loading/stores/loading';
+import { useToast } from '@/app/components/shared/toast/useToast';
 import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
 
 export default function RealtimeRoomsSection() {
@@ -28,6 +29,7 @@ export default function RealtimeRoomsSection() {
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const { setRoom, setRoomData } = roomStore();
   const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
+  const { showSuccessToast } = useToast();
   const roomId = roomStore((state: RoomStore) => state.roomId);
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
   const { show, hide } = loadingStore();
@@ -59,6 +61,8 @@ export default function RealtimeRoomsSection() {
     goToRoom(createdRoom.id);
     setRoom(createdRoom.id);
     setRoomData(RoomConverter.toData(createdRoom));
+
+    showSuccessToast('방을 생성했습니다!');
 
     hide();
   };

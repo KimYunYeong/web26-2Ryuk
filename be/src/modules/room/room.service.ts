@@ -552,8 +552,9 @@ export class RoomService implements OnModuleInit {
       // 이미 참여 중인지 확인
       const isInRoom = await this.isUserInRoom(userId, roomId);
       if (isInRoom) {
-        logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '이미 참여 중인 사용자입니다.'));
-        throw new ConflictException('이미 해당 방에 참여 중입니다.');
+        return;
+        // logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '이미 참여 중인 사용자입니다.'));
+        // throw new ConflictException('이미 해당 방에 참여 중입니다.');
       }
 
       // 정원 확인 (GLOBAL 방 제외)
