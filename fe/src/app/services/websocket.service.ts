@@ -190,13 +190,9 @@ export class WebSocketService {
         let attempts = 0;
         const checkAndRegister = () => {
           attempts++;
-          if (this.socket) {
-            registerListener();
-          } else if (attempts < 50) {
-            setTimeout(checkAndRegister, 100);
-          } else {
-            console.error('[WebSocket] 리스너 등록 실패: Socket 인스턴스가 존재하지 않습니다.');
-          }
+          if (this.socket) registerListener();
+          else if (attempts < 50) setTimeout(checkAndRegister, 100);
+          else console.error('[WebSocket] 리스너 등록 실패: Socket 인스턴스가 존재하지 않습니다.');
         };
         checkAndRegister();
         return;

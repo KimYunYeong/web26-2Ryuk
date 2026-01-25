@@ -35,6 +35,7 @@ export class GlobalChatService implements ChatChannel {
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private connectPromise?: Promise<void>;
   private currentParticipants = 0;
+  private boundToken?: string;
 
   async connect(): Promise<void> {
     if (WebSocketService.isConnected()) {
@@ -62,8 +63,13 @@ export class GlobalChatService implements ChatChannel {
   }
 
   async subscribe(): Promise<void> {
+    const currentToken = authStore.getState().token;
+
     // 이미 구독 중이면 중복 구독 방지
-    if (this.isSubscribed) return;
+    if (this.isSubscribed) {
+      if (this.boundToken === currentToken) return;
+      await this.unsubscribe();
+    }
 
     await this.connect();
     if (WebSocketService.isConnected()) this.notifyConnection(true);
@@ -84,6 +90,7 @@ export class GlobalChatService implements ChatChannel {
     this.notifyParticipants(this.currentParticipants);
 
     this.isSubscribed = true;
+    this.boundToken = currentToken;
   }
 
   private registerEventHandlers(): void {
