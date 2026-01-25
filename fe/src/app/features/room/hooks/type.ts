@@ -5,7 +5,6 @@ import { UseGameResult } from '@/app/features/game/hooks/type';
 export interface UseRoomResult {
   roomData?: RoomData;
   roomJoinInfoData?: RoomJoinInfoData;
-  isHost: boolean;
   showPasswordAuth: boolean;
   handlePasswordConfirm: (password: string) => Promise<void>;
   handlePasswordCancel: () => void;

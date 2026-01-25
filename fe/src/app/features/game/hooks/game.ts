@@ -9,7 +9,7 @@ import { GamePlayerData, GameJoinAckData } from '@/app/features/game/dtos/data';
 import { gameService } from '@/app/features/game/services/GameService';
 import { UseGameResult } from '@/app/features/game/hooks/type';
 
-export function useGame(roomId?: string, isHost?: boolean): UseGameResult {
+export function useGame(roomId?: string): UseGameResult {
   const { showSuccessToast, showInfoToast, showErrorToast } = useToast();
   const [isGameRecruiting, setIsGameRecruiting] = useState(false);
   const [isReadyModalOpen, setIsReadyModalOpen] = useState(false);
@@ -17,6 +17,8 @@ export function useGame(roomId?: string, isHost?: boolean): UseGameResult {
   const userId = authStore((state) => state.userId);
   const [gamePlayers, setGamePlayers] = useState<GamePlayerData[]>([]);
   const [myStatus, setMyStatus] = useState<GamePlayerData>();
+
+  const isHost = roomData?.hostId === userId;
 
   const initialPlayer: GamePlayerData = {
     userId: userId ?? '',

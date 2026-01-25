@@ -14,17 +14,18 @@ import { useParams } from 'next/navigation';
 import { useRoom } from '@/app/features/room/hooks/room';
 import Modal from '@/app/components/shared/modal/Modal';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
+import { authStore } from '@/app/features/user/stores/auth';
 
 export default function RoomPage() {
   const params = useParams();
   const roomId = params.id as string;
 
+  const userId = authStore((s) => s.userId);
   const { status } = useResponsive();
 
   const {
     roomData,
     roomJoinInfoData,
-    isHost,
     showPasswordAuth,
     handlePasswordConfirm,
     handlePasswordCancel,
@@ -41,6 +42,7 @@ export default function RoomPage() {
     handleCloseGame,
   } = game;
 
+  const isHost = roomData?.hostId === userId;
   const isGameButtonEnabled = isHost || isGameRecruiting;
 
   return (
