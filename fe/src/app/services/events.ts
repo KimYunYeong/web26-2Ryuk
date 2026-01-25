@@ -12,6 +12,7 @@ export const WS_EVENTS = {
   ROOM_LEAVE: 'room:leave',
   ROOM_PARTICIPANT_LEAVE: 'room:participant:leave',
   ROOM_PARTICIPANT_JOIN: 'room:participant:join',
+  ROOM_PARTICIPANT_DELETE: 'room:participant:delete',
 
   // 방 채팅 이벤트
   CHAT_ROOM_SEND: 'chat:room:send',

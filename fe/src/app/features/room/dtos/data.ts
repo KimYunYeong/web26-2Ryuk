@@ -101,3 +101,7 @@ export type RoomParticipantLeaveData = {
   };
   currentParticipants: number;
 };
+
+export type RoomParticipantDeleteData = {
+  roomId: string;
+};

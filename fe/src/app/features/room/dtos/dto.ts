@@ -98,3 +98,7 @@ export type RoomParticipantLeaveDto = {
   };
   current_participants: string;
 };
+
+export type RoomParticipantDeleteDto = {
+  room_id: string;
+};

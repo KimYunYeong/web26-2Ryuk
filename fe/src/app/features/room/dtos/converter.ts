@@ -9,6 +9,7 @@ import {
   RoomListDto,
   RoomParticipantJoinDto,
   RoomParticipantLeaveDto,
+  RoomParticipantDeleteDto,
   RoomUpdateRequestDto,
   RoomValidateJoinRequestDto,
   RoomValidateJoinResponseDto,
@@ -25,6 +26,7 @@ import {
   RoomLeaveData,
   RoomParticipantJoinData,
   RoomParticipantLeaveData,
+  RoomParticipantDeleteData,
   RoomUpdateRequestData,
   RoomValidateJoinRequestData,
   RoomMyCurrentData,
@@ -188,6 +190,12 @@ export const toRoomParticipantLeaveData = (
   currentParticipants: Number(dto.current_participants),
 });
 
+export const toRoomParticipantDeleteData = (
+  dto: RoomParticipantDeleteDto,
+): RoomParticipantDeleteData => ({
+  roomId: dto.room_id,
+});
+
 export const RoomConverter = {
   toData,
   toListData,
@@ -207,4 +215,5 @@ export const RoomConverter = {
   toRoomLeaveDto,
   toRoomLeaveData,
   toRoomParticipantLeaveData,
+  toRoomParticipantDeleteData,
 };

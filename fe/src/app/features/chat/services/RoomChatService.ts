@@ -12,6 +12,7 @@ import {
   RoomLeaveAckDto,
   RoomLeaveDto,
   RoomParticipantLeaveDto,
+  RoomParticipantDeleteDto,
 } from '@/app/features/room/dtos/dto';
 import { WS_EVENTS } from '@/app/services/events';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
@@ -33,6 +34,14 @@ export class RoomChatService {
   private currentRoomId?: string;
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
+  private boundSocket?: unknown;
+
+  constructor() {
+    WebSocketService.onReconnect(() => {
+      this.removeEventHandlers();
+      this.registerEventHandlers();
+    });
+  }
 
   /**
    * 방 채팅 구독 (이미 연결된 WebSocket 세션 사용)
@@ -55,6 +64,11 @@ export class RoomChatService {
       // WebSocket 연결 확인
       const socket = WebSocketService.getSocket();
       if (!socket) return;
+
+      if (this.boundSocket !== socket) {
+        this.removeEventHandlers();
+        this.boundSocket = socket;
+      }
 
       if (!socket.connected) {
         await new Promise<void>((resolve) => socket.once(WS_EVENTS.CONNECT, resolve));
@@ -167,6 +181,16 @@ export class RoomChatService {
       });
     };
 
+    // room:participant:delete 브로드캐스트 핸들러 (방 삭제)
+    const deleteBroadcastHandler = (dto: RoomParticipantDeleteDto) => {
+      const data = RoomConverter.toRoomParticipantDeleteData(dto);
+      if (data.roomId !== this.currentRoomId) return;
+
+      roomStore.getState().leaveRoom();
+      this.clearSubscriptionOnly();
+      this.roomInvalidatedCallbacks.forEach((cb) => cb());
+    };
+
     // chat:room:new-message 핸들러
     const messageHandler = (dto: ChatReceiveDto) => this.handleRoomMessage(dto);
 
@@ -177,6 +201,7 @@ export class RoomChatService {
     this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
     this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
     this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_DELETE, deleteBroadcastHandler);
     this.eventHandlers.set(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
     this.eventHandlers.set(WS_EVENTS.ERROR, errorHandler);
 
@@ -190,6 +215,7 @@ export class RoomChatService {
     this.eventHandlers.forEach((handler, event) => WebSocketService.off(event, handler));
     this.eventHandlers.clear();
     this.handlersRegistered = false;
+    this.boundSocket = undefined;
   }
 
   /**

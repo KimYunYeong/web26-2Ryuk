@@ -12,10 +12,11 @@ import { RoomJoinInfoData } from '@/app/features/room/dtos/data';
 import { UseRoomResult } from '@/app/features/room/hooks/type';
 import { loadingStore } from '@/app/features/loading/stores/loading';
 import { useModal } from '@/app/components/shared/modal/useModal';
+import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 
 export function useRoom(roomId?: string): UseRoomResult {
   const { showSuccessToast } = useToast();
-  const { goBack, goHome } = useNavigation();
+  const { refresh, goBack, goHome } = useNavigation();
   const { show, hide } = loadingStore.getState();
   const { openModal, closeModal } = useModal();
   const deleteModalId = 'delete-room-modal';
@@ -26,9 +27,8 @@ export function useRoom(roomId?: string): UseRoomResult {
 
   const [roomJoinInfoData, setRoomJoinInfoData] = useState<RoomJoinInfoData>();
   const [showPasswordAuth, setShowPasswordAuth] = useState(false);
-  const [isHost, setIsHost] = useState(false);
 
-  const game = useGame(roomId, isHost);
+  const game = useGame(roomId);
 
   // 초기 진입
   useEffect(() => {
@@ -45,14 +45,15 @@ export function useRoom(roomId?: string): UseRoomResult {
       const passwordRequired = await roomEntry.isPasswordRequired(roomId, joinInfo);
       if (passwordRequired) return setShowPasswordAuth(true);
 
-      // 방장 여부 설정
-      setIsHost(roomData?.hostId === userId);
-
       // 이미 소속된 방일 경우 토스트 표시 안함
       if (joinInfo.isMember) return;
       showSuccessToast('방에 입장했습니다!');
-    })().then(hide);
+    })().finally(hide);
   }, [roomId, userId]);
+
+  useEffect(() => {
+    return roomChatService.onRoomInvalidated(goHome);
+  }, [goHome]);
 
   // 비밀번호 인증
   const handlePasswordConfirm = async (password: string) => {
@@ -60,6 +61,7 @@ export function useRoom(roomId?: string): UseRoomResult {
     await roomEntry.enterRoomWithPassword(roomId, password);
     setShowPasswordAuth(false);
     showSuccessToast('방에 입장했습니다!');
+    refresh();
   };
 
   const handlePasswordCancel = () => {
@@ -70,17 +72,17 @@ export function useRoom(roomId?: string): UseRoomResult {
   // 방 나가기
   const handleLeaveRoom = async () => {
     if (!roomId) return;
-    goHome();
     await roomActions.leaveRoom();
     showSuccessToast('퇴장했습니다!');
+    goHome();
   };
 
   // 방 삭제
   const handleDeleteRoom = async () => {
     if (!roomId) return;
-    goHome();
     await roomActions.deleteRoom(roomId);
     showSuccessToast('방을 삭제했습니다!');
+    goHome();
   };
 
   const openDeleteModal = () => openModal(deleteModalId);
@@ -103,7 +105,6 @@ export function useRoom(roomId?: string): UseRoomResult {
   return {
     roomData,
     roomJoinInfoData,
-    isHost,
     showPasswordAuth,
     handlePasswordCancel,
     handlePasswordConfirm,
