@@ -32,7 +32,8 @@ function RoomCard({
   }));
   const roomId = roomStore((state) => state.roomId);
   const noRemain = remainingCount === 0;
-  const enterable = roomId === id || !noRemain;
+  const isMember = roomId === id;
+  const enterable = isMember || !noRemain;
 
   const getStatusChipStatus = (): 'success' | 'warning' | 'error' => {
     if (noRemain) return 'error'; // 풀방
@@ -45,10 +46,15 @@ function RoomCard({
     goToRoom(id);
   };
 
-  const OpenButton = roomId === id ? PrimaryIconButton : SecondaryIconButton;
+  const OpenButton = isMember ? PrimaryIconButton : SecondaryIconButton;
 
   const titleAnchor = `room-title-${id}`;
   const openAnchor = `open-button-${id}`;
+
+  let tooltipText = '새로운 방에 입장합니다';
+  if (!isAuthenticated) tooltipText = '먼저 로그인을 해주세요!';
+  else if (isMember) tooltipText = '기존 방에 입장합니다';
+  else if (noRemain) tooltipText = '자리가 없어요!';
 
   return (
     <div className={styles.roomCard}>
@@ -88,10 +94,7 @@ function RoomCard({
             onClick={handleJoin}
           />
         </TooltipTrigger>
-        <TextTooltip
-          text={`${roomId === id ? '기존 방 입장' : '새로운 방 입장'}`}
-          anchorId={openAnchor}
-        />
+        <TextTooltip text={tooltipText} anchorId={openAnchor} />
       </div>
     </div>
   );
