@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { RoomData, ParticipantData } from '@/app/features/room/dtos/data';
+import { RoomData, RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 
 interface RoomState {
   roomId?: string;
@@ -14,7 +14,7 @@ interface RoomActions {
   setRoom: (roomId?: string) => void;
   setRoomData: (roomData?: RoomData) => void;
   updateRoomData: (updates: Partial<RoomData>) => void;
-  addParticipant: (participant: ParticipantData) => void;
+  addParticipant: (participant: PData) => void;
   removeParticipant: (userId: string) => void;
   setJoined: (isJoined: boolean) => void;
   leaveRoom: () => void;
@@ -61,7 +61,7 @@ export const roomStore = create<RoomStore>()(
           return next;
         }),
 
-      addParticipant: (participant: ParticipantData) =>
+      addParticipant: (participant: PData) =>
         set((state) => {
           if (!state.roomData) return state;
           const exists = state.roomData.participants.some((p) => p.userId === participant.userId);

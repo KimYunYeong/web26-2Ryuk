@@ -3,7 +3,7 @@
 import styles from './chat.module.css';
 import { SecondaryChip } from '@/app/components/shared/chip/Chip';
 import { roomStore, RoomStore } from '@/app/features/room/stores/room';
-import { ParticipantData } from '@/app/features/room/dtos/data';
+import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import VoiceParticipantCard from './VoiceParticipantCard';
 
@@ -13,8 +13,7 @@ export default function RoomVoiceChat() {
   const roomData = roomStore((state: RoomStore) => state.roomData);
   const currentParticipants = roomData?.currentParticipants;
   const maxParticipants = roomData?.maxParticipants;
-  const participants =
-    roomData?.participants?.filter((p: ParticipantData) => p.userId !== myId) ?? [];
+  const participants = roomData?.participants?.filter((p: PData) => p.userId !== myId) ?? [];
   const showChip = currentParticipants || maxParticipants;
 
   return (
@@ -40,7 +39,7 @@ export default function RoomVoiceChat() {
               isHost={roomData?.hostId === me.id}
             />
           )}
-          {participants.map((p: ParticipantData) => (
+          {participants.map((p: PData) => (
             <VoiceParticipantCard
               key={p.userId}
               nickname={p.nickname}

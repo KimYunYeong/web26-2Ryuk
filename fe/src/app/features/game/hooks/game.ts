@@ -5,11 +5,9 @@ import { useToast } from '@/app/components/shared/toast/useToast';
 import { modalStore } from '@/app/components/shared/modal/modal.store';
 import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
-import { GameJoinAckData, GamePlayerData } from '@/app/features/game/dtos/data';
+import { GameJoinAckData, GamePlayerData as PData } from '@/app/features/game/dtos/data';
 import { gameService } from '@/app/features/game/services/GameService';
 import { UseGameResult } from '@/app/features/game/hooks/type';
-
-type PData = GamePlayerData;
 
 export function useGame(roomId?: string): UseGameResult {
   const { showSuccessToast, showInfoToast, showErrorToast } = useToast();

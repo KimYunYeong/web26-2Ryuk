@@ -15,7 +15,7 @@ import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import roomService from '@/app/features/room/services/RoomService';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
 import useNavigation from '@/app/hooks/useNavigation';
-import { ParticipantData } from '@/app/features/room/dtos/data';
+import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 
 export default function LocalChatPanel() {
   const myId = authStore((state: AuthStore) => state.userId);
@@ -78,8 +78,7 @@ export default function LocalChatPanel() {
     </div>
   );
 
-  const participants =
-    roomData?.participants?.filter((p: ParticipantData) => p.userId !== myId) ?? [];
+  const participants = roomData?.participants?.filter((p: PData) => p.userId !== myId) ?? [];
 
   const panelChildren = (
     <>
@@ -95,7 +94,7 @@ export default function LocalChatPanel() {
         />
       </div>
       <div className={styles.sectionAvatars}>
-        {participants.map((p: ParticipantData) => (
+        {participants.map((p: PData) => (
           <Avatar key={p.nickname} nickname={p.nickname} profileImage={p.profileImage} />
         ))}
       </div>
