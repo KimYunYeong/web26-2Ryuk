@@ -6,7 +6,7 @@ export interface UseGameResult {
   isGameRecruiting: boolean;
   isReadyModalOpen: boolean;
   handleGameRecruitClick: () => Promise<void>;
-  handleReadyChange: (isReady: boolean) => Promise<void>;
+  handleReadyChange: (isReady: boolean) => void;
   handleLeaveGame: () => Promise<void>;
   handleCloseGame: () => Promise<void>;
 }
