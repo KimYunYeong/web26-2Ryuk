@@ -10,7 +10,10 @@ export default function useNavigation() {
 
   return {
     refresh: () => router.refresh(),
-    goHome: () => router.replace(ROUTES.HOME),
+    goHome: () => {
+      router.replace(ROUTES.HOME);
+      router.refresh();
+    },
     goBack: () => {
       if (!IS.undefined(window) && window.history.length > 1) router.back();
       else router.push(ROUTES.HOME);
@@ -26,6 +29,10 @@ export default function useNavigation() {
     },
   };
 }
+
+export const refresh = () => {
+  window.location.reload();
+};
 
 export const goHome = () => {
   window.location.href = ROUTES.HOME;

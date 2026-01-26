@@ -57,10 +57,10 @@ export type RoomValidateJoinResponseDto = {
 };
 
 export type RoomMyCurrentDto = {
-  roomId: string | null;
+  room_id?: string;
 };
 
-// WebSocket DTOs for room events (snake_case as transmitted over the wire)
+// WebSocket DTOs
 
 export type RoomJoinDto = {
   room_id: string;
@@ -74,11 +74,7 @@ export type RoomJoinAckDto = {
 
 export type RoomParticipantJoinDto = {
   room_id: string;
-  user: {
-    user_id: string;
-    nickname: string;
-    profile_image?: string;
-  };
+  user: RoomParticipantDto;
   current_participants: string;
 };
 
@@ -92,6 +88,13 @@ export type RoomLeaveAckDto = {
 
 export type RoomParticipantLeaveDto = {
   room_id: string;
-  user_id: string;
+  user: {
+    id: string;
+    nickname: string;
+  };
   current_participants: string;
+};
+
+export type RoomParticipantDeleteDto = {
+  room_id: string;
 };

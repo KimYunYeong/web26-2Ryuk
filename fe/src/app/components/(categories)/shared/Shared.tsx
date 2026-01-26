@@ -20,7 +20,7 @@ import Component from '@/app/components/helpers/Component';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import MessageForm from '@/app/components/shared/form/message/MessageForm';
 import ParticipantStepper from '@/app/components/shared/stepper/ParticipantStepper';
-import TextTooltip from '@/app/components/shared/tooltip/TextTooltip';
+import { TextTooltip } from '@/app/components/shared/tooltip/TextTooltip';
 import GoBackButton from '@/app/components/shared/button/GoBackButton';
 import RadioButton from '@/app/components/shared/radioButton/RadioButton';
 import ComponentRelations from '@/app/components/helpers/ComponentRelations';

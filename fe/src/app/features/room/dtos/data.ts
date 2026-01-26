@@ -9,8 +9,6 @@ export type RoomParticipantData = {
   profileImage?: string;
 };
 
-export type ParticipantData = RoomParticipantData;
-
 export type RoomData = {
   id: string;
   title: string;
@@ -60,7 +58,7 @@ export type RoomValidateJoinResponseData = {
 };
 
 export type RoomMyCurrentData = {
-  roomId: string | null;
+  roomId?: string;
 };
 
 // WebSocket data shapes for room events (camelCase and parsed types)
@@ -95,6 +93,13 @@ export type RoomLeaveAckData = {
 
 export type RoomParticipantLeaveData = {
   roomId: string;
-  userId: string;
+  user: {
+    id: string;
+    nickname: string;
+  };
   currentParticipants: number;
+};
+
+export type RoomParticipantDeleteData = {
+  roomId: string;
 };

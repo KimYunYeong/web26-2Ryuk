@@ -316,6 +316,15 @@ export class RoomService implements OnModuleInit {
   }
 
   /**
+   * 방 특정 멤버 닉네임 조회
+   */
+  async getRoomMemberNickname(roomId: string, userId: string): Promise<string> {
+    const uuid = toUuid(userId);
+    const nickname = await this.redisClient.hGet(`room:${roomId}:members:${uuid}`, 'nickname');
+    return nickname || '';
+  }
+
+  /**
    * 사용자 연결 해제 시 모든 방에서 제거
    */
   async leaveAllRooms(server: Server, userId: string): Promise<void> {
@@ -560,8 +569,9 @@ export class RoomService implements OnModuleInit {
       // 이미 참여 중인지 확인
       const isInRoom = await this.isUserInRoom(userId, roomId);
       if (isInRoom) {
-        logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '이미 참여 중인 사용자입니다.'));
-        throw new ConflictException('이미 해당 방에 참여 중입니다.');
+        return;
+        // logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '이미 참여 중인 사용자입니다.'));
+        // throw new ConflictException('이미 해당 방에 참여 중입니다.');
       }
 
       // 정원 확인 (GLOBAL 방 제외)
@@ -723,7 +733,7 @@ export class RoomService implements OnModuleInit {
 
     // 멤버 정보 조회 (id, 닉네임, 프로필 이미지) - 제한 없이 모든 참여자 조회
     const participants = await this.getRoomMembers(roomId);
-    const players = await this.gameService.getGameParticipants(roomId);
+    const players = await this.gameService.getGamePlayers(roomId);
     const hostId = roomData.host_id || '';
 
     return {
@@ -796,10 +806,18 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자 방 퇴장 알림 (다른 참여자에게)
    */
-  async notifyUserLeft(server: Server, roomId: string, userId: string, currentParticipants: number): Promise<void> {
+  async notifyUserLeft(
+    server: Server,
+    roomId: string,
+    userInfo: { userId: string; nickname: string },
+    currentParticipants: number,
+  ): Promise<void> {
     const data = {
       room_id: roomId,
-      user_id: userId,
+      user: {
+        id: userInfo.userId,
+        nickname: userInfo.nickname,
+      },
       current_participants: currentParticipants.toString(),
     };
 
@@ -812,8 +830,8 @@ export class RoomService implements OnModuleInit {
     // fetchSockets()는 현재 서버 인스턴스의 클라이언트만 반환할 수 있으므로
     // server.to()를 사용하여 모든 클라이언트에게 브로드캐스트 전송
     server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_LEAVE, data);
-    logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserLeft', userId, roomClientsCount));
-    logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userId));
+    logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserLeft', userInfo.userId, roomClientsCount));
+    logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userInfo.userId));
   }
 
   /**

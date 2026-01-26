@@ -2,19 +2,19 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { RoomData, ParticipantData } from '@/app/features/room/dtos/data';
+import { RoomData, RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 
 interface RoomState {
-  roomId: string | null;
+  roomId?: string;
   isJoined: boolean;
-  roomData: RoomData | null;
+  roomData?: RoomData;
 }
 
 interface RoomActions {
-  setRoom: (roomId: string | null) => void;
-  setRoomData: (roomData: RoomData | null) => void;
+  setRoom: (roomId?: string) => void;
+  setRoomData: (roomData?: RoomData) => void;
   updateRoomData: (updates: Partial<RoomData>) => void;
-  addParticipant: (participant: ParticipantData) => void;
+  addParticipant: (participant: PData) => void;
   removeParticipant: (userId: string) => void;
   setJoined: (isJoined: boolean) => void;
   leaveRoom: () => void;
@@ -25,18 +25,18 @@ export type RoomStore = RoomState & RoomActions;
 export const roomStore = create<RoomStore>()(
   persist(
     (set) => ({
-      roomId: null,
+      roomId: undefined,
       isJoined: false,
-      roomData: null,
+      roomData: undefined,
 
-      setRoom: (roomId: string | null) =>
+      setRoom: (roomId?: string) =>
         set((state) => {
-          const roomData = state.roomData?.id === roomId ? state.roomData : null;
+          const roomData = state.roomData?.id === roomId ? state.roomData : undefined;
           return { roomId, isJoined: false, roomData };
         }),
 
-      setRoomData: (roomData: RoomData | null) => {
-        const roomId = roomData?.id || null;
+      setRoomData: (roomData?: RoomData) => {
+        const roomId = roomData?.id;
         set({ roomData, roomId });
       },
 
@@ -61,7 +61,7 @@ export const roomStore = create<RoomStore>()(
           return next;
         }),
 
-      addParticipant: (participant: ParticipantData) =>
+      addParticipant: (participant: PData) =>
         set((state) => {
           if (!state.roomData) return state;
           const exists = state.roomData.participants.some((p) => p.userId === participant.userId);
@@ -79,7 +79,7 @@ export const roomStore = create<RoomStore>()(
 
       setJoined: (isJoined: boolean) => set({ isJoined }),
 
-      leaveRoom: () => set({ roomId: null, isJoined: false, roomData: null }),
+      leaveRoom: () => set({ roomId: undefined, isJoined: false, roomData: undefined }),
     }),
     {
       name: 'room-storage',
