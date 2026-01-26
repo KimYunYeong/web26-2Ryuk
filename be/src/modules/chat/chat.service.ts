@@ -10,12 +10,16 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { GLOBAL_ROOM_ID } from '@src/common/constants/constants';
 import { WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
+import { CurseWordService } from '@src/modules/curse-word/curse-word.service';
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(@Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType) {}
+  constructor(
+    @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
+    private readonly curseWordService: CurseWordService,
+  ) {}
 
   /**
    * 글로벌 채팅 메시지 브로드캐스트
@@ -33,8 +37,13 @@ export class ChatService {
     message: string,
     senderInfo: { role: string; nickname: string; profile_image: string | null },
     senderSocketId: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const timestamp = new Date().toISOString();
+
+    const { sanitized, hasCurse } = await this.curseWordService.sanitize(message);
+    if (hasCurse) {
+      message = sanitized;
+    }
 
     // 다른 사용자들에게는 is_me: false로 전송
     const responseToOthers = new GlobalChatMessageResponseDto(message, senderInfo, false, timestamp);
@@ -46,6 +55,8 @@ export class ChatService {
     }
 
     logMessage(this.logger, LOG.CHAT.GLOBAL_BROADCAST(userId, message));
+
+    return message;
   }
 
   // 방 채팅 메시지 브로드캐스트
@@ -56,8 +67,13 @@ export class ChatService {
     message: string,
     senderInfo: { role: string; nickname: string; profile_image: string | null },
     senderSocketId: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const timestamp = new Date().toISOString();
+
+    const { sanitized, hasCurse } = await this.curseWordService.sanitize(message);
+    if (hasCurse) {
+      message = sanitized;
+    }
 
     // 다른 사용자들에게는 is_me: false로 전송
     const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
@@ -67,6 +83,8 @@ export class ChatService {
     await this.saveRoomChatMessage(roomId, userId, message, senderInfo, timestamp);
 
     logMessage(this.logger, LOG.CHAT.ROOM_BROADCAST(roomId, userId, message));
+
+    return message;
   }
 
   // 방 채팅 최신 메시지 조회 (최대 30개)
