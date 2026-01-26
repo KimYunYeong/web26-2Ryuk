@@ -116,17 +116,17 @@ export class GameService {
     // 게임 참가자 명단에 추가. 새로 추가된 경우는 true 반환, 기존에 존재했으면 false 반환
     const wasAdded = await this.addParticipant(roomId, userId);
 
-    const [roomInfo, participants, selectedGame] = await Promise.all([
+    const [roomInfo, players, selectedGame] = await Promise.all([
       this.roomService.getRoom(roomId),
-      this.getGameParticipants(roomId),
+      this.getGamePlayers(roomId),
       this.getSelectedGame(roomId),
     ]);
 
-    const currentPlayers = participants.length;
+    const currentPlayers = players.length;
 
-    const hostProfile = this.extractHostProfile(roomInfo.host_id, participants, roomInfo.participants);
+    const hostProfile = this.extractHostProfile(roomInfo.host_id, players, roomInfo.players);
 
-    const players: GamePlayerDto[] = participants.map((participant) => ({
+    const mappedPlayers: GamePlayerDto[] = players.map((participant) => ({
       user_id: participant.user_id,
       nickname: participant.nickname,
       profile_image: participant.profile_image,
@@ -136,11 +136,11 @@ export class GameService {
     // max_players는 선택된 게임의 최대 인원을 우선 사용, 없으면 방 최대 인원으로 대체
     const maxPlayers = selectedGame?.max_players ?? roomInfo.max_participants;
 
-    const ackPayload = new GameJoinAckResponseDto(currentPlayers, maxPlayers, hostProfile, players, selectedGame);
+    const ackPayload = new GameJoinAckResponseDto(currentPlayers, maxPlayers, hostProfile, mappedPlayers, selectedGame);
 
     // 새로 추가된 경우에만 브로드캐스트
     if (wasAdded) {
-      await this.broadcastGameJoin(server, roomId, userId, currentPlayers, participants);
+      await this.broadcastGameJoin(server, roomId, userId, currentPlayers, mappedPlayers);
     }
 
     logMessage(this.logger, LOG.GAME.JOIN_REQUEST(roomId, userId));
@@ -597,7 +597,7 @@ export class GameService {
     return false;
   }
 
-  async getGameParticipants(roomId: string): Promise<GameParticipantDto[]> {
+  async getGamePlayers(roomId: string): Promise<GameParticipantDto[]> {
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
 

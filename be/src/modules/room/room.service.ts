@@ -733,7 +733,7 @@ export class RoomService implements OnModuleInit {
 
     // 멤버 정보 조회 (id, 닉네임, 프로필 이미지) - 제한 없이 모든 참여자 조회
     const participants = await this.getRoomMembers(roomId);
-    const players = await this.gameService.getGameParticipants(roomId);
+    const players = await this.gameService.getGamePlayers(roomId);
     const hostId = roomData.host_id || '';
 
     return {
