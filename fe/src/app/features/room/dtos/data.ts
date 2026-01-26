@@ -9,8 +9,6 @@ export type RoomParticipantData = {
   profileImage?: string;
 };
 
-export type ParticipantData = RoomParticipantData;
-
 export type RoomData = {
   id: string;
   title: string;

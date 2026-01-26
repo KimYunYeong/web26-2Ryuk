@@ -109,7 +109,7 @@ export const toRoomValidateJoinData = (
 });
 
 export const toMyCurrentData = (dto: RoomMyCurrentDto): RoomMyCurrentData => ({
-  roomId: dto.roomId ?? undefined,
+  roomId: dto.room_id,
 });
 
 export const toDto = (data: RoomData): RoomDto => ({
