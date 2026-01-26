@@ -183,6 +183,10 @@ export const LOG = {
       message: `사용자 ${userId}가 방 ${roomId}에서 퇴장했습니다.`,
       level: 'log',
     }),
+    HOST_CHANGED: (roomId: string, newHostId: string): LogMessage => ({
+      message: `방장 변경: roomId=${roomId}, newHostId=${newHostId}`,
+      level: 'log',
+    }),
     PERMISSION_CHECK: (userId: string, roomId: string): LogMessage => ({
       message: `권한 검증: userId=${userId}, roomId=${roomId}`,
       level: 'debug',

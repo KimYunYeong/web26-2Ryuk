@@ -7,7 +7,7 @@ import { RoomService } from '@src/modules/room/room.service';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { Game } from './game.entity';
-import { GameRecord } from './game-record.entity';
+import { GameRecord } from '../game-record/game-record.entity';
 import {
   GameListResponseDto,
   GameParticipantDto,
