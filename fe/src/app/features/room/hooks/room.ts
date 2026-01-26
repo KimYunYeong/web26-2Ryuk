@@ -13,6 +13,8 @@ import { UseRoomResult } from '@/app/features/room/hooks/type';
 import { loadingStore } from '@/app/features/loading/stores/loading';
 import { useModal } from '@/app/components/shared/modal/useModal';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
+import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
+import { gameService } from '@/app/features/game/services/GameService';
 
 export function useRoom(roomId?: string): UseRoomResult {
   const { showSuccessToast } = useToast();
@@ -44,6 +46,10 @@ export function useRoom(roomId?: string): UseRoomResult {
       // 방 세션 진입
       const passwordRequired = await roomEntry.isPasswordRequired(roomId, joinInfo);
       if (passwordRequired) return setShowPasswordAuth(true);
+
+      await globalChatService.ensureConnected();
+      await roomChatService.subscribe(roomId);
+      await gameService.subscribe(roomId);
 
       // 이미 소속된 방일 경우 토스트 표시 안함
       if (joinInfo.isMember) return;
