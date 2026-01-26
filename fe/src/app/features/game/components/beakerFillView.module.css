@@ -1,5 +1,3 @@
-/* app/components/feature/beaker/beakerFillView.module.css */
-
 .container {
   position: relative;
   width: 140px;
@@ -94,4 +92,50 @@
   object-fit: contain;
   pointer-events: none;
   z-index: 3;
+}
+
+.detailLayer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.detailLayer .highest {
+  position: absolute;
+  width: 40%;
+  height: var(--highest-percent);
+  border-top: 2px solid var(--error);
+}
+
+.detailLayer .highest::after {
+  position: absolute;
+  content: '현재 1등';
+  left: 120%;
+  width: 300px;
+  transform: translateY(-50%);
+  font: var(--body-1);
+  color: var(--error);
+}
+
+.detailLayer .average {
+  position: absolute;
+  width: 40%;
+  height: var(--average-percent);
+  border-top: 2px solid var(--primary-5);
+}
+
+
+.detailLayer .average::after {
+  position: absolute;
+  content: '평균';
+  left: 120%;
+  width: 300px;
+  transform: translateY(-50%);
+  font: var(--body-1);
+  color: var(--primary-5);
 }

@@ -15,6 +15,7 @@ export interface BeakerFillViewProps {
   dropTrigger: number;
   onDropEnd?: () => void;
   score?: number;
+  highestScore?: number;
   maxLevel?: number;
 }
 
@@ -23,6 +24,7 @@ function BeakerFillView({
   dropTrigger,
   onDropEnd,
   score = 0,
+  highestScore,
   maxLevel = 1000,
 }: BeakerFillViewProps) {
   const [drops, setDrops] = useState<number[]>([]);
@@ -61,6 +63,13 @@ function BeakerFillView({
     maskImage: `url(${maskSrc})`,
   } as CSSProperties;
 
+  const otherStyle = {
+    '--highest-percent': `${((highestScore ?? 0) / maxLevel) * 100}%`,
+    '--average-percent': `${(score / maxLevel) * 100}%`,
+  } as CSSProperties;
+
+  const showDetail = type === 'other' && highestScore;
+
   const className = CSSUtil.buildCls(styles.container, styles[type]);
 
   return (
@@ -87,6 +96,13 @@ function BeakerFillView({
           height={220}
         />
       </div>
+
+      {showDetail && (
+        <div className={styles.detailLayer} style={otherStyle}>
+          <div className={styles.highest} />
+          <div className={styles.average} />
+        </div>
+      )}
     </div>
   );
 }
