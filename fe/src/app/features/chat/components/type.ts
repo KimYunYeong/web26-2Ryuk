@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { Position } from '@/app/components/shared/floatingWidget/type';
 import { ReactNode } from 'react';
