@@ -164,13 +164,23 @@ export class RoomService implements OnModuleInit {
     await this.updateCurrentParticipants(roomId);
     logMessage(this.logger, LOG.ROOM.USER_LEFT(userId, roomId));
 
-    // 만약 방장이면 방장 권한 랜덤으로 넘기기
+    // 만약 방장이면 방장 권한 넘기기 -> join_date 기준으로 들어온 순서가 빠른 사람에게
     const isHost = await this.isHost(userId, roomId);
     if (isHost) {
-      // await this.deleteRoom(userId, roomId, server);
       const memberIds = await this.getRoomMemberIds(roomId);
       if (memberIds.length > 0) {
-        const newHostId = memberIds[Math.floor(Math.random() * memberIds.length)];
+        let earliestJoinDate: Date | null = null;
+        let newHostId: string = memberIds[0];
+        for (const memberId of memberIds) {
+          const memberDetails = await this.redisClient.hGetAll(`room:${roomId}:members:${memberId}`);
+          const joinDateStr = memberDetails.join_date;
+          const joinDate = new Date(joinDateStr);
+          if (!earliestJoinDate || joinDate < earliestJoinDate) {
+            earliestJoinDate = joinDate;
+            newHostId = memberId;
+          }
+        }
+
         await this.redisClient.hSet(`room:${roomId}`, 'host_id', newHostId);
         logMessage(this.logger, LOG.ROOM.HOST_CHANGED(roomId, newHostId));
 
