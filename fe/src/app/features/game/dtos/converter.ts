@@ -11,6 +11,7 @@ import {
   GamePlayerReadyDto,
   GamePlayerRealtimeDto,
   GamePlayerRecruitDto,
+  GamePlayerResultItemDto,
   GamePlayerResultDto,
   GamePlayerSelectDto,
   GamePlayerStartDto,
@@ -192,14 +193,17 @@ export const toGamePlayerRealtimeData = (dto: GamePlayerRealtimeDto): GamePlayer
   ranks: dto.ranks,
 });
 
+const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultData => ({
+  playerId: result.player_id,
+  nickname: result.nickname,
+  profileImage: result.profile_image,
+  score: Number(result.score),
+  rank: Number(result.rank),
+  achieveDate: new Date(result.achieve_date),
+});
+
 export const toGamePlayerResultData = (dto: GamePlayerResultDto): GamePlayerResultData[] =>
-  dto.results.map((result) => ({
-    playerId: result.player_id,
-    nickname: result.nickname,
-    profileImage: result.profile_image,
-    score: Number(result.score),
-    rank: Number(result.rank),
-  }));
+  dto.data.rankings.map(mapResultItem);
 
 export const GameConverter = {
   toGameData,

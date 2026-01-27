@@ -124,8 +124,18 @@ export type GamePlayerResultItemDto = {
   profile_image: string;
   score: string;
   rank: string;
+  achieve_date: number;
+};
+
+export type GamePlayerResultDataDto = {
+  total: number;
+  page: number;
+  podium: GamePlayerResultItemDto[];
+  rankings: GamePlayerResultItemDto[];
 };
 
 export type GamePlayerResultDto = {
-  results: GamePlayerResultItemDto[];
+  success: boolean;
+  message: string;
+  data: GamePlayerResultDataDto;
 };

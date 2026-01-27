@@ -124,4 +124,5 @@ export type GamePlayerResultData = {
   profileImage: string;
   score: number;
   rank: number;
+  achieveDate: Date;
 };
