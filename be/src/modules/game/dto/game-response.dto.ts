@@ -105,7 +105,8 @@ export class GameReadyBroadcastDto {
 // 게임 시작 브로드캐스트
 export class GameStartBroadcastDto {
   start_time: number;
-  duration_ms: number;
+  delay_ms: number;
+  play_duration_ms: number;
 }
 
 // 게임 닫기 브로드캐스트

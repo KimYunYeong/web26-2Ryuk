@@ -28,7 +28,7 @@ import { WS_EVENTS_GAME } from '@src/common/constants/ws-events.constant';
 @Injectable()
 export class GameService {
   private readonly logger = new Logger(GameService.name);
-  private readonly GAME_START_DELAY_MS = 3000;
+  private readonly GAME_START_DELAY_MS = 5000;
   private readonly REALTIME_BROADCAST_INTERVAL_MS = 300; // 300ms 주기로 상태 브로드캐스트
   private realtimeBroadcastTimers: Map<string, NodeJS.Timeout> = new Map(); // 방별 브로드캐스트 타이머
   private readonly gameEndTimers: Map<string, NodeJS.Timeout> = new Map(); // 방별 게임 종료 타이머
@@ -310,9 +310,7 @@ export class GameService {
     // 참가자 명단 삭제
     const pattern = `room:${roomId}:game:players:*`;
     const keys = await this.redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await this.redisClient.del(keys);
-    }
+    if (keys.length > 0) await this.redisClient.del(keys);
 
     // 해당 방의 모든 참여자에게 브로드캐스트
     server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_CLOSE, new GameCloseBroadcastDto(false));
@@ -420,15 +418,19 @@ export class GameService {
     }
 
     // 게임 자동 종료 타이머 스케줄링 (start_time + time 기준)
-    const durationMs = selectedGame.time;
+    const playDurationMs = selectedGame.time;
 
-    const broadcast: GameStartBroadcastDto = { start_time: startTimeMs, duration_ms: durationMs };
+    const broadcast: GameStartBroadcastDto = {
+      start_time: startTimeMs,
+      delay_ms: this.GAME_START_DELAY_MS,
+      play_duration_ms: playDurationMs,
+    };
     server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_START, broadcast);
 
     logMessage(this.logger, LOG.GAME.START(roomId, userId, new Date(startTimeMs).toUTCString()));
 
-    if (durationMs > 0) {
-      this.scheduleGameEnd(server, roomId, selectedGame.id, this.GAME_START_DELAY_MS + durationMs);
+    if (playDurationMs > 0) {
+      this.scheduleGameEnd(server, roomId, selectedGame.id, this.GAME_START_DELAY_MS + playDurationMs);
     }
 
     return startTimeMs;
