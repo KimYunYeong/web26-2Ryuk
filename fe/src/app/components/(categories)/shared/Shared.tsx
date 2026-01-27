@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import styles from '@/app/components/helpers/components.module.css';
 import Icon from '@/app/components/shared/icon/Icon';
 import IconCircleDefault from '@/app/components/shared/icon/IconCircle';
@@ -24,6 +25,7 @@ import ParticipantStepper from '@/app/components/shared/stepper/ParticipantStepp
 import { TextTooltip } from '@/app/components/shared/tooltip/TextTooltip';
 import GoBackButton from '@/app/components/shared/button/GoBackButton';
 import RadioButton from '@/app/components/shared/radioButton/RadioButton';
+import Dropdown from '@/app/components/shared/dropdown/Dropdown';
 import ComponentRelations from '@/app/components/helpers/ComponentRelations';
 import Avatar from '@/app/components/shared/profile/Avatar';
 import AvatarCount from '@/app/components/shared/profile/AvatarCount';
@@ -74,6 +76,7 @@ export default function SharedComponents({ iconList }: SharedComponentsProps) {
   const sharedTableData = sharedResultData.rankings;
   const sharedGetRowKey = (row: GamePlayerResultRow) => row.playerId;
   const sharedHighlightRow = (row: GamePlayerResultRow) => row.rank === 1;
+  const [selectedDropdownValue, setSelectedDropdownValue] = useState('item2');
 
   return (
     <>
@@ -1594,6 +1597,56 @@ export default function SharedComponents({ iconList }: SharedComponentsProps) {
           <Component>
             <RadioButton name="game-filter" values={['전체', '경쟁', '협동']} />
           </Component>
+        </div>
+      </section>
+
+      <section id="dropdown" className={styles.section}>
+        <h2 className={styles.sectionTitle}>Dropdown</h2>
+        <ComponentRelations componentId="dropdown" />
+        <div className={styles.dropdownShowcaseRow}>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Default</h3>
+            <Component fullWidth>
+              <Dropdown
+                items={[
+                  { label: 'Item 1', value: 'item1' },
+                  { label: 'Item 2', value: 'item2' },
+                  { label: 'Item 3', value: 'item3' },
+                ]}
+                placeholder="Dropdown"
+              />
+            </Component>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>With Selected Value</h3>
+            <Component fullWidth>
+              <Dropdown
+                items={[
+                  { label: 'Item 1', value: 'item1' },
+                  { label: 'Item 2', value: 'item2' },
+                  { label: 'Item 3', value: 'item3' },
+                ]}
+                value={selectedDropdownValue}
+                onChange={setSelectedDropdownValue}
+                placeholder="Dropdown"
+              />
+            </Component>
+          </div>
+          <div className={styles.showcaseBlock}>
+            <h3 className={styles.blockTitle}>Disabled</h3>
+            <Component fullWidth>
+              <Dropdown
+                items={[
+                  { label: 'Item 1', value: 'item1' },
+                  { label: 'Item 2', value: 'item2' },
+                  { label: 'Item 3', value: 'item3' },
+                ]}
+                value="item1"
+                placeholder="Dropdown"
+                disabled
+              />
+            </Component>
+          </div>
         </div>
       </section>
 
