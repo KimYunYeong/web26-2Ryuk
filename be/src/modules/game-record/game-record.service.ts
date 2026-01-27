@@ -64,12 +64,12 @@ export class GameRecordService {
         }
 
         const rankItem: GameRecordRankItemDto = {
-          user_id: record.user_id,
+          player_id: record.user_id,
           nickname: record.user.nickname,
           profile_image: record.user.profile_image,
           score: record.score,
           rank: currentRank,
-          achieve_date: record.achieve_date,
+          achieve_date: record.achieve_date.getTime(),
         };
 
         previousScore = score;
@@ -86,18 +86,15 @@ export class GameRecordService {
         if (!userId) {
           // 로그인 X -> 1페이지로
           targetPage = 1;
-          console.log('로그인 안됨: ', targetPage);
         } else {
           // 로그인 O -> 내 랭킹 찾기
-          const userRankItem = allRankItems.find((item) => item.user_id === userId);
+          const userRankItem = allRankItems.find((item) => item.player_id === userId);
           if (userRankItem) {
             // 기록 O -> 내 랭킹이 있는 페이지 계산
             targetPage = Math.ceil(userRankItem.rank / limit);
-            console.log('기록 있음: ', targetPage);
           } else {
             // 기록 X -> 1페이지로
             targetPage = 1;
-            console.log('기록 없음: ', targetPage);
           }
         }
       }
@@ -112,10 +109,14 @@ export class GameRecordService {
       const podiumItems = allRankItems.slice(0, 3);
 
       return {
-        total,
-        page: targetPage,
-        podium: podiumItems,
-        rankings: rankItems,
+        success: true,
+        message: '랭킹이 성공적으로 조회되었습니다.',
+        data: {
+          total,
+          page: targetPage,
+          podium: podiumItems,
+          rankings: rankItems,
+        },
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
