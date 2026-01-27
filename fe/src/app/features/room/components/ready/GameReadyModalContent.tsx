@@ -40,7 +40,7 @@ export default function GameReadyModalContent({
   // 게임 시작 버튼 활성화 조건
   const allPlayers = [myStatus, ...players];
   const readyPlayers = allPlayers.filter((p) => p.isReady);
-  const readyCount = readyPlayers.length + 1;
+  const readyCount = readyPlayers.length + Number(myStatus.isHost);
   const isGameStartEnabled =
     selectedGame !== undefined &&
     readyCount >= selectedGame.minPlayers &&

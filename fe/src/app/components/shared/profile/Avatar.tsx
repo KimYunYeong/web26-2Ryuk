@@ -11,17 +11,25 @@ const DEFAULT_AVATAR = Paths.images('default_profile');
 const DEFAULT_THEMES = ['primary', 'secondary', 'success', 'warning'];
 
 export default function Avatar({ nickname, profileImage, isActive, onClick }: AvatarProps) {
-  const getThemeIndex = useCallback(
-    (nickname?: string) => {
-      if (!nickname) return 0;
-      let hash = 0;
-      for (let i = 0; i < nickname.length; i++) {
-        hash = (hash * 31 + nickname.charCodeAt(i)) >>> 0;
-      }
-      return (nickname.length * hash) % DEFAULT_THEMES.length;
-    },
-    [nickname],
-  );
+  const getThemeIndex = useCallback((nickname?: string) => {
+    if (!nickname) return 0;
+
+    // FNV offset basis
+    let hash = 2166136261;
+
+    for (let i = 0; i < nickname.length; i++) {
+      hash ^= nickname.charCodeAt(i);
+      hash = Math.imul(hash, 16777619); // FNV prime
+    }
+
+    hash += hash << 13;
+    hash ^= hash >>> 7;
+    hash += hash << 3;
+    hash ^= hash >>> 17;
+    hash += hash << 5;
+
+    return Math.abs(hash) % DEFAULT_THEMES.length;
+  }, []);
 
   const index = getThemeIndex(nickname);
 

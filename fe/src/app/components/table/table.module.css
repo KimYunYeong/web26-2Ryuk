@@ -61,12 +61,11 @@
 }
 
 .row.highlight {
-  background: var(--primary-2);
+  background: var(--primary-2) !important;
   color: var(--primary-6);
 }
 
-.row.highlight .cell,
-.row.highlight .cell span {
+.row.highlight .cell {
   color: var(--primary-6);
 }
 

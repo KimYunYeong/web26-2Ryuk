@@ -8,6 +8,8 @@ import 'dayjs/locale/ko';
 dayjs.extend(relativeTime);
 dayjs.locale('ko');
 
+type DateLike = Date | number | string;
+
 interface DateFormatOptions {
   format?: string;
   fallback?: string;
@@ -18,41 +20,50 @@ interface DateDescribeOptions {
   now?: Date;
 }
 
+const toDate = (value?: DateLike | null): Date | undefined => {
+  if (IS.nil(value)) return undefined;
+  if (value instanceof Date) return value;
+  return new Date(value);
+};
+
 const DateUtil = {
   format(
-    dt?: Date | null,
+    dt?: DateLike | null,
     { format, fallback }: DateFormatOptions = { format: 'YYYY-MM-DD', fallback: '' },
   ): string {
-    if (IS.nil(dt)) return fallback!;
-    return dayjs(dt).format(format);
+    const date = toDate(dt);
+    if (!date) return fallback!;
+    return dayjs(date).format(format);
   },
 
-  fromNow(dt?: Date | null, fallback: string = ''): string {
-    if (IS.nil(dt)) return fallback;
-    return dayjs(dt).fromNow();
+  fromNow(dt?: DateLike | null, fallback: string = ''): string {
+    const date = toDate(dt);
+    if (!date) return fallback;
+    return dayjs(date).fromNow();
   },
 
   describe(
-    dt?: Date | null,
+    dt?: DateLike | null,
     { fallback = '-', now = new Date() }: DateDescribeOptions = {},
   ): string {
-    if (IS.nil(dt)) return fallback;
+    const date = toDate(dt);
+    if (!date) return fallback;
 
-    const diffMs = now.getTime() - dt!.getTime();
+    const diffMs = now.getTime() - date.getTime();
     const diffSeconds = Math.floor(diffMs / 1000);
 
-    if (diffSeconds < 60) return `${diffSeconds}초전`;
+    if (diffSeconds < 60) return `${diffSeconds}초 전`;
     if (diffSeconds < 60 * 60) {
       const minutes = Math.floor(diffSeconds / 60);
-      return `${minutes}분전`;
+      return `${minutes}분 전`;
     }
 
     if (diffSeconds < 60 * 60 * 24) {
       const hours = Math.floor(diffSeconds / (60 * 60));
-      return `${hours}시간전`;
+      return `${hours}시간 전`;
     }
 
-    return DateUtil.format(dt, { format: 'YYYY. MM. DD', fallback });
+    return DateUtil.format(date, { format: 'YYYY. MM. DD', fallback });
   },
 };
 
