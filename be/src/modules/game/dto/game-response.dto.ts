@@ -132,6 +132,7 @@ export class GameResultItemDto {
   profile_image: string;
   score: number;
   rank: number;
+  achieve_date: number;
 }
 
 export class GameResultBroadcastDto {

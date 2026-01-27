@@ -11,8 +11,9 @@ import {
   GamePlayerReadyDto,
   GamePlayerRealtimeDto,
   GamePlayerRecruitDto,
+  GamePlayerResultBroadcastDto,
   GamePlayerResultItemDto,
-  GamePlayerResultDto,
+  GamePlayerRecordsResponseDto,
   GamePlayerSelectDto,
   GamePlayerStartDto,
   GamePlayerUnreadyDto,
@@ -40,6 +41,8 @@ import {
   GamePlayerRealtimeData,
   GamePlayerRecruitData,
   GamePlayerResultData,
+  GamePlayerResultRow,
+  GamePlayerRecordsData,
   GamePlayerSelectData,
   GamePlayerStartData,
   GamePlayerUnreadyData,
@@ -193,7 +196,7 @@ export const toGamePlayerRealtimeData = (dto: GamePlayerRealtimeDto): GamePlayer
   ranks: dto.ranks,
 });
 
-const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultData => ({
+const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultRow => ({
   playerId: result.player_id,
   nickname: result.nickname,
   profileImage: result.profile_image,
@@ -202,8 +205,23 @@ const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultData =>
   achieveDate: new Date(result.achieve_date),
 });
 
-export const toGamePlayerResultData = (dto: GamePlayerResultDto): GamePlayerResultData[] =>
-  dto.data.rankings.map(mapResultItem);
+const normalizeResults = (items?: GamePlayerResultItemDto[]): GamePlayerResultRow[] =>
+  (items ?? []).map(mapResultItem).sort((a, b) => a.rank - b.rank);
+
+export const toGamePlayerResultBroadcastData = (
+  dto: GamePlayerResultBroadcastDto,
+): GamePlayerResultData => ({
+  results: normalizeResults(dto.results),
+});
+
+export const toGamePlayerRecordsData = (
+  dto: GamePlayerRecordsResponseDto,
+): GamePlayerRecordsData => ({
+  total: dto.data.total,
+  page: dto.data.page,
+  podium: normalizeResults(dto.data.podium),
+  rankings: normalizeResults(dto.data.rankings),
+});
 
 export const GameConverter = {
   toGameData,
@@ -229,5 +247,6 @@ export const GameConverter = {
   toGamePlayerCloseData,
   toGameRealtimeDto,
   toGamePlayerRealtimeData,
-  toGamePlayerResultData,
+  toGamePlayerResultBroadcastData,
+  toGamePlayerRecordsData,
 };

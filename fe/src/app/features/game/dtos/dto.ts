@@ -127,15 +127,19 @@ export type GamePlayerResultItemDto = {
   achieve_date: number;
 };
 
-export type GamePlayerResultDataDto = {
+export type GamePlayerResultBroadcastDto = {
+  results: GamePlayerResultItemDto[];
+};
+
+export type GamePlayerRecordsDataDto = {
   total: number;
   page: number;
   podium: GamePlayerResultItemDto[];
   rankings: GamePlayerResultItemDto[];
 };
 
-export type GamePlayerResultDto = {
+export type GamePlayerRecordsResponseDto = {
   success: boolean;
   message: string;
-  data: GamePlayerResultDataDto;
+  data: GamePlayerRecordsDataDto;
 };

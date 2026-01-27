@@ -511,6 +511,8 @@ export class GameService {
     let currentRank = 1;
     let previousScore: number | null = null;
 
+    const achieveDate = new Date();
+
     for (let i = 0; i < scores.length; i++) {
       const { value: userId, score } = scores[i];
 
@@ -526,8 +528,9 @@ export class GameService {
         player_id: userId,
         nickname: playerData.nickname || '',
         profile_image: playerData.profile_image || '',
-        score: score,
+        score,
         rank: currentRank,
+        achieve_date: achieveDate.getTime(),
       };
 
       results.push(resultItem);
@@ -558,7 +561,7 @@ export class GameService {
           user_id: userId,
           game_id: gameId,
           score,
-          achieve_date: new Date(),
+          achieve_date: achieveDate.getTime(),
         });
         await this.gameRecordRepository.save(record);
         continue;
@@ -567,7 +570,6 @@ export class GameService {
       // 기존 기록보다 점수가 높을 때만 갱신
       if (score > existingRecord.score) {
         existingRecord.score = score;
-        existingRecord.achieve_date = new Date();
         await this.gameRecordRepository.save(existingRecord);
       }
     }

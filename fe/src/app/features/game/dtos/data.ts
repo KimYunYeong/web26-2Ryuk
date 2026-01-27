@@ -118,11 +118,22 @@ export type GamePlayerRealtimeData = {
   ranks: string[];
 };
 
-export type GamePlayerResultData = {
+export type GamePlayerResultRow = {
   playerId: string;
   nickname: string;
   profileImage: string;
   score: number;
   rank: number;
   achieveDate: Date;
+};
+
+export type GamePlayerResultData = {
+  results: GamePlayerResultRow[];
+};
+
+export type GamePlayerRecordsData = {
+  total: number;
+  page: number;
+  podium: GamePlayerResultRow[];
+  rankings: GamePlayerResultRow[];
 };

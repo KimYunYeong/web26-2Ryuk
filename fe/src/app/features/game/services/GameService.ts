@@ -244,8 +244,8 @@ class GameService {
       this.realtimeCallbacks.forEach((cb) => cb(data));
     };
 
-    const resultHandler = (dto: dto.GamePlayerResultDto) => {
-      const data = GameConverter.toGamePlayerResultData(dto);
+    const resultHandler = (dto: dto.GamePlayerResultBroadcastDto) => {
+      const data = GameConverter.toGamePlayerResultBroadcastData(dto);
       this.resultCallbacks.forEach((cb) => cb(data));
     };
 
