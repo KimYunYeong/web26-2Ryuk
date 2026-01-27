@@ -1,7 +1,7 @@
 .container {
   position: relative;
-  width: 140px;
-  height: 220px;
+  width: var(--beaker-width, 140px);
+  height: var(--beaker-height, 220px);
   display: flex;
   justify-content: center;
   align-items: flex-end;

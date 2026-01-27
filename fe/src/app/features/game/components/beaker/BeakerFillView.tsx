@@ -33,7 +33,9 @@ function BeakerFillView({
 
   const beakerSrc = Paths.games(GAME_IDS.BEAKER, 'beaker');
   const maskSrc = Paths.games(GAME_IDS.BEAKER, 'beaker-mask');
-  const BEAKER_HEIGHT = 220;
+  const BEAKER_HEIGHT = 480;
+  const BEAKER_RATIO = 14 / 22;
+  const beakerWidth = Math.round(BEAKER_HEIGHT * BEAKER_RATIO);
 
   const clampedLevel = useMemo(() => {
     const base = maxLevel > 0 ? maxLevel : 1;
@@ -54,6 +56,8 @@ function BeakerFillView({
   };
 
   const containerStyle = {
+    '--beaker-width': `${beakerWidth}px`,
+    '--beaker-height': `${BEAKER_HEIGHT}px`,
     '--drop-distance': `${BEAKER_HEIGHT * (1 - clampedLevel)}px`,
   } as CSSProperties;
 
@@ -92,15 +96,15 @@ function BeakerFillView({
           alt=""
           aria-hidden
           className={styles.beakerOutline}
-          width={140}
-          height={220}
+          width={beakerWidth}
+          height={BEAKER_HEIGHT}
         />
       </div>
 
       {showDetail && (
         <div className={styles.detailLayer} style={otherStyle}>
           <div className={styles.highest} />
-          {highestScore !== score && <div className={styles.average} />}
+          {Math.abs(highestScore - score) > 10 && <div className={styles.average} />}
         </div>
       )}
     </div>
