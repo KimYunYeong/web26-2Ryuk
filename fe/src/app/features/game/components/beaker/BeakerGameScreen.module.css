@@ -36,7 +36,7 @@
 }
 
 .rankingValue {
-  font: var(--heading-2);
+  font: var(--heading-1);
   color: var(--primary-6);
 }
 
@@ -45,32 +45,6 @@
   flex-direction: column;
   gap: 12px;
   align-items: center;
-}
-
-.scoreRow {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-}
-
-.scoreColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.scoreLabel {
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--secondary);
-}
-
-.scoreValue {
-  font: var(--heading-1);
-  color: var(--primary-6);
 }
 
 .stageNote {
@@ -109,24 +83,6 @@
   justify-content: center;
   gap: 80px;
   padding: 0 12px;
-}
-
-.beakerLabelRow {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--secondary-5, #5f687e);
-  text-transform: uppercase;
-}
-
-.screen::before {
-  content: '';
-  display: block;
-  height: 1px;
-  width: 100%;
-  background: var(--border, #e1e6f0);
 }
 
 @media (max-width: 768px) {

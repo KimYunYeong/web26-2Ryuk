@@ -1,3 +1,11 @@
+.beakerColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: var(--beaker-width, 140px);
+}
+
 .container {
   position: relative;
   width: var(--beaker-width, 140px);
@@ -138,4 +146,13 @@
   transform: translateY(-50%);
   font: var(--body-1);
   color: var(--primary-5);
+}
+
+.beakerLabelRow {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  font: var(--large-1);
+  color: var(--secondary);
+  text-transform: uppercase;
 }

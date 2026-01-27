@@ -21,7 +21,8 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
   const {
     gameState,
     remainingTime,
-    durationMs,
+    playDurationMs,
+    delayMs,
     myScore,
     opponentScore,
     opponentHighestScore,
@@ -30,6 +31,8 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
     opponentDropTrigger,
   } = useGame(roomId);
 
+  const readyDurationMs = delayMs > 0 ? delayMs : playDurationMs;
+
   const buildTimeBar = () => {
     switch (gameState) {
       case 'ready':
@@ -37,7 +40,7 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
           <RemainingTimeBar
             label="준비 시간"
             variant="secondary"
-            totalDurationMs={3000}
+            totalDurationMs={readyDurationMs}
             remainingMs={remainingTime}
           />
         );
@@ -46,7 +49,7 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
           <RemainingTimeBar
             label="남은 시간"
             variant="primary"
-            totalDurationMs={durationMs}
+            totalDurationMs={playDurationMs}
             remainingMs={remainingTime}
           />
         );
@@ -62,22 +65,6 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
           <div className={styles.rankingWrapper}>
             <span className={styles.rankingLabel}>현재</span>
             <span className={styles.rankingValue}>{myRank}등</span>
-          </div>
-        )}
-        {!IS.nil(myScore) && (
-          <div className={styles.scoreRow}>
-            <div className={styles.scoreColumn}>
-              <span className={styles.scoreLabel}>내 점수</span>
-              <span className={styles.scoreValue}>{myScore}</span>
-            </div>
-          </div>
-        )}
-        {!IS.nil(opponentScore) && (
-          <div className={styles.scoreRow}>
-            <div className={styles.scoreColumn}>
-              <span className={styles.scoreLabel}>상대 점수</span>
-              <span className={styles.scoreValue}>{opponentScore}</span>
-            </div>
           </div>
         )}
       </div>
@@ -104,10 +91,6 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
             maxLevel={DEFAULT_MAX_LEVEL}
             highestScore={opponentHighestScore}
           />
-        </div>
-        <div className={styles.beakerLabelRow}>
-          <span>내 비커</span>
-          <span>상대 비커</span>
         </div>
       </div>
     </section>
