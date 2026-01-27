@@ -13,6 +13,11 @@ interface DateFormatOptions {
   fallback?: string;
 }
 
+interface DateDescribeOptions {
+  fallback?: string;
+  now?: Date;
+}
+
 const DateUtil = {
   format(
     dt?: Date | null,
@@ -25,6 +30,29 @@ const DateUtil = {
   fromNow(dt?: Date | null, fallback: string = ''): string {
     if (IS.nil(dt)) return fallback;
     return dayjs(dt).fromNow();
+  },
+
+  describe(
+    dt?: Date | null,
+    { fallback = '-', now = new Date() }: DateDescribeOptions = {},
+  ): string {
+    if (IS.nil(dt)) return fallback;
+
+    const diffMs = now.getTime() - dt!.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+
+    if (diffSeconds < 60) return `${diffSeconds}초전`;
+    if (diffSeconds < 60 * 60) {
+      const minutes = Math.floor(diffSeconds / 60);
+      return `${minutes}분전`;
+    }
+
+    if (diffSeconds < 60 * 60 * 24) {
+      const hours = Math.floor(diffSeconds / (60 * 60));
+      return `${hours}시간전`;
+    }
+
+    return DateUtil.format(dt, { format: 'YYYY. MM. DD', fallback });
   },
 };
 

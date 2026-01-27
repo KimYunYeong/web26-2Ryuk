@@ -77,4 +77,33 @@ describe('DateUtil', () => {
       expect(result.length).toBeGreaterThan(0);
     });
   });
+
+  describe('describeAchieveDate', () => {
+    const baseTime = new Date('2026-01-10T12:00:00Z');
+
+    it('seconds ago', () => {
+      const target = new Date('2026-01-10T11:59:30Z');
+      expect(DateUtil.describeAchieveDate(target, { now: baseTime })).toBe('30초전');
+    });
+
+    it('minutes ago', () => {
+      const target = new Date('2026-01-10T11:55:00Z');
+      expect(DateUtil.describeAchieveDate(target, { now: baseTime })).toBe('5분전');
+    });
+
+    it('hours ago', () => {
+      const target = new Date('2026-01-10T09:30:00Z');
+      expect(DateUtil.describeAchieveDate(target, { now: baseTime })).toBe('2시간전');
+    });
+
+    it('days ago returns formatted date', () => {
+      const target = new Date('2026-01-09T00:00:00Z');
+      expect(DateUtil.describeAchieveDate(target, { now: baseTime })).toBe('2026. 01. 09');
+    });
+
+    it('null fallback', () => {
+      expect(DateUtil.describeAchieveDate(null)).toBe('-');
+      expect(DateUtil.describeAchieveDate(undefined, { fallback: '없음' })).toBe('없음');
+    });
+  });
 });
