@@ -9,4 +9,4 @@ export type CloseCallback = (data: data.GamePlayerCloseData) => void;
 export type SelectCallback = (data: data.GamePlayerSelectData) => void;
 export type StartCallback = (data: data.GamePlayerStartData) => void;
 export type RealtimeCallback = (data: data.GamePlayerRealtimeData) => void;
-export type ResultCallback = (data: data.GamePlayerResultData) => void;
+export type ResultCallback = (data: data.GamePlayerResultData[]) => void;

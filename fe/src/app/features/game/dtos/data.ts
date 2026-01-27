@@ -119,5 +119,9 @@ export type GamePlayerRealtimeData = {
 };
 
 export type GamePlayerResultData = {
-  results: Array<GamePlayerData & { score: number }>;
+  playerId: string;
+  nickname: string;
+  profileImage: string;
+  score: number;
+  rank: number;
 };

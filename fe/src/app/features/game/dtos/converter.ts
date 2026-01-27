@@ -192,15 +192,14 @@ export const toGamePlayerRealtimeData = (dto: GamePlayerRealtimeDto): GamePlayer
   ranks: dto.ranks,
 });
 
-export const toGamePlayerResultData = (dto: GamePlayerResultDto): GamePlayerResultData => ({
-  results: dto.results.map((result) => ({
+export const toGamePlayerResultData = (dto: GamePlayerResultDto): GamePlayerResultData[] =>
+  dto.results.map((result) => ({
     playerId: result.player_id,
     nickname: result.nickname,
     profileImage: result.profile_image,
-    isReady: result.is_ready,
     score: Number(result.score),
-  })),
-});
+    rank: Number(result.rank),
+  }));
 
 export const GameConverter = {
   toGameData,

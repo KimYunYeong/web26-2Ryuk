@@ -118,6 +118,14 @@ export type GamePlayerRealtimeDto = {
   ranks: string[];
 };
 
+export type GamePlayerResultItemDto = {
+  player_id: string;
+  nickname: string;
+  profile_image: string;
+  score: string;
+  rank: string;
+};
+
 export type GamePlayerResultDto = {
-  results: Array<GamePlayerDto & { score: string }>;
+  results: GamePlayerResultItemDto[];
 };
