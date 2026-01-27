@@ -1,0 +1,8 @@
+.content {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: clamp(24px, 3vw, 48px);
+  box-sizing: border-box;
+}
