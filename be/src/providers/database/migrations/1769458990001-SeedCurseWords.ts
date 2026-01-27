@@ -2,6 +2,10 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class SeedCurseWords1769458990001 implements MigrationInterface {
   private readonly CURSE_WORDS = [
+    // 데모 발표용
+    '바보',
+    'babo',
+    '멍청이',
     // 한국어 - 강한 비속어 및 변형
     '씨발',
     '시발',
@@ -70,8 +74,7 @@ export class SeedCurseWords1769458990001 implements MigrationInterface {
     'fuck',
     'fucking',
     'fucker',
-    'fuk',
-    'fvck',
+    'f*ck',
     'shit',
     'shitty',
     'shite',

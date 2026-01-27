@@ -1,33 +1,26 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CurseWord } from './curse-word.entity';
-import { RedisClientType } from 'redis';
-import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { SanitizeResult } from './dto/curse-word-response.dto';
 
 @Injectable()
 export class CurseWordService implements OnModuleInit {
   private readonly logger = new Logger(CurseWordService.name);
-  private readonly REDIS_SET_KEY = 'curseWord';
   private readonly MAX_RETRIES = 3;
   private readonly INITIAL_RETRY_DELAY_MS = 2000;
   private retryCount = 0;
   private cachedWords: string[] = [];
   private cachedPatterns: RegExp[] = [];
 
-  constructor(
-    @InjectRepository(CurseWord) private readonly curseWordRepository: Repository<CurseWord>,
-    @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
-  ) {}
+  constructor(@InjectRepository(CurseWord) private readonly curseWordRepository: Repository<CurseWord>) {}
 
   /**
-   * 모듈 초기화 시 MySQL에서 Redis로 비속어 목록 적재 -> 실패 시 최대 3회까지 지수 백오프로 재시도
+   * 모듈 초기화 시 MySQL에서 메모리로 비속어 목록 적재 -> 실패 시 최대 3회까지 지수 백오프로 재시도
    * 모듈 초기화 시 비속어 리스트를 메모리에 캐싱
    */
   async onModuleInit(): Promise<void> {
     await this.loadWithRetry(0);
-    await this.refreshCache();
   }
 
   /**
@@ -48,20 +41,26 @@ export class CurseWordService implements OnModuleInit {
       return { sanitized: message, hasCurse: false };
     }
 
-    // 메시지 전처리 -> 숫자/특수문자/공백 제거하고 영어 때문에 소문자화 진행
     const original = message;
-    const normalizedChars: string[] = [];
-    const normToOrigIndex: number[] = [];
-    for (let i = 0; i < original.length; i++) {
-      const ch = original[i];
-      // 영문자 또는 한글만 남김
-      if (/[A-Za-z가-힣]/.test(ch)) {
-        normalizedChars.push(ch.toLowerCase());
-        normToOrigIndex.push(i);
+
+    // 메시지를 한 번 훑으며 한글용/영문용 정규화 문자열과 매핑을 각각 만듦
+    const buildNormalized = (predicate: (ch: string) => boolean) => {
+      const chars: string[] = [];
+      const map: number[] = [];
+      for (let i = 0; i < original.length; i++) {
+        const ch = original[i];
+        if (predicate(ch)) {
+          chars.push(ch.toLowerCase());
+          map.push(i);
+        }
       }
-    }
-    const normalized = normalizedChars.join('');
-    if (normalized.length === 0) {
+      return { text: chars.join(''), map };
+    };
+
+    const normKorean = buildNormalized((ch) => /[가-힣]/.test(ch));
+    const normEnglish = buildNormalized((ch) => /[A-Za-z]/.test(ch));
+
+    if (normKorean.text.length === 0 && normEnglish.text.length === 0) {
       return { sanitized: original, hasCurse: false };
     }
 
@@ -70,14 +69,20 @@ export class CurseWordService implements OnModuleInit {
     for (let idx = 0; idx < this.cachedWords.length; idx++) {
       const word = this.cachedWords[idx];
       if (!word) continue;
+
+      // 단어가 한글을 포함하면 한글 정규화 문자열을, 아니면 영문 정규화 문자열을 사용
+      const isKoreanWord = /[가-힣]/.test(word);
+      const target = isKoreanWord ? normKorean : normEnglish;
+      if (target.text.length === 0) continue;
+
       const pattern = this.cachedPatterns[idx];
       let match: RegExpExecArray | null;
       pattern.lastIndex = 0; // lastIndex 초기화
-      while ((match = pattern.exec(normalized)) !== null) {
+      while ((match = pattern.exec(target.text)) !== null) {
         const startNorm = match.index;
         const endNorm = startNorm + word.length - 1;
-        const startOrig = normToOrigIndex[startNorm];
-        const endOrig = normToOrigIndex[endNorm];
+        const startOrig = target.map[startNorm];
+        const endOrig = target.map[endNorm];
         // 원본에서 해당 구간(사이에 끼어든 문자 포함)을 마스킹
         for (let i = startOrig; i <= endOrig; i++) mask[i] = true;
       }
@@ -95,34 +100,20 @@ export class CurseWordService implements OnModuleInit {
     return { sanitized, hasCurse };
   }
 
-  async loadFromMySQLToRedis(): Promise<void> {
+  async loadFromMySQLToMemory(): Promise<void> {
     const items = await this.curseWordRepository.find({ select: ['word'] });
     const words = items.map((item) => item.word);
-    await this.redisClient.del(this.REDIS_SET_KEY);
-    if (words.length > 0) {
-      await this.redisClient.sAdd(this.REDIS_SET_KEY, words);
-    }
-  }
-
-  private async getWordsFromRedis(): Promise<string[]> {
-    try {
-      const members = await this.redisClient.sMembers(this.REDIS_SET_KEY);
-      return members ?? [];
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      this.logger.error(`Redis에서 비속어 조회 실패: ${msg}`);
-      return [];
-    }
+    await this.refreshCacheWithWords(words);
   }
 
   private async loadWithRetry(attempt: number): Promise<void> {
     try {
-      await this.loadFromMySQLToRedis();
-      this.logger.log('비속어 목록 초기 적재 완료 (MySQL -> Redis)');
+      await this.loadFromMySQLToMemory();
+      this.logger.log('비속어 목록 초기 적재 완료 (MySQL -> Memory)');
       this.retryCount = 0;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      this.logger.warn(`비속어 Redis 적재 실패 (시도 ${attempt + 1}/${this.MAX_RETRIES}): ${msg}`);
+      this.logger.warn(`비속어 메모리 적재 실패 (시도 ${attempt + 1}/${this.MAX_RETRIES}): ${msg}`);
 
       if (attempt < this.MAX_RETRIES - 1) {
         const delayMs = this.INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
@@ -134,8 +125,7 @@ export class CurseWordService implements OnModuleInit {
     }
   }
 
-  private async refreshCache(): Promise<void> {
-    const words = await this.getWordsFromRedis();
+  private async refreshCacheWithWords(words: string[]): Promise<void> {
     // 긴 단어를 먼저 처리하도록 길이 기준 내림차순 정렬
     this.cachedWords = words.sort((a, b) => b.length - a.length);
 
@@ -146,5 +136,11 @@ export class CurseWordService implements OnModuleInit {
     });
 
     this.logger.log(`비속어 캐시 갱신 완료: ${this.cachedWords.length}건`);
+  }
+
+  private async refreshCache(): Promise<void> {
+    if (this.cachedWords.length === 0) {
+      await this.loadFromMySQLToMemory();
+    }
   }
 }
