@@ -20,5 +20,6 @@ export const ROUTES = {
   // 동적 경로 생성 함수
   post: (id: string | number) => `/post/${id}`,
   room: (id: string | number) => `/room/${id}`,
+  game: (roomId: string | number, gameId: string | number) => `/room/${roomId}/game/${gameId}`,
   profile: (id: string | number) => `/profile/${id}`,
 } as const;

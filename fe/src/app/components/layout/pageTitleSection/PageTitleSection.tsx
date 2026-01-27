@@ -6,11 +6,13 @@ import useResponsive from '@/app/hooks/useResponsive';
 import {
   BoardPageTitleSectionProps,
   GamePageTitleSectionProps,
+  GameListPageTitleSectionProps,
   PageTitleSectionProps,
 } from './type';
-import { PrimaryTextButton } from '../../shared/button/TextButton';
-import SearchForm from '../../shared/form/search/SearchForm';
-import RadioButton from '../../shared/radioButton/RadioButton';
+import { PrimaryTextButton } from '@/app/components/shared/button/TextButton';
+import SearchForm from '@/app/components/shared/form/search/SearchForm';
+import RadioButton from '@/app/components/shared/radioButton/RadioButton';
+import { GAME_IDS } from '@/app/shared/constant';
 
 export function PageTitleSection({ label, title, description, children }: PageTitleSectionProps) {
   const { status } = useResponsive();
@@ -38,7 +40,7 @@ export function BoardPageTitleSection({ onSearch, onCreate }: BoardPageTitleSect
   );
 }
 
-export function GamePageTitleSection({ onSearch }: GamePageTitleSectionProps) {
+export function GameListPageTitleSection({ onSearch }: GameListPageTitleSectionProps) {
   return (
     <PageTitleSection
       label="MINIGAMES"
@@ -49,4 +51,18 @@ export function GamePageTitleSection({ onSearch }: GamePageTitleSectionProps) {
       <RadioButton name="game-filter" values={['전체', '경쟁', '협동']} />
     </PageTitleSection>
   );
+}
+
+export function GamePageTitleSection({ gameId }: GamePageTitleSectionProps) {
+  switch (gameId) {
+    case GAME_IDS.BEAKER:
+      return (
+        <PageTitleSection
+          label="MINIGAMES"
+          title="비커 채우기"
+          description="제한시간 동안 스페이스바를 빠르게 눌러 비커를 채워보세요."
+        />
+      );
+  }
+  return null;
 }

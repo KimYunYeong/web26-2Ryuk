@@ -34,7 +34,7 @@ import gamesMock from '@/mocks/data/games.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
-import BeakerFillViewShowcase from '@/app/features/game/components/BeakerFillViewShowcase';
+import BeakerFillViewShowcase from '@/app/features/game/components/beaker/BeakerFillViewShowcase';
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
@@ -422,6 +422,7 @@ export default function FeatureComponents() {
                 type="competition"
                 minPlayers={1}
                 maxPlayers={10}
+                time={30000}
               />
             </Component>
           </div>
@@ -463,13 +464,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="my-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <MyReadyStatusCard userId="1" nickname="강하늘" isHost isReady={false} />
+            <MyReadyStatusCard playerId="1" nickname="강하늘" isHost isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard userId="2" nickname="김지영" isHost={false} isReady={false} />
+            <MyReadyStatusCard playerId="2" nickname="김지영" isHost={false} isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard userId="3" nickname="박철수" isHost={false} isReady />
+            <MyReadyStatusCard playerId="3" nickname="박철수" isHost={false} isReady />
           </Component>
         </div>
       </section>
@@ -479,13 +480,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="other-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <OtherReadyStatusCard userId="1" nickname="강하늘" isHost isReady />
+            <OtherReadyStatusCard playerId="1" nickname="강하늘" isHost isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard userId="2" nickname="김영희" isHost={false} isReady />
+            <OtherReadyStatusCard playerId="2" nickname="김영희" isHost={false} isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard userId="3" nickname="김지영" isHost={false} isReady={false} />
+            <OtherReadyStatusCard playerId="3" nickname="김지영" isHost={false} isReady={false} />
           </Component>
         </div>
       </section>
@@ -497,9 +498,9 @@ export default function FeatureComponents() {
           <Component fullWidth>
             <OtherReadyStatusCardGrid
               players={[
-                { userId: '1', nickname: '강하늘', isHost: true, isReady: true },
-                { userId: '2', nickname: '김영희', isHost: false, isReady: true },
-                { userId: '3', nickname: '김지영', isHost: false, isReady: false },
+                { playerId: '1', nickname: '강하늘', isHost: true, isReady: true },
+                { playerId: '2', nickname: '김영희', isHost: false, isReady: true },
+                { playerId: '3', nickname: '김지영', isHost: false, isReady: false },
               ]}
             />
           </Component>
@@ -536,11 +537,11 @@ export default function FeatureComponents() {
             />
             <Modal id="game-ready-modal">
               <GameReadyModalContent
-                myStatus={{ userId: '1', nickname: '강하늘', isHost: true, isReady: false }}
+                myStatus={{ playerId: '1', nickname: '강하늘', isHost: true, isReady: false }}
                 players={[
-                  { userId: '1', nickname: '박철수', isHost: false, isReady: true },
-                  { userId: '2', nickname: '김영희', isHost: false, isReady: true },
-                  { userId: '3', nickname: '김지영', isHost: false, isReady: false },
+                  { playerId: '1', nickname: '박철수', isHost: false, isReady: true },
+                  { playerId: '2', nickname: '김영희', isHost: false, isReady: true },
+                  { playerId: '3', nickname: '김지영', isHost: false, isReady: false },
                 ]}
                 selectedGame={sampleGames[0]}
                 maxPlayers={4}

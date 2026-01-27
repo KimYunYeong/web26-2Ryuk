@@ -27,6 +27,9 @@ export default function useNavigation() {
     goToRoom: (id: string | number) => {
       router.push(ROUTES.room(id));
     },
+    gotoGame: (roomId: string | number, gameId: string | number) => {
+      router.push(ROUTES.game(roomId, gameId));
+    },
   };
 }
 

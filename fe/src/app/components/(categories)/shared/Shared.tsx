@@ -697,26 +697,29 @@ export default function SharedComponents() {
       <section id="progress-bar" className={styles.section}>
         <h2 className={styles.sectionTitle}>ProgressBar</h2>
         <div className={styles.showcaseBlock}>
-          <h3 className={styles.blockTitle}>Static Values</h3>
+          <h3 className={styles.blockTitle}>Primary</h3>
           <div className={styles.iconRow}>
-            <div className={styles.circleItem}>
-              <Component fullWidth>
-                <ProgressBar value={0} />
-              </Component>
-              <span className={styles.iconLabel}>0%</span>
-            </div>
-            <div className={styles.circleItem}>
-              <Component fullWidth>
-                <ProgressBar value={0.35} />
-              </Component>
-              <span className={styles.iconLabel}>35%</span>
-            </div>
-            <div className={styles.circleItem}>
-              <Component fullWidth>
-                <ProgressBar value={0.75} />
-              </Component>
-              <span className={styles.iconLabel}>75%</span>
-            </div>
+            {[0, 0.35, 0.75].map((value) => (
+              <div key={`primary-${value}`} className={styles.circleItem}>
+                <Component fullWidth>
+                  <ProgressBar value={value} variant="primary" />
+                </Component>
+                <span className={styles.iconLabel}>{String(value * 100)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={styles.showcaseBlock}>
+          <h3 className={styles.blockTitle}>Secondary</h3>
+          <div className={styles.iconRow}>
+            {[0, 0.35, 0.75].map((value) => (
+              <div key={`secondary-${value}`} className={styles.circleItem}>
+                <Component fullWidth>
+                  <ProgressBar value={value} variant="secondary" />
+                </Component>
+                <span className={styles.iconLabel}>{String(value * 100)}%</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -726,7 +729,10 @@ export default function SharedComponents() {
         <div className={styles.showcaseBlock}>
           <h3 className={styles.blockTitle}>10초 카운트다운</h3>
           <Component fullWidth>
-            <RemainingTimeBar durationMs={10000} />
+            <RemainingTimeBar totalDurationMs={10000} remainingMs={10000} variant="primary" />
+          </Component>
+          <Component fullWidth>
+            <RemainingTimeBar totalDurationMs={3000} remainingMs={3000} variant="secondary" />
           </Component>
         </div>
       </section>

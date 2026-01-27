@@ -12,7 +12,12 @@ export interface BoardPageTitleSectionProps {
   onCreate?: () => void;
 }
 
-export interface GamePageTitleSectionProps {
+export interface GameListPageTitleSectionProps {
   onSearch?: (query: string) => void;
+  children?: ReactNode;
+}
+
+export interface GamePageTitleSectionProps {
+  gameId?: string;
   children?: ReactNode;
 }
