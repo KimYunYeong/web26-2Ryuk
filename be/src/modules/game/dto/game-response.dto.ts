@@ -14,7 +14,7 @@ export class GameListResponseDto {
 
 // 게임 참가자 정보
 export class GameParticipantDto {
-  user_id: string;
+  player_id: string;
   nickname: string;
   profile_image: string;
   is_ready: boolean;
@@ -24,7 +24,7 @@ export class GameParticipantDto {
 
 // 게임 참가자 정보 (게임 플레이어)
 export class GamePlayerDto {
-  user_id: string;
+  player_id: string;
   nickname: string;
   profile_image: string;
   is_ready: boolean;
@@ -32,7 +32,7 @@ export class GamePlayerDto {
 
 // 게임 호스트 정보
 export class GameHostDto {
-  user_id: string;
+  player_id: string;
   nickname: string;
   profile_image: string;
 }
@@ -104,7 +104,8 @@ export class GameReadyBroadcastDto {
 
 // 게임 시작 브로드캐스트
 export class GameStartBroadcastDto {
-  start_time: string;
+  start_time: number;
+  duration_ms: number;
 }
 
 // 게임 닫기 브로드캐스트
@@ -120,7 +121,7 @@ export class GameCloseBroadcastDto {
 export class GameRealtimeBroadcastDto {
   highest_score: number;
   average_score: number;
-  ranks: number[];
+  ranks: string[];
 }
 
 // 게임 종료 결과 브로드캐스트

@@ -15,8 +15,14 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
-import { WS_EVENTS_AUTH, WS_EVENTS_ROOM, WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
+import {
+  WS_EVENTS_AUTH,
+  WS_EVENTS_ROOM,
+  WS_EVENTS_CHAT,
+  WS_EVENTS_GAME,
+} from '@src/common/constants/ws-events.constant';
 import { GameService } from './modules/game/game.service';
+import { GameCloseBroadcastDto } from './modules/game/dto/game-response.dto';
 
 @UseFilters(new WsExceptionFilter()) // 필터
 @WebSocketGateway({ namespace: '/' })
@@ -173,13 +179,28 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 내가 속해있는 로컬 방 id 찾아서 해당 게임 정보 삭제
     const localRoomId = await this.roomService.getUserLocalRoom(userId);
     if (localRoomId && localRoomId !== null) {
-      await this.gameService.leaveGame(this.server, localRoomId, userId);
+      // 방장이 게임 모집 중인지 확인
+      const isHost = await this.roomService.isHost(userId, localRoomId);
+      const isRecruiting = await this.gameService.isGameRecruiting(localRoomId);
 
-      // 만약 내가 게임에 속해있는 마지막 사람이라면 game hash 정보도 삭제
-      const pattern = `room:${localRoomId}:game:players:*`;
-      const keys = await this.redisClient.keys(pattern);
+      if (isHost && isRecruiting) {
+        // 방장이 게임 모집 중이면 게임 모집 종료 처리 (다른 사람들에게 브로드캐스트)
+        await this.gameService.closeGameOnDisconnect(this.server, localRoomId, userId);
+      } else {
+        // 일반 참가자이거나 게임 모집 중이 아니면 일반 leaveGame 처리
+        await this.gameService.leaveGame(this.server, localRoomId, userId);
 
-      if (keys.length === 0) await this.redisClient.del(`room:${localRoomId}:game`);
+        // 만약 내가 게임에 속해있는 마지막 사람이라면 game hash 정보도 삭제
+        const pattern = `room:${localRoomId}:game:players:*`;
+        const keys = await this.redisClient.keys(pattern);
+
+        if (keys.length === 0) {
+          // game hash 정보 삭제
+          await this.redisClient.del(`room:${localRoomId}:game`);
+          // 게임 모집 종료 브로드캐스트
+          this.server.to(localRoomId).emit(WS_EVENTS_GAME.PLAYER_CLOSE, new GameCloseBroadcastDto(false));
+        }
+      }
     }
 
     // 기존 타이머가 있으면 취소
