@@ -5,12 +5,13 @@ import { useToast } from '@/app/components/shared/toast/useToast';
 import { modalStore } from '@/app/components/shared/modal/modal.store';
 import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
-import { GameData, GameJoinAckData, GamePlayerData as PData } from '@/app/features/game/dtos/data';
+import { GameJoinAckData, GamePlayerData as PData } from '@/app/features/game/dtos/data';
 import { gameService } from '@/app/features/game/services/GameService';
 import { UseGameResult } from '@/app/features/game/hooks/type';
 import useNavigation from '@/app/hooks/useNavigation';
 import { gameStore } from '@/app/features/game/stores/game';
 import { watchDate } from '@/utils/watchDate';
+import { rankingStore } from '@/app/features/game/stores/ranking';
 
 interface ResultSnapshot {
   myScore: number;
@@ -26,7 +27,9 @@ export function useGame(roomId?: string): UseGameResult {
   const userId = authStore((s) => s.userId);
   const user = authStore((s) => s.user);
   const isHost = roomData?.hostId === userId;
-  const roomIsGameRecruiting = roomStore((s) => s.isGameRecruiting);
+  const roomIsGameRecruiting = roomStore(
+    (s) => s.isGameRecruiting || Boolean(s.roomData?.isGameRecruiting),
+  );
   const setRoomIsGameRecruiting = roomStore((s) => s.setIsGameRecruiting);
 
   // GameStore 상태 구독
@@ -41,7 +44,11 @@ export function useGame(roomId?: string): UseGameResult {
   const [resultSnapshot, setResultSnapshot] = useState<ResultSnapshot>();
 
   const clearResultSnapshot = useCallback(() => setResultSnapshot(undefined), []);
-  const resetGameProgress = useCallback(() => gameStore.getState().reset(), []);
+  const resetGameProgress = useCallback(() => {
+    const currentSelectedGame = gameStore.getState().selectedGame;
+    gameStore.getState().reset();
+    if (currentSelectedGame) gameStore.getState().setSelectedGame(currentSelectedGame);
+  }, []);
 
   const gameState = resultSnapshot ? 'result' : storeGameState;
 
@@ -59,7 +66,8 @@ export function useGame(roomId?: string): UseGameResult {
   const [isReadyModalOpen, setIsReadyModalOpen] = useState(false);
   const [gamePlayers, setGamePlayers] = useState<PData[]>([]);
   const [myStatus, setMyStatus] = useState<PData>(initialMe());
-  const [selectedGame, setSelectedGame] = useState<GameData>();
+  const selectedGame = gameStore((s) => s.selectedGame);
+  const setSelectedGame = gameStore((s) => s.setSelectedGame);
   const [remainingTime, setRemainingTime] = useState<number>(0);
 
   const isMe = (playerId: string) => playerId === userId;
@@ -81,20 +89,20 @@ export function useGame(roomId?: string): UseGameResult {
     if (!user || !userId) return;
 
     setMyStatus((prev) => {
-      // 이미 게임에 참여한 상태(서버에서 받은 데이터가 있음)이면 업데이트하지 않음
-      if (prev.playerId && prev.playerId === userId && prev.nickname && prev.nickname !== '') {
-        // 단, nickname이나 profileImage가 비어있으면 업데이트
-        if (!prev.nickname || !prev.profileImage) {
-          return {
-            ...prev,
-            nickname: user.nickname ?? prev.nickname,
-            profileImage: user.profileImage ?? prev.profileImage,
-          };
-        }
-        return prev;
+      const participantAlreadyLoaded =
+        prev.playerId === userId && prev.nickname && prev.nickname !== '';
+
+      if (participantAlreadyLoaded) {
+        const missingProfile = !prev.nickname || !prev.profileImage;
+        if (!missingProfile) return prev;
+
+        return {
+          ...prev,
+          nickname: user.nickname ?? prev.nickname,
+          profileImage: user.profileImage ?? prev.profileImage,
+        };
       }
 
-      // 게임에 참여하지 않은 상태이거나 초기 상태면 업데이트
       return {
         ...prev,
         playerId: userId,
@@ -105,9 +113,17 @@ export function useGame(roomId?: string): UseGameResult {
     });
   }, [user, userId, isHost]);
 
+  useEffect(() => {
+    setMyStatus((prev) => {
+      if (!prev || prev.playerId !== userId) return prev;
+      return { ...prev, isHost };
+    });
+  }, [isHost, userId]);
+
   // room:player:recruit
   useEffect(() => {
     return gameService.onRecruit((data) => {
+      setSelectedGame(undefined);
       setRoomIsGameRecruiting(data.isGameRecruiting);
       if (!data.isGameRecruiting || isHost) return;
       showInfoToast('게임 모집이 시작되었습니다.');
@@ -144,7 +160,6 @@ export function useGame(roomId?: string): UseGameResult {
 
     // game:player:join
     const offJoin = gameService.onPlayerJoin((data) => {
-      console.log(data);
       if (isMe(data.player.playerId)) return;
       setGamePlayers(addPlayerIfAbsent(data.player));
     });
@@ -202,6 +217,7 @@ export function useGame(roomId?: string): UseGameResult {
     try {
       await gameService.recruit(roomId);
       modalStore.getState().openModal('game-ready');
+      setSelectedGame(undefined);
       setIsReadyModalOpen(true);
       showSuccessToast('게임 모집을 시작했습니다.');
     } catch {
@@ -256,7 +272,7 @@ export function useGame(roomId?: string): UseGameResult {
     isHost ? await gameService.close(roomId) : await handleLeaveGame();
   }, [roomId, isHost, handleLeaveGame]);
 
-  const { gotoGame } = useNavigation();
+  const { gotoGame, gotoRanking } = useNavigation();
 
   // game:select 게임 선택
   const handleGameSelect = useCallback(
@@ -269,10 +285,10 @@ export function useGame(roomId?: string): UseGameResult {
 
   useEffect(() => {
     return gameService.onSelect((data) => {
-      if (data) setSelectedGame(data.game);
+      if (data) setSelectedGame(data.game ?? undefined);
       if (data.game) gameStore.getState().setPlayDurationMs(data.game.time);
     });
-  }, []);
+  }, [setSelectedGame]);
 
   // 방장이 게임 시작 버튼을 클릭
   const handleGameStartButtonClick = useCallback(() => {
@@ -282,6 +298,7 @@ export function useGame(roomId?: string): UseGameResult {
 
   const handleGameStart = useCallback(() => {
     gameStore.getState().setGameState('play');
+    setIsReadyModalOpen(false);
   }, []);
 
   // 게임 종료 처리 함수
@@ -360,6 +377,7 @@ export function useGame(roomId?: string): UseGameResult {
   // game:player:start 처리 및 watchDate 설정
   useEffect(() => {
     return gameService.onStart((data) => {
+      rankingStore.getState().clearResult();
       clearResultSnapshot();
       resetGameProgress();
 
@@ -482,11 +500,14 @@ export function useGame(roomId?: string): UseGameResult {
   // game:player:result 처리
   useEffect(() => {
     return gameService.onResult((data) => {
-      // TODO: 결과 화면
-      console.log(data);
+      rankingStore.getState().setResult(data);
+
       handleGameEnd();
+
+      if (!roomId || !selectedGame?.id) return;
+      gotoRanking(roomId, selectedGame.id);
     });
-  }, [handleGameEnd]);
+  }, [handleGameEnd, gotoRanking, roomId, selectedGame?.id]);
 
   // 남은 시간 계산
   useEffect(() => {

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { GameData } from '@/app/features/game/dtos/data';
 
 export type GameState = 'ready' | 'play' | 'result';
 
@@ -14,6 +15,7 @@ interface GameStoreState {
   highestScore?: number;
   averageScore: number;
   ranks: string[];
+  selectedGame?: GameData;
 }
 
 interface GameStoreActions {
@@ -21,10 +23,11 @@ interface GameStoreActions {
   setStartTime: (startTime?: Date) => void;
   setPlayDurationMs: (playDurationMs: number) => void;
   setDelayMs: (delayMs: number) => void;
-  setMyScore: (score: number) => void;
-  setHighestScore: (score?: number) => void;
-  setAverageScore: (score: number) => void;
+  setMyScore: (myScore: number) => void;
+  setHighestScore: (highestScore?: number) => void;
+  setAverageScore: (averageScore: number) => void;
   setRanks: (ranks: string[]) => void;
+  setSelectedGame: (game?: GameData) => void;
   reset: () => void;
 }
 
@@ -46,6 +49,7 @@ const initialState: GameStoreState = {
   highestScore: undefined,
   averageScore: 0,
   ranks: [],
+  selectedGame: undefined,
 };
 
 export const gameStore = create<GameStore>()(
@@ -60,6 +64,7 @@ export const gameStore = create<GameStore>()(
       setHighestScore: (highestScore?: number) => set({ highestScore }),
       setAverageScore: (averageScore: number) => set({ averageScore }),
       setRanks: (ranks: string[]) => set({ ranks }),
+      setSelectedGame: (selectedGame?: GameData) => set({ selectedGame }),
       reset: () => {
         removePersistedGameState();
         set(initialState);
@@ -77,6 +82,7 @@ export const gameStore = create<GameStore>()(
         highestScore: state.highestScore,
         averageScore: state.averageScore,
         ranks: state.ranks,
+        selectedGame: state.selectedGame,
       }),
       // Date 객체 복구 처리
       onRehydrateStorage: () => (state) => {
