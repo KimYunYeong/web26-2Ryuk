@@ -21,14 +21,20 @@ export default function useNavigation() {
     gotoComponents: (category: ComponentCategory) => {
       router.push(getCategoryPath(category));
     },
-    goToPost: (id: string | number) => {
+    goToPost: (id: string) => {
       router.push(ROUTES.post(id));
     },
-    goToRoom: (id: string | number) => {
+    goToRoom: (id: string) => {
       router.push(ROUTES.room(id));
     },
-    gotoGame: (roomId: string | number, gameId: string | number) => {
+    gotoGame: (roomId: string, gameId: string) => {
       router.push(ROUTES.game(roomId, gameId));
+    },
+    gotoRanking: (roomId: string, gameId: string) => {
+      router.push(ROUTES.ranking(roomId, gameId));
+    },
+    goToRoomReplace: (id: string | number) => {
+      router.replace(ROUTES.room(id));
     },
   };
 }

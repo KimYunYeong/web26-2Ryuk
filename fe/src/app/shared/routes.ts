@@ -21,5 +21,7 @@ export const ROUTES = {
   post: (id: string | number) => `/post/${id}`,
   room: (id: string | number) => `/room/${id}`,
   game: (roomId: string | number, gameId: string | number) => `/room/${roomId}/game/${gameId}`,
+  ranking: (roomId: string | number, gameId: string | number) =>
+    `/room/${roomId}/game/${gameId}/ranking`,
   profile: (id: string | number) => `/profile/${id}`,
 } as const;
