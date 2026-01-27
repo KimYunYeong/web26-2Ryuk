@@ -1,12 +1,26 @@
-import { GamePlayerData } from '@/app/features/game/dtos/data';
+import { GameData, GamePlayerData } from '@/app/features/game/dtos/data';
+import { GameState } from '@/app/features/game/stores/game';
 
 export interface UseGameResult {
   myStatus: GamePlayerData;
   gamePlayers: GamePlayerData[];
   isGameRecruiting: boolean;
   isReadyModalOpen: boolean;
-  handleGameRecruitClick: () => Promise<void>;
+  handleGameRecruit: () => Promise<void>;
+  handleGameJoin: () => Promise<void>;
   handleReadyChange: (isReady: boolean) => void;
   handleLeaveGame: () => Promise<void>;
   handleCloseGame: () => Promise<void>;
+  handleGameSelect: (gameId?: string) => void;
+  handleGameStartButtonClick: () => void;
+  selectedGame?: GameData;
+  gameState: GameState;
+  remainingTime: number;
+  durationMs: number;
+  myScore: number;
+  opponentScore: number;
+  opponentHighestScore?: number;
+  myRank?: number;
+  myDropTrigger: number;
+  opponentDropTrigger: number;
 }

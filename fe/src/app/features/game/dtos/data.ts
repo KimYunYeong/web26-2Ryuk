@@ -1,16 +1,7 @@
 // HTTP data
 
-export type GameItemData = {
-  id: string;
-  title: string;
-  type: string;
-  description?: string;
-  minPlayers: number;
-  maxPlayers: number;
-};
-
 export type GameListResponseData = {
-  games: GameItemData[];
+  games: GameData[];
 };
 
 // WebSocket Data
@@ -32,7 +23,7 @@ export type GameJoinData = {
 };
 
 export type GamePlayerData = {
-  userId: string;
+  playerId: string;
   nickname: string;
   profileImage?: string;
   isReady?: boolean;
@@ -46,6 +37,7 @@ export type GameData = {
   type: string;
   minPlayers: number;
   maxPlayers: number;
+  time: number;
 };
 
 export type GameJoinAckData = {
@@ -103,6 +95,7 @@ export type GameStartData = {
 
 export type GamePlayerStartData = {
   startTime: Date;
+  durationMs: number;
 };
 
 export type GameCloseData = {

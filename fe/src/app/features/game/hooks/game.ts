@@ -1,68 +1,137 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import { modalStore } from '@/app/components/shared/modal/modal.store';
 import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
-import { GameJoinAckData, GamePlayerData as PData } from '@/app/features/game/dtos/data';
+import { GameData, GameJoinAckData, GamePlayerData as PData } from '@/app/features/game/dtos/data';
 import { gameService } from '@/app/features/game/services/GameService';
 import { UseGameResult } from '@/app/features/game/hooks/type';
+import useNavigation from '@/app/hooks/useNavigation';
+import { gameStore } from '@/app/features/game/stores/game';
+import { watchDate } from '@/utils/watchDate';
+
+interface ResultSnapshot {
+  myScore: number;
+  opponentScore: number;
+  myRank?: number;
+  highestScore?: number;
+}
 
 export function useGame(roomId?: string): UseGameResult {
   const { showSuccessToast, showInfoToast, showErrorToast } = useToast();
 
   const roomData = roomStore((s) => s.roomData);
   const userId = authStore((s) => s.userId);
+  const user = authStore((s) => s.user);
   const isHost = roomData?.hostId === userId;
+  const roomIsGameRecruiting = roomStore((s) => s.isGameRecruiting);
+  const setRoomIsGameRecruiting = roomStore((s) => s.setIsGameRecruiting);
 
-  const [isGameRecruiting, setIsGameRecruiting] = useState(false);
+  // GameStore 상태 구독
+  const storeGameState = gameStore((s) => s.gameState);
+  const startTime = gameStore((s) => s.startTime);
+  const durationMs = gameStore((s) => s.durationMs);
+  const myScore = gameStore((s) => s.myScore);
+  const highestScore = gameStore((s) => s.highestScore);
+  const averageScore = gameStore((s) => s.averageScore);
+  const ranks = gameStore((s) => s.ranks);
+  const [resultSnapshot, setResultSnapshot] = useState<ResultSnapshot>();
+
+  const clearResultSnapshot = useCallback(() => setResultSnapshot(undefined), []);
+  const resetGameProgress = useCallback(() => gameStore.getState().reset(), []);
+
+  const gameState = resultSnapshot ? 'result' : storeGameState;
+
+  const initialMe = useCallback(
+    (): PData => ({
+      playerId: userId ?? '',
+      nickname: user?.nickname ?? '',
+      profileImage: user?.profileImage ?? '',
+      isHost,
+      isReady: false,
+    }),
+    [userId, user?.nickname, user?.profileImage, isHost],
+  );
+
   const [isReadyModalOpen, setIsReadyModalOpen] = useState(false);
   const [gamePlayers, setGamePlayers] = useState<PData[]>([]);
-  const [myStatus, setMyStatus] = useState<PData>();
-
-  const initialMe: PData = {
-    userId: userId ?? '',
-    nickname: authStore.getState().user?.nickname ?? '',
-    profileImage: authStore.getState().user?.profileImage ?? '',
-    isHost,
-    isReady: false,
-  };
+  const [myStatus, setMyStatus] = useState<PData>(initialMe());
+  const [selectedGame, setSelectedGame] = useState<GameData>();
+  const [remainingTime, setRemainingTime] = useState<number>(0);
 
   const isMe = (playerId: string) => playerId === userId;
   const isHostPlayer = (playerId: string) => playerId === roomData?.hostId;
-  const isSamePlayer = (a: PData, b: PData) => a.userId === b.userId;
-  const withHostFlag = (p: PData): PData => ({ ...p, isHost: isHostPlayer(p.userId) });
+  const isSamePlayer = (a: PData, b: PData) => a.playerId === b.playerId;
+  const withHostFlag = (p: PData): PData => ({ ...p, isHost: isHostPlayer(p.playerId) });
+
+  // 쓰로틀링 및 watchDate cleanup 관리
+  const deltaRef = useRef<number>(0);
+  const throttleTimerRef = useRef<NodeJS.Timeout>();
+  const watchStartCleanupRef = useRef<(() => void) | null>(null);
+  const watchEndCleanupRef = useRef<(() => void) | null>(null);
+  const previousAverageScoreRef = useRef<number>(0);
+  const [opponentDropTrigger, setOpponentDropTrigger] = useState<number>(0);
+  const [myDropTrigger, setMyDropTrigger] = useState<number>(0);
+
+  // user가 로드될 때 myStatus 업데이트 (게임에 참여하지 않은 상태에서만)
+  useEffect(() => {
+    if (!user || !userId) return;
+
+    setMyStatus((prev) => {
+      // 이미 게임에 참여한 상태(서버에서 받은 데이터가 있음)이면 업데이트하지 않음
+      if (prev.playerId && prev.playerId === userId && prev.nickname && prev.nickname !== '') {
+        // 단, nickname이나 profileImage가 비어있으면 업데이트
+        if (!prev.nickname || !prev.profileImage) {
+          return {
+            ...prev,
+            nickname: user.nickname ?? prev.nickname,
+            profileImage: user.profileImage ?? prev.profileImage,
+          };
+        }
+        return prev;
+      }
+
+      // 게임에 참여하지 않은 상태이거나 초기 상태면 업데이트
+      return {
+        ...prev,
+        playerId: userId,
+        nickname: user.nickname ?? prev.nickname,
+        profileImage: user.profileImage ?? prev.profileImage,
+        isHost: prev.isHost ?? isHost,
+      };
+    });
+  }, [user, userId, isHost]);
 
   // room:player:recruit
   useEffect(() => {
     return gameService.onRecruit((data) => {
-      setIsGameRecruiting(data.isGameRecruiting);
-
-      if (!data.isGameRecruiting) return;
-      if (!isHost) return showInfoToast('게임 모집이 시작되었습니다.');
-
-      modalStore.getState().openModal('game-ready');
-      setIsReadyModalOpen(true);
+      setRoomIsGameRecruiting(data.isGameRecruiting);
+      if (!data.isGameRecruiting || isHost) return;
+      showInfoToast('게임 모집이 시작되었습니다.');
     });
-  }, [isHost]);
+  }, [isHost, setRoomIsGameRecruiting]);
 
   // game:join (ack)
-  const applyJoinAck = useCallback((ack: GameJoinAckData) => {
-    const hostId = ack.host.userId;
-    const isPlayerHost = (p: PData) => p.userId === hostId;
-    const addIsHost = (p: PData) => ({ ...p, isHost: isPlayerHost(p) });
+  const applyJoinAck = useCallback(
+    (ack: GameJoinAckData) => {
+      const hostId = ack.host.playerId;
+      const isPlayerHost = (p: PData) => p.playerId === hostId;
+      const addIsHost = (p: PData) => ({ ...p, isHost: isPlayerHost(p) });
 
-    const players = ack.players.map(addIsHost);
-    const hasHost = players.some(isPlayerHost);
-    const merged = hasHost ? players : [...players, ack.host];
+      const players = ack.players.map(addIsHost);
+      const hasHost = players.some(isPlayerHost);
+      const merged = hasHost ? players : [...players, ack.host];
 
-    const me = merged.find((p) => isMe(p.userId));
-    const others = merged.filter((p) => !isMe(p.userId));
+      const me = merged.find((p) => p.playerId === userId);
+      const others = merged.filter((p) => p.playerId !== userId);
 
-    setGamePlayers(others);
-    setMyStatus(me ?? initialMe);
-  }, []);
+      setGamePlayers(others);
+      setMyStatus(me ?? initialMe());
+    },
+    [initialMe, userId],
+  );
 
   // game:player:join, game:player:leave
   useEffect(() => {
@@ -70,17 +139,20 @@ export function useGame(roomId?: string): UseGameResult {
       prev.some((p) => isSamePlayer(p, player)) ? prev : [...prev, withHostFlag(player)];
 
     const removePlayer = (playerId: string) => (prev: PData[]) =>
-      prev.filter((p) => p.userId !== playerId);
+      prev.filter((p) => p.playerId !== playerId);
 
-    const offJoin = gameService.onPlayerJoin(({ player }) => {
-      if (isMe(player.userId)) return;
-      setGamePlayers(addPlayerIfAbsent(player));
+    // game:player:join
+    const offJoin = gameService.onPlayerJoin((data) => {
+      console.log(data);
+      if (isMe(data.player.playerId)) return;
+      setGamePlayers(addPlayerIfAbsent(data.player));
     });
 
-    const offLeave = gameService.onPlayerLeave(({ playerId }) => {
-      setGamePlayers(removePlayer(playerId));
+    // game:player:leave
+    const offLeave = gameService.onPlayerLeave((data) => {
+      setGamePlayers(removePlayer(data.playerId));
 
-      if (!isMe(playerId)) return;
+      if (!isMe(data.playerId)) return;
       modalStore.getState().closeModal('game-ready');
     });
 
@@ -92,9 +164,9 @@ export function useGame(roomId?: string): UseGameResult {
 
   // game:player:ready, game:player:unready
   const updateReady = useCallback((playerId: string, isReady: boolean) => {
-    setGamePlayers((prev) => prev.map((p) => (p.userId === playerId ? { ...p, isReady } : p)));
+    setGamePlayers((prev) => prev.map((p) => (p.playerId === playerId ? { ...p, isReady } : p)));
 
-    setMyStatus((prev) => (prev && prev.userId === playerId ? { ...prev, isReady } : prev));
+    setMyStatus((prev) => (prev && prev.playerId === playerId ? { ...prev, isReady } : prev));
   }, []);
 
   useEffect(() => {
@@ -112,7 +184,7 @@ export function useGame(roomId?: string): UseGameResult {
     return gameService.onClose((data) => {
       if (data.isGameRecruiting) return;
 
-      setIsGameRecruiting(false);
+      setRoomIsGameRecruiting(data.isGameRecruiting);
       setGamePlayers([]);
       modalStore.getState().closeModal('game-ready');
 
@@ -120,18 +192,28 @@ export function useGame(roomId?: string): UseGameResult {
         ? showSuccessToast('게임 모집을 종료했습니다.')
         : showInfoToast('게임 모집이 종료되었습니다.');
     });
-  }, [isHost]);
+  }, [isHost, setRoomIsGameRecruiting]);
 
-  // actions
-  const handleGameRecruitClick = useCallback(async () => {
+  // game:recruit
+  const handleGameRecruit = useCallback(async () => {
     if (!roomId) return;
 
     try {
-      if (isHost) {
-        await gameService.recruit(roomId);
-      } else if (!isGameRecruiting) {
-        return showErrorToast('게임 모집 중이 아닙니다.');
-      }
+      await gameService.recruit(roomId);
+      modalStore.getState().openModal('game-ready');
+      setIsReadyModalOpen(true);
+      showSuccessToast('게임 모집을 시작했습니다.');
+    } catch {
+      showErrorToast('게임 요청에 실패했습니다.');
+    }
+  }, [roomId, showSuccessToast, showErrorToast]);
+
+  // game:join
+  const handleGameJoin = useCallback(async () => {
+    if (!roomId) return;
+
+    try {
+      if (!roomIsGameRecruiting) return showErrorToast('게임 모집 중이 아닙니다.');
 
       const ack = await gameService.join(roomId);
       applyJoinAck(ack);
@@ -139,11 +221,18 @@ export function useGame(roomId?: string): UseGameResult {
       modalStore.getState().openModal('game-ready');
       setIsReadyModalOpen(true);
 
-      showSuccessToast(isHost ? '게임 모집을 시작했습니다.' : '게임에 참여했습니다.');
+      showSuccessToast('게임에 참여했습니다.');
     } catch {
       showErrorToast('게임 요청에 실패했습니다.');
     }
-  }, [roomId, isHost, isGameRecruiting]);
+  }, [roomId, roomIsGameRecruiting, showSuccessToast, showErrorToast]);
+
+  useEffect(() => {
+    if (!roomIsGameRecruiting || isReadyModalOpen || !isHost) return;
+
+    modalStore.getState().openModal('game-ready');
+    setIsReadyModalOpen(true);
+  }, [roomIsGameRecruiting, isReadyModalOpen, isHost]);
 
   const handleReadyChange = useCallback(
     (isReady: boolean) => {
@@ -166,14 +255,325 @@ export function useGame(roomId?: string): UseGameResult {
     isHost ? await gameService.close(roomId) : await handleLeaveGame();
   }, [roomId, isHost, handleLeaveGame]);
 
+  const { gotoGame } = useNavigation();
+
+  // game:select 게임 선택
+  const handleGameSelect = useCallback(
+    (gameId = '3f1c8c6a-7a4a-4a6c-9b7e-0b5c7f3a9f21') => {
+      if (!roomId) return;
+      gameService.select(roomId, gameId);
+    },
+    [roomId],
+  );
+
+  useEffect(() => {
+    return gameService.onSelect((data) => {
+      if (data) setSelectedGame(data.game);
+      if (data.game) gameStore.getState().setDurationMs(data.game.time);
+    });
+  }, []);
+
+  // 방장이 게임 시작 버튼을 클릭
+  const handleGameStartButtonClick = useCallback(() => {
+    if (!roomId) return;
+    gameService.startGame(roomId);
+  }, [roomId]);
+
+  const handleGameStart = useCallback(() => {
+    gameStore.getState().setGameState('play');
+  }, []);
+
+  // 게임 종료 처리 함수
+  const handleGameEnd = useCallback(() => {
+    const state = gameStore.getState();
+    setResultSnapshot({
+      myScore: state.myScore,
+      opponentScore: state.averageScore,
+      myRank: userId ? state.ranks.indexOf(userId) + 1 : undefined,
+      highestScore: state.highestScore,
+    });
+
+    // isGameStarted 제거하고 GameState 사용
+    gameStore.getState().setGameState('result');
+
+    // 스페이스바 입력 차단
+    // delta 누적 중단
+    // 쓰로틀링 타이머 제거
+    if (throttleTimerRef.current) {
+      clearInterval(throttleTimerRef.current);
+      throttleTimerRef.current = undefined;
+    }
+    deltaRef.current = 0;
+
+    // watchDate cleanup
+    if (watchStartCleanupRef.current) {
+      watchStartCleanupRef.current();
+      watchStartCleanupRef.current = null;
+    }
+    if (watchEndCleanupRef.current) {
+      watchEndCleanupRef.current();
+      watchEndCleanupRef.current = null;
+    }
+  }, [resetGameProgress, userId]);
+
+  // watchDate 설정 함수
+  const setupWatchDates = useCallback(
+    (start: Date, duration: number) => {
+      // 기존 cleanup
+      if (watchStartCleanupRef.current) {
+        watchStartCleanupRef.current();
+        watchStartCleanupRef.current = null;
+      }
+      if (watchEndCleanupRef.current) {
+        watchEndCleanupRef.current();
+        watchEndCleanupRef.current = null;
+      }
+
+      const endTime = new Date(start.getTime() + duration);
+      const now = Date.now();
+      const startTimeMs = start.getTime();
+
+      // 현재 상태 계산
+      if (now < startTimeMs) {
+        // 아직 시작 전
+        gameStore.getState().setGameState('ready');
+      } else if (now >= endTime.getTime()) {
+        // 이미 종료됨
+        gameStore.getState().setGameState('result');
+        return;
+      } else {
+        // 게임 진행 중
+        gameStore.getState().setGameState('play');
+        return; // 이미 진행 중이면 watchDate 등록 불필요
+      }
+
+      // watchDate 1: 게임 시작 감지
+      watchStartCleanupRef.current = watchDate(start, handleGameStart);
+
+      // watchDate 2: 게임 종료 감지
+      watchEndCleanupRef.current = watchDate(endTime, handleGameEnd);
+    },
+    [handleGameEnd],
+  );
+
+  // game:player:start 처리 및 watchDate 설정
+  useEffect(() => {
+    return gameService.onStart((data) => {
+      clearResultSnapshot();
+      resetGameProgress();
+
+      // GameStore에 시작 정보 저장
+      const startTimeDate = data.startTime;
+      gameStore.getState().setStartTime(startTimeDate);
+      gameStore.getState().setDurationMs(data.durationMs);
+      gameStore.getState().setGameState('ready');
+
+      // watchDate 설정 (startTime 변경으로 인한 중복 호출 방지를 위해 직접 호출)
+      setupWatchDates(startTimeDate, data.durationMs);
+
+      if (!roomId || !selectedGame?.id) return;
+      gotoGame(roomId, selectedGame.id);
+    });
+  }, [roomId, selectedGame, gotoGame, setupWatchDates, clearResultSnapshot, resetGameProgress]);
+
+  // 새로고침 후 복구: GameStore에서 상태 복구 및 watchDate 재등록
+  useEffect(() => {
+    const store = gameStore.getState();
+    if (!store.startTime || !store.durationMs) return;
+
+    // watchDate 재등록
+    setupWatchDates(store.startTime, store.durationMs);
+
+    return () => {
+      if (watchStartCleanupRef.current) {
+        watchStartCleanupRef.current();
+        watchStartCleanupRef.current = null;
+      }
+      if (watchEndCleanupRef.current) {
+        watchEndCleanupRef.current();
+        watchEndCleanupRef.current = null;
+      }
+    };
+  }, []);
+
+  // game:player:realtime 처리
+  useEffect(() => {
+    return gameService.onRealtime((data) => {
+      // isGameStarted 제거하고 GameState 사용
+      if (gameStore.getState().gameState !== 'play') return;
+
+      gameStore.getState().setHighestScore(data.highestScore);
+      gameStore.getState().setAverageScore(data.averageScore);
+      gameStore.getState().setRanks(data.ranks);
+
+      // 상대 비커 dropTrigger 계산
+      const currentAvg = data.averageScore;
+      const prevAvg = previousAverageScoreRef.current;
+      const scoreDiff = currentAvg - prevAvg;
+
+      if (scoreDiff > 0) {
+        const interval = 100 / scoreDiff;
+        if (interval > 0 && isFinite(interval)) {
+          setOpponentDropTrigger((prev) => prev + 1);
+        }
+      }
+
+      previousAverageScoreRef.current = currentAvg;
+    });
+  }, []);
+
+  // 쓰로틀링: 100ms마다 누적된 delta 전송
+  useEffect(() => {
+    if (gameState !== 'play' || !roomId) {
+      if (throttleTimerRef.current) {
+        clearInterval(throttleTimerRef.current);
+        throttleTimerRef.current = undefined;
+      }
+      return;
+    }
+
+    throttleTimerRef.current = setInterval(() => {
+      if (gameStore.getState().gameState !== 'play') {
+        if (throttleTimerRef.current) {
+          clearInterval(throttleTimerRef.current);
+          throttleTimerRef.current = undefined;
+        }
+        deltaRef.current = 0;
+        return;
+      }
+
+      if (deltaRef.current <= 0) return;
+      gameService.realtimeInput(roomId, deltaRef.current);
+      deltaRef.current = 0;
+    }, 100);
+
+    return () => {
+      if (!throttleTimerRef.current) return;
+      clearInterval(throttleTimerRef.current);
+      throttleTimerRef.current = undefined;
+    };
+  }, [gameState, roomId]);
+
+  // 스페이스바 입력 처리
+  useEffect(() => {
+    if (gameState !== 'play') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // isGameStarted 제거하고 GameState 사용
+      if (gameStore.getState().gameState !== 'play') return;
+
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault();
+        // 낙관적 업데이트
+        gameStore.getState().setMyScore(gameStore.getState().myScore + 1);
+        setMyDropTrigger((prev) => prev + 1);
+
+        // delta 누적
+        deltaRef.current += 1;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState]);
+
+  // game:player:result 처리
+  useEffect(() => {
+    return gameService.onResult((data) => {
+      // TODO: 결과 화면
+      console.log(data);
+      handleGameEnd();
+    });
+  }, [handleGameEnd]);
+
+  // 남은 시간 계산
+  useEffect(() => {
+    if (!startTime) {
+      setRemainingTime(0);
+      return;
+    }
+
+    const updateRemainingTime = () => {
+      const now = Date.now();
+      const startTimeMs = startTime.getTime();
+      const endTimeMs = startTimeMs + durationMs;
+
+      const currentState = gameStore.getState().gameState;
+
+      let timeRemaining = 0;
+      switch (currentState) {
+        case 'ready':
+          timeRemaining = Math.max(0, startTimeMs - now);
+          break;
+        case 'play':
+          timeRemaining = Math.max(0, endTimeMs - now);
+          break;
+        case 'result':
+          timeRemaining = 0;
+          break;
+      }
+      setRemainingTime(timeRemaining);
+    };
+
+    updateRemainingTime();
+    const interval = setInterval(updateRemainingTime, 100);
+
+    return () => clearInterval(interval);
+  }, [startTime, durationMs, gameState]);
+
+  // 컴포넌트 unmount 시 cleanup
+  useEffect(() => {
+    return () => {
+      if (throttleTimerRef.current) {
+        clearInterval(throttleTimerRef.current);
+        throttleTimerRef.current = undefined;
+      }
+      if (watchStartCleanupRef.current) {
+        watchStartCleanupRef.current();
+        watchStartCleanupRef.current = null;
+      }
+      if (watchEndCleanupRef.current) {
+        watchEndCleanupRef.current();
+        watchEndCleanupRef.current = null;
+      }
+      deltaRef.current = 0;
+    };
+  }, []);
+
+  // 상대 점수 계산
+  const isOneToOne = gamePlayers.length === 1;
+  const storeOpponentScore = averageScore;
+  const storeHighestScore = isOneToOne ? undefined : highestScore;
+
+  // 내 랭킹 계산
+  const storeMyRank = userId ? ranks.indexOf(userId) + 1 : undefined;
+
+  const displayedMyScore = resultSnapshot?.myScore ?? myScore;
+  const displayedOpponentScore = resultSnapshot?.opponentScore ?? storeOpponentScore;
+  const displayedMyRank = resultSnapshot?.myRank ?? storeMyRank;
+  const displayedOpponentHighestScore = resultSnapshot?.highestScore ?? storeHighestScore;
+
   return {
-    myStatus: myStatus ?? initialMe,
+    myStatus: myStatus,
     gamePlayers,
-    isGameRecruiting,
+    isGameRecruiting: roomIsGameRecruiting,
     isReadyModalOpen,
-    handleGameRecruitClick,
+    handleGameRecruit,
+    handleGameJoin,
     handleReadyChange,
     handleLeaveGame,
     handleCloseGame,
+    handleGameSelect,
+    handleGameStartButtonClick,
+    gameState,
+    selectedGame,
+    remainingTime,
+    durationMs,
+    myScore: displayedMyScore,
+    opponentScore: displayedOpponentScore,
+    opponentHighestScore: displayedOpponentHighestScore,
+    myRank: displayedMyRank,
+    myDropTrigger,
+    opponentDropTrigger,
   };
 }
