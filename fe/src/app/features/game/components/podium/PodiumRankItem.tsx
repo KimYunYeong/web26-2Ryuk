@@ -2,6 +2,7 @@
 
 import CSSUtil from '@/utils/css';
 import { ProfileRow } from '@/app/components/shared/profile/Profile';
+import { RankCoin } from '@/app/components/shared/coin';
 import styles from './gameResultPodium.module.css';
 
 export interface PodiumRankItemProps {
@@ -30,9 +31,7 @@ export default function PodiumRankItem({
   return (
     <div className={className}>
       <div className={styles.itemRow}>
-        <div className={styles.rankCircle} aria-label={`rank-${rank}`}>
-          <span>{rank}</span>
-        </div>
+        <RankCoin rank={rank} />
         <div className={styles.profileWrapper}>
           <ProfileRow nickname={nickname} profileImage={profileImage} />
         </div>

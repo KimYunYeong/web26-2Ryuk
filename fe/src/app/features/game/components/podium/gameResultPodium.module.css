@@ -32,16 +32,6 @@
   flex: 1;
 }
 
-.rankCircle {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font: var(--heading-3);
-}
-
 .profileWrapper {
   flex: 1;
 }
@@ -57,29 +47,14 @@
   border: 1px solid var(--gold-border);
 }
 
-.podiumItem.gold .rankCircle {
-  background-color: var(--gold-border);
-  color: var(--gold-bg);
-}
-
 .podiumItem.silver {
   background-color: var(--silver-bg);
   color: var(--silver);
   border: 1px solid var(--silver-border);
 }
 
-.podiumItem.silver .rankCircle {
-  background-color: var(--silver-border);
-  color: var(--silver-bg);
-}
-
 .podiumItem.bronze {
   background-color: var(--bronze-bg);
   color: var(--bronze);
   border: 1px solid var(--bronze-border);
-}
-
-.podiumItem.bronze .rankCircle {
-  background-color: var(--bronze-border);
-  color: var(--bronze-bg);
 }

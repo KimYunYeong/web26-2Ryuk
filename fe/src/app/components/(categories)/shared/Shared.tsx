@@ -32,6 +32,7 @@ import Avatars from '@/app/components/shared/profile/Avatars';
 import profilesMock from '@/mocks/data/profiles.json';
 import Paths from '@/app/shared/path';
 import Table from '@/app/components/table/Table';
+import { RankCoin } from '@/app/components/shared/coin';
 import type { TableColumn } from '@/app/components/table/types';
 import type { GamePlayerResultData } from '@/app/features/game/dtos/data';
 import { GameConverter } from '@/app/features/game/dtos/converter';
@@ -42,7 +43,7 @@ const sharedTableColumns: TableColumn<GamePlayerResultData>[] = [
     key: 'rank',
     header: '순위',
     width: 80,
-    render: (row) => <span>{row.rank}</span>,
+    render: (row) => <RankCoin rank={row.rank} />,
   },
   {
     key: 'player',
