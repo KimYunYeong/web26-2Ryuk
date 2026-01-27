@@ -8,7 +8,8 @@ export type GameState = 'ready' | 'play' | 'result';
 interface GameStoreState {
   gameState: GameState;
   startTime?: Date;
-  durationMs: number;
+  playDurationMs: number;
+  delayMs: number;
   myScore: number;
   highestScore?: number;
   averageScore: number;
@@ -18,7 +19,8 @@ interface GameStoreState {
 interface GameStoreActions {
   setGameState: (state: GameState) => void;
   setStartTime: (startTime?: Date) => void;
-  setDurationMs: (durationMs: number) => void;
+  setPlayDurationMs: (playDurationMs: number) => void;
+  setDelayMs: (delayMs: number) => void;
   setMyScore: (score: number) => void;
   setHighestScore: (score?: number) => void;
   setAverageScore: (score: number) => void;
@@ -38,7 +40,8 @@ const removePersistedGameState = () => {
 const initialState: GameStoreState = {
   gameState: 'ready',
   startTime: undefined,
-  durationMs: 30000,
+  playDurationMs: 30000,
+  delayMs: 0,
   myScore: 0,
   highestScore: undefined,
   averageScore: 0,
@@ -51,7 +54,8 @@ export const gameStore = create<GameStore>()(
       ...initialState,
       setGameState: (gameState: GameState) => set({ gameState }),
       setStartTime: (startTime?: Date) => set({ startTime }),
-      setDurationMs: (durationMs: number) => set({ durationMs }),
+      setPlayDurationMs: (playDurationMs: number) => set({ playDurationMs }),
+      setDelayMs: (delayMs: number) => set({ delayMs }),
       setMyScore: (myScore: number) => set({ myScore }),
       setHighestScore: (highestScore?: number) => set({ highestScore }),
       setAverageScore: (averageScore: number) => set({ averageScore }),
@@ -67,7 +71,8 @@ export const gameStore = create<GameStore>()(
       partialize: (state) => ({
         gameState: state.gameState,
         startTime: state.startTime ? state.startTime.toISOString() : undefined,
-        durationMs: state.durationMs,
+        playDurationMs: state.playDurationMs,
+        delayMs: state.delayMs,
         myScore: state.myScore,
         highestScore: state.highestScore,
         averageScore: state.averageScore,

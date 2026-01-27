@@ -169,7 +169,8 @@ export const toGameStartDto = (data: GameStartData): GameStartDto => ({
 
 export const toGamePlayerStartData = (dto: GamePlayerStartDto): GamePlayerStartData => ({
   startTime: new Date(dto.start_time),
-  durationMs: dto.duration_ms,
+  playDurationMs: dto.play_duration_ms,
+  delayMs: dto.delay_ms,
 });
 
 export const toGameCloseDto = (data: GameCloseData): GameCloseDto => ({

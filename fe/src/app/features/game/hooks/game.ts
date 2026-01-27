@@ -32,7 +32,8 @@ export function useGame(roomId?: string): UseGameResult {
   // GameStore 상태 구독
   const storeGameState = gameStore((s) => s.gameState);
   const startTime = gameStore((s) => s.startTime);
-  const durationMs = gameStore((s) => s.durationMs);
+  const playDurationMs = gameStore((s) => s.playDurationMs);
+  const delayMs = gameStore((s) => s.delayMs);
   const myScore = gameStore((s) => s.myScore);
   const highestScore = gameStore((s) => s.highestScore);
   const averageScore = gameStore((s) => s.averageScore);
@@ -269,7 +270,7 @@ export function useGame(roomId?: string): UseGameResult {
   useEffect(() => {
     return gameService.onSelect((data) => {
       if (data) setSelectedGame(data.game);
-      if (data.game) gameStore.getState().setDurationMs(data.game.time);
+      if (data.game) gameStore.getState().setPlayDurationMs(data.game.time);
     });
   }, []);
 
@@ -318,7 +319,7 @@ export function useGame(roomId?: string): UseGameResult {
 
   // watchDate 설정 함수
   const setupWatchDates = useCallback(
-    (start: Date, duration: number) => {
+    (start: Date, playDuration: number) => {
       // 기존 cleanup
       if (watchStartCleanupRef.current) {
         watchStartCleanupRef.current();
@@ -329,7 +330,7 @@ export function useGame(roomId?: string): UseGameResult {
         watchEndCleanupRef.current = null;
       }
 
-      const endTime = new Date(start.getTime() + duration);
+      const endTime = new Date(start.getTime() + playDuration);
       const now = Date.now();
       const startTimeMs = start.getTime();
 
@@ -365,11 +366,12 @@ export function useGame(roomId?: string): UseGameResult {
       // GameStore에 시작 정보 저장
       const startTimeDate = data.startTime;
       gameStore.getState().setStartTime(startTimeDate);
-      gameStore.getState().setDurationMs(data.durationMs);
+      gameStore.getState().setPlayDurationMs(data.playDurationMs);
+      gameStore.getState().setDelayMs(data.delayMs);
       gameStore.getState().setGameState('ready');
 
       // watchDate 설정 (startTime 변경으로 인한 중복 호출 방지를 위해 직접 호출)
-      setupWatchDates(startTimeDate, data.durationMs);
+      setupWatchDates(startTimeDate, data.playDurationMs);
 
       if (!roomId || !selectedGame?.id) return;
       gotoGame(roomId, selectedGame.id);
@@ -379,10 +381,10 @@ export function useGame(roomId?: string): UseGameResult {
   // 새로고침 후 복구: GameStore에서 상태 복구 및 watchDate 재등록
   useEffect(() => {
     const store = gameStore.getState();
-    if (!store.startTime || !store.durationMs) return;
+    if (!store.startTime || !store.playDurationMs) return;
 
     // watchDate 재등록
-    setupWatchDates(store.startTime, store.durationMs);
+    setupWatchDates(store.startTime, store.playDurationMs);
 
     return () => {
       if (watchStartCleanupRef.current) {
@@ -496,7 +498,7 @@ export function useGame(roomId?: string): UseGameResult {
     const updateRemainingTime = () => {
       const now = Date.now();
       const startTimeMs = startTime.getTime();
-      const endTimeMs = startTimeMs + durationMs;
+      const endTimeMs = startTimeMs + playDurationMs;
 
       const currentState = gameStore.getState().gameState;
 
@@ -519,7 +521,7 @@ export function useGame(roomId?: string): UseGameResult {
     const interval = setInterval(updateRemainingTime, 100);
 
     return () => clearInterval(interval);
-  }, [startTime, durationMs, gameState]);
+  }, [startTime, playDurationMs, gameState]);
 
   // 컴포넌트 unmount 시 cleanup
   useEffect(() => {
@@ -568,7 +570,8 @@ export function useGame(roomId?: string): UseGameResult {
     gameState,
     selectedGame,
     remainingTime,
-    durationMs,
+    playDurationMs,
+    delayMs,
     myScore: displayedMyScore,
     opponentScore: displayedOpponentScore,
     opponentHighestScore: displayedOpponentHighestScore,

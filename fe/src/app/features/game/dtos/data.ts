@@ -95,7 +95,8 @@ export type GameStartData = {
 
 export type GamePlayerStartData = {
   startTime: Date;
-  durationMs: number;
+  delayMs: number;
+  playDurationMs: number;
 };
 
 export type GameCloseData = {

@@ -16,7 +16,8 @@ export interface UseGameResult {
   selectedGame?: GameData;
   gameState: GameState;
   remainingTime: number;
-  durationMs: number;
+  playDurationMs: number;
+  delayMs: number;
   myScore: number;
   opponentScore: number;
   opponentHighestScore?: number;

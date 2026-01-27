@@ -95,7 +95,8 @@ export type GameStartDto = {
 
 export type GamePlayerStartDto = {
   start_time: number;
-  duration_ms: number;
+  delay_ms: number;
+  play_duration_ms: number;
 };
 
 export type GameCloseDto = {
