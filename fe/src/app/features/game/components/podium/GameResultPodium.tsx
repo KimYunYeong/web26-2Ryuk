@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { GamePlayerResultData } from '@/app/features/game/dtos/data';
+import { GamePlayerResultRow } from '@/app/features/game/dtos/data';
 import PodiumRankItem from './PodiumRankItem';
 import styles from './gameResultPodium.module.css';
 
 export interface GameResultPodiumProps {
-  players: GamePlayerResultData[];
+  players: GamePlayerResultRow[];
 }
 
 export default function GameResultPodium({ players }: GameResultPodiumProps) {

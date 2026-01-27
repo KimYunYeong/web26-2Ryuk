@@ -42,8 +42,8 @@ import BeakerFillViewShowcase from '@/app/features/game/components/beaker/Beaker
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
-  const rankingSampleData = GameConverter.toGamePlayerResultData(resultsMock);
-  const podiumResultPlayers = rankingSampleData;
+  const rankingSampleData = GameConverter.toGamePlayerRecordsData(resultsMock);
+  const podiumResultPlayers = rankingSampleData.podium;
   const podiumShowcaseItems = podiumResultPlayers.filter((player) => player.rank <= 3);
 
   return (
@@ -566,7 +566,7 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="ranking-table" />
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
-            <RankingTable data={rankingSampleData} />
+            <RankingTable data={rankingSampleData.rankings} />
           </Component>
         </div>
       </section>
