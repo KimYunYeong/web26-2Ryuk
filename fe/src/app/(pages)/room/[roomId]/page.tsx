@@ -14,6 +14,7 @@ import { useParams } from 'next/navigation';
 import { useRoom } from '@/app/features/room/hooks/room';
 import Modal from '@/app/components/shared/modal/Modal';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
+import useNavigation from '@/app/hooks/useNavigation';
 import { authStore } from '@/app/features/user/stores/auth';
 
 export default function RoomPage() {
@@ -42,9 +43,10 @@ export default function RoomPage() {
     handleReadyChange,
     handleLeaveGame,
     handleCloseGame,
-    handleGameSelect,
     handleGameStartButtonClick,
   } = game;
+
+  const { goToRoomGameList } = useNavigation();
 
   const isHost = roomData?.hostId === userId;
   const isGameButtonEnabled = isHost || isGameRecruiting;
@@ -98,7 +100,7 @@ export default function RoomPage() {
           players={gamePlayers}
           maxPlayers={roomData?.maxParticipants}
           selectedGame={selectedGame}
-          onChangeGame={() => handleGameSelect()}
+          onChangeGame={() => roomId && goToRoomGameList(roomId)}
           onReadyChange={handleReadyChange}
           onStart={handleGameStartButtonClick}
         />

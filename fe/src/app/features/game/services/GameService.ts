@@ -2,6 +2,8 @@
 
 import { WebSocketService } from '@/app/services/websocket.service';
 import { WS_EVENTS } from '@/app/services/events';
+import { HttpService } from '@/app/services/http.service';
+import { ApiResponse } from '@/app/features/room/services/type';
 import { GameConverter } from '@/app/features/game/dtos/converter';
 import * as data from '@/app/features/game/dtos/data';
 import * as dto from '@/app/features/game/dtos/dto';
@@ -135,6 +137,14 @@ class GameService {
     const data: data.GameStartData = { roomId };
     const dto: dto.GameStartDto = GameConverter.toGameStartDto(data);
     WebSocketService.send(WS_EVENTS.GAME_START, dto);
+  }
+
+  async getGameList(): Promise<data.GameListResponseData> {
+    const uri = '/api/games/all';
+    const response = await HttpService.get<ApiResponse<dto.GameListResponseDto>>(uri);
+    if (!response.data) return GameConverter.toGameListData({ games: [] });
+    if (!response.success) throw new Error(response.message);
+    return GameConverter.toGameListData(response.data);
   }
 
   async realtimeInput(roomId: string, delta: number): Promise<void> {

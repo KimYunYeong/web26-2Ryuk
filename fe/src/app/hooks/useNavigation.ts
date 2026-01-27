@@ -33,6 +33,9 @@ export default function useNavigation() {
     gotoRanking: (roomId: string, gameId: string) => {
       router.push(ROUTES.ranking(roomId, gameId));
     },
+    goToRoomGameList: (roomId: string | number) => {
+      router.push(`/room/${roomId}/game`);
+    },
     goToRoomReplace: (id: string | number) => {
       router.replace(ROUTES.room(id));
     },

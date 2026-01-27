@@ -423,7 +423,7 @@ export default function FeatureComponents() {
           <div className={styles.showcaseBlock}>
             <Component fullWidth>
               <GameCard
-                id="3f1c8c6a-7a4a-4a6c-9b7e-0b5c7f3a9f21"
+                id="5373d4b3-abcc-68a1-9e50-8eb662b38201"
                 title="비커 채우기"
                 description="제한 시간 동안 스페이스바를 빠르게 연타하여 비커를 채우세요!"
                 type="competition"
