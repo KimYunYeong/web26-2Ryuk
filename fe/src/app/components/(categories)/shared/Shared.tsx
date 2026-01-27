@@ -1,5 +1,6 @@
+'use client';
+
 import styles from '@/app/components/helpers/components.module.css';
-import IconUtil from '@/utils/icon';
 import Icon from '@/app/components/shared/icon/Icon';
 import IconCircleDefault from '@/app/components/shared/icon/IconCircle';
 import * as IconCircle from '@/app/components/shared/icon/IconCircle';
@@ -30,9 +31,47 @@ import { ProfileRow, ProfileColumn } from '@/app/components/shared/profile/Profi
 import Avatars from '@/app/components/shared/profile/Avatars';
 import profilesMock from '@/mocks/data/profiles.json';
 import Paths from '@/app/shared/path';
+import Table from '@/app/components/table/Table';
+import type { TableColumn } from '@/app/components/table/types';
+import type { GamePlayerResultData } from '@/app/features/game/dtos/data';
+import { GameConverter } from '@/app/features/game/dtos/converter';
+import resultsMock from '@/mocks/data/results.json';
 
-export default function SharedComponents() {
-  const iconList = IconUtil.extractNames('icons.svg');
+const sharedTableColumns: TableColumn<GamePlayerResultData>[] = [
+  {
+    key: 'rank',
+    header: '순위',
+    width: 80,
+    render: (row) => <span>{row.rank}</span>,
+  },
+  {
+    key: 'player',
+    header: '프로필',
+    width: 200,
+    render: (row) => <span>{row.nickname}</span>,
+  },
+  {
+    key: 'score',
+    header: '점수',
+    width: 120,
+    render: (row) => <span>{Number(row.score).toLocaleString()}</span>,
+  },
+  {
+    key: 'id',
+    header: '아이디',
+    width: 'auto',
+    render: (row) => <span>{row.playerId.slice(0, 8)}</span>,
+  },
+];
+
+interface SharedComponentsProps {
+  iconList: string[];
+}
+
+export default function SharedComponents({ iconList }: SharedComponentsProps) {
+  const sharedTableData = GameConverter.toGamePlayerResultData(resultsMock);
+  const sharedGetRowKey = (row: GamePlayerResultData) => row.playerId;
+  const sharedHighlightRow = (row: GamePlayerResultData) => row.rank === 1;
 
   return (
     <>
@@ -1599,6 +1638,21 @@ export default function SharedComponents() {
             </Component>
             <span className={styles.iconLabel}>Avatars</span>
           </div>
+        </div>
+      </section>
+
+      <section id="shared-table" className={styles.section}>
+        <h2 className={styles.sectionTitle}>Shared Table</h2>
+        <ComponentRelations componentId="shared-table" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <Table
+              columns={sharedTableColumns}
+              data={sharedTableData}
+              getRowKey={sharedGetRowKey}
+              highlightRow={sharedHighlightRow}
+            />
+          </Component>
         </div>
       </section>
 

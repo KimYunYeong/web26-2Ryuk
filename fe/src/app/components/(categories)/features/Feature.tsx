@@ -32,6 +32,7 @@ import GameReadyModalContent from '@/app/features/room/components/ready/GameRead
 import { GameConverter } from '@/app/features/game/dtos/converter';
 import GameResultPodium from '@/app/features/game/components/podium/GameResultPodium';
 import PodiumRankItem from '@/app/features/game/components/podium/PodiumRankItem';
+import RankingTable from '@/app/features/game/components/ranking/RankingTable';
 import gamesMock from '@/mocks/data/games.json';
 import resultsMock from '@/mocks/data/results.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
@@ -41,7 +42,9 @@ import BeakerFillViewShowcase from '@/app/features/game/components/beaker/Beaker
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
-  const podiumResultPlayers = GameConverter.toGamePlayerResultData(resultsMock);
+  const rankingSampleData = GameConverter.toGamePlayerResultData(resultsMock);
+  const podiumResultPlayers = rankingSampleData;
+  const podiumShowcaseItems = podiumResultPlayers.filter((player) => player.rank <= 3);
 
   return (
     <>
@@ -534,7 +537,7 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="podium-rank-item" />
         <div className={styles.showcaseBlock}>
           <div className={styles.cardRow}>
-            {podiumResultPlayers.map((item) => (
+            {podiumShowcaseItems.map((item) => (
               <Component key={`${item.nickname}-${item.rank}`}>
                 <PodiumRankItem
                   rank={item.rank as 1 | 2 | 3}
@@ -554,6 +557,16 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
             <GameResultPodium players={podiumResultPlayers} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="ranking-table" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RankingTable</h2>
+        <ComponentRelations componentId="ranking-table" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <RankingTable data={rankingSampleData} />
           </Component>
         </div>
       </section>
