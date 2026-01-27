@@ -276,8 +276,8 @@ export function useGame(roomId?: string): UseGameResult {
 
   // game:select 게임 선택
   const handleGameSelect = useCallback(
-    (gameId = '3f1c8c6a-7a4a-4a6c-9b7e-0b5c7f3a9f21') => {
-      if (!roomId) return;
+    (gameId: string) => {
+      if (!roomId || !gameId) return;
       gameService.select(roomId, gameId);
     },
     [roomId],
