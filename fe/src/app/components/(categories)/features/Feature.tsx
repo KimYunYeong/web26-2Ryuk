@@ -30,7 +30,10 @@ import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
 import { GameConverter } from '@/app/features/game/dtos/converter';
+import GameResultPodium from '@/app/features/game/components/podium/GameResultPodium';
+import PodiumRankItem from '@/app/features/game/components/podium/PodiumRankItem';
 import gamesMock from '@/mocks/data/games.json';
+import resultsMock from '@/mocks/data/results.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
@@ -38,6 +41,7 @@ import BeakerFillViewShowcase from '@/app/features/game/components/beaker/Beaker
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
+  const podiumResultPlayers = GameConverter.toGamePlayerResultData(resultsMock);
 
   return (
     <>
@@ -522,6 +526,35 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="beaker-fill-view" />
         <div className={styles.showcaseBlock}>
           <BeakerFillViewShowcase />
+        </div>
+      </section>
+
+      <section id="podium-rank-item" className={styles.section}>
+        <h2 className={styles.sectionTitle}>PodiumRankItem</h2>
+        <ComponentRelations componentId="podium-rank-item" />
+        <div className={styles.showcaseBlock}>
+          <div className={styles.cardRow}>
+            {podiumResultPlayers.map((item) => (
+              <Component key={`${item.nickname}-${item.rank}`}>
+                <PodiumRankItem
+                  rank={item.rank as 1 | 2 | 3}
+                  nickname={item.nickname}
+                  profileImage={item.profileImage}
+                  score={item.score}
+                />
+              </Component>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="game-result-podium" className={styles.section}>
+        <h2 className={styles.sectionTitle}>GameResultPodium</h2>
+        <ComponentRelations componentId="game-result-podium" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <GameResultPodium players={podiumResultPlayers} />
+          </Component>
         </div>
       </section>
 
