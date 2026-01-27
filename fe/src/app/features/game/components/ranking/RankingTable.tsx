@@ -8,10 +8,10 @@ import { rankingColumns } from './ranking.columns';
 
 interface RankingTableProps {
   data: GamePlayerResultData[];
+  highlightRow?: (row: GamePlayerResultData) => boolean;
 }
 
-export default function RankingTable({ data }: RankingTableProps) {
-  const highlightRow = (row: GamePlayerResultData) => row.rank === 1;
+export default function RankingTable({ data, highlightRow }: RankingTableProps) {
   const getRowKey = (row: GamePlayerResultData) => row.playerId;
 
   return (

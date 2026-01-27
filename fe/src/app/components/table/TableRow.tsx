@@ -57,8 +57,9 @@ export default function TableRow<T>({
     onRowClick(row);
   };
 
+  const rankValue = typeof (row as any).rank === 'number' ? (row as any).rank : undefined;
   return (
-    <div className={className} onClick={handleRowClick}>
+    <div className={className} onClick={handleRowClick} data-row-rank={rankValue}>
       {columns.map((column, index) => (
         <TableCell
           key={`${column.key}-${index}`}

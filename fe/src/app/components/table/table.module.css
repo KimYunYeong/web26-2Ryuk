@@ -65,6 +65,29 @@
   color: var(--primary-6);
 }
 
+.row.highlight .cell,
+.row.highlight .cell span {
+  color: var(--primary-6);
+}
+
+.row[data-row-rank='1'],
+.row[data-row-rank='2'],
+.row[data-row-rank='3'] {
+  background: var(--neutral-2);
+}
+
+.row[data-row-rank='1'] .scoreCell {
+  color: var(--gold);
+}
+
+.row[data-row-rank='2'] .scoreCell {
+  color: var(--silver);
+}
+
+.row[data-row-rank='3'] .scoreCell {
+  color: var(--bronze);
+}
+
 .cell {
   flex: var(--table-col-flex, 0);
   width: var(--table-col-width, auto);
