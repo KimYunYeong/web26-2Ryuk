@@ -8,11 +8,13 @@ import {
   GamePageTitleSectionProps,
   GameListPageTitleSectionProps,
   PageTitleSectionProps,
+  RankingPageTitleSectionProps,
 } from './type';
 import { PrimaryTextButton } from '@/app/components/shared/button/TextButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import RadioButton from '@/app/components/shared/radioButton/RadioButton';
 import { GAME_IDS } from '@/app/shared/constant';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export function PageTitleSection({ label, title, description, children }: PageTitleSectionProps) {
   const { status } = useResponsive();
@@ -65,4 +67,52 @@ export function GamePageTitleSection({ gameId }: GamePageTitleSectionProps) {
       );
   }
   return null;
+}
+type RankingView = 'group' | 'all';
+
+const rankingViews: { value: RankingView; label: string }[] = [
+  { value: 'group', label: '그룹' },
+  { value: 'all', label: '전체' },
+];
+
+export function RankingPageTitleSection({
+  onChange,
+  view = 'group',
+}: RankingPageTitleSectionProps) {
+  const [selectedView, setSelectedView] = useState<RankingView>(view);
+
+  useEffect(() => {
+    setSelectedView(view);
+  }, [view]);
+
+  const handleSelectView = useCallback(
+    (index: number) => {
+      const next = rankingViews[index];
+      if (!next || selectedView === next.value) return;
+      setSelectedView(next.value);
+      onChange?.(next.value);
+    },
+    [onChange, selectedView],
+  );
+
+  const selectedIndex = useMemo(
+    () => rankingViews.findIndex((item) => item.value === selectedView),
+    [selectedView],
+  );
+
+  return (
+    <PageTitleSection
+      label="RANKINGS"
+      title="게임 랭킹"
+      description="지금, 더 나은 기록에 도전해보세요!"
+    >
+      <RadioButton
+        key={selectedView}
+        name="ranking-view"
+        values={rankingViews.map((item) => item.label)}
+        initialSelected={Math.max(selectedIndex, 0)}
+        onChange={handleSelectView}
+      />
+    </PageTitleSection>
+  );
 }

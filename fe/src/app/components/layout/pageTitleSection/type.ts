@@ -21,3 +21,11 @@ export interface GamePageTitleSectionProps {
   gameId?: string;
   children?: ReactNode;
 }
+
+export type RankingViewType = 'group' | 'all';
+
+export interface RankingPageTitleSectionProps {
+  view?: RankingViewType;
+  onChange?: (view: RankingViewType) => void;
+  children?: ReactNode;
+}
