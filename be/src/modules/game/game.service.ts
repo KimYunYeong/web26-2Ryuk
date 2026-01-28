@@ -469,9 +469,7 @@ export class GameService {
 
       // delta 값 검증
       const deltaNum = parseInt(delta, 10);
-      if (isNaN(deltaNum) || deltaNum < 0) {
-        throw new Error('Invalid delta value');
-      }
+      if (isNaN(deltaNum)) throw new Error('Invalid delta value');
 
       // 현재 사용자의 점수 업데이트
       await this.updateParticipantScore(roomId, userId, deltaNum);
