@@ -8,14 +8,16 @@ import NumberUtil from '@/utils/number';
 import { PostListItemProps } from './type';
 
 function PostListItem({
-  _id,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  id,
   title,
   tags = [],
   viewCount = 0,
   likeCount = 0,
   commentCount = 0,
   createDate,
-  _updateDate,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  updateDate,
 }: PostListItemProps) {
   return (
     <li className={styles.postListItem}>

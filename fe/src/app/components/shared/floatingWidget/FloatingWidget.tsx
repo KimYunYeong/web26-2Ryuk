@@ -7,7 +7,8 @@ import CSSUtil from '@/utils/css';
 import styles from './floatingWidget.module.css';
 
 const FloatingWidget = forwardRef<FloatingWidgetHandle, FloatingWidgetProps>(
-  ({ children, _id, initialPosition, dragHandleId, onActivate, elevated }, ref) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ({ children, id, initialPosition, dragHandleId, onActivate, elevated }, ref) => {
     const { widgetRef, handleMouseDown, position, isDragging, isTransitioning, ensureInBounds } =
       useFloatingWidget({ initialPosition, dragHandleId });
 
