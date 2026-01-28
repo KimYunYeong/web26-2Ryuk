@@ -28,7 +28,10 @@ import { CurseWord } from './modules/curse-word/curse-word.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env.development',
+    }),
     TypeOrmModule.forRoot({
       ...databaseConfig,
       entities: [User, ChattingReport, Post, PostPicture, PostLike, ChattingLog, Game, GameRecord, Comment, CurseWord],

@@ -15,14 +15,8 @@ export function isApiResponse(value: unknown): value is ApiResponse {
 }
 
 export class HttpService {
-  private static async request<T>(
-    url: string,
-    method: HttpMethod,
-    body?: unknown,
-    token?: string,
-  ): Promise<T> {
+  private static async request<T>(url: string, method: HttpMethod, body?: unknown): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const requestInit: RequestInit = {
       method,
@@ -57,23 +51,23 @@ export class HttpService {
     return response.text() as T;
   }
 
-  static async get<T>(url: string, token?: string): Promise<T> {
-    return this.request<T>(url, 'GET', undefined, token);
+  static async get<T>(url: string): Promise<T> {
+    return this.request<T>(url, 'GET');
   }
 
-  static async post<T>(url: string, data?: unknown, token?: string): Promise<T> {
-    return this.request<T>(url, 'POST', data, token);
+  static async post<T>(url: string, data?: unknown): Promise<T> {
+    return this.request<T>(url, 'POST', data);
   }
 
-  static async put<T>(url: string, data?: unknown, token?: string): Promise<T> {
-    return this.request<T>(url, 'PUT', data, token);
+  static async put<T>(url: string, data?: unknown): Promise<T> {
+    return this.request<T>(url, 'PUT', data);
   }
 
-  static async patch<T>(url: string, data?: unknown, token?: string): Promise<T> {
-    return this.request<T>(url, 'PATCH', data, token);
+  static async patch<T>(url: string, data?: unknown): Promise<T> {
+    return this.request<T>(url, 'PATCH', data);
   }
 
-  static async delete<T>(url: string, token?: string): Promise<T> {
-    return this.request<T>(url, 'DELETE', undefined, token);
+  static async delete<T>(url: string): Promise<T> {
+    return this.request<T>(url, 'DELETE');
   }
 }

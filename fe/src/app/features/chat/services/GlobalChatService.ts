@@ -63,12 +63,9 @@ export class GlobalChatService implements ChatChannel {
   }
 
   async subscribe(): Promise<void> {
-    const currentToken = authStore.getState().token;
-
     // 이미 구독 중이면 중복 구독 방지
     if (this.isSubscribed) {
-      if (this.boundToken === currentToken) return;
-      await this.unsubscribe();
+      return;
     }
 
     await this.connect();
@@ -90,7 +87,6 @@ export class GlobalChatService implements ChatChannel {
     this.notifyParticipants(this.currentParticipants);
 
     this.isSubscribed = true;
-    this.boundToken = currentToken;
   }
 
   private registerEventHandlers(): void {
