@@ -33,10 +33,10 @@ export default function useNavigation() {
     gotoRanking: (roomId: string, gameId: string) => {
       router.push(ROUTES.ranking(roomId, gameId));
     },
-    goToRoomGameList: (roomId: string | number) => {
+    goToRoomGameList: (roomId: string) => {
       router.push(`/room/${roomId}/game`);
     },
-    goToRoomReplace: (id: string | number) => {
+    goToRoomReplace: (id: string) => {
       router.replace(ROUTES.room(id));
     },
   };
@@ -48,4 +48,8 @@ export const refresh = () => {
 
 export const goHome = () => {
   window.location.href = ROUTES.HOME;
+};
+
+export const goToRoomReplace = (roomId: string) => {
+  window.location.href = ROUTES.ROOM(roomId);
 };

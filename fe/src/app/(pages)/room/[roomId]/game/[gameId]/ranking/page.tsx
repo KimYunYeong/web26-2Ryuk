@@ -11,24 +11,29 @@ import { rankingStore } from '@/app/features/game/stores/ranking';
 import { authStore } from '@/app/features/user/stores/auth';
 import { loadingStore } from '@/app/features/loading/stores/loading';
 import GoBackButton from '@/app/components/shared/button/GoBackButton';
-import useNavigation from '@/app/hooks/useNavigation';
+import { goToRoomReplace } from '@/app/hooks/useNavigation';
+import { useParams } from 'next/navigation';
+import { roomStore } from '@/app/features/room/stores/room';
 
-interface RankingPageProps {
-  params: {
-    roomId: string;
-    gameId: string;
-  };
-}
+export default function RankingPage() {
+  const params = useParams();
+  const roomId = params.roomId as string;
+  // const gameId = params.gameId as string;
 
-export default function RankingPage({ params }: RankingPageProps) {
   const [view, setView] = useState<RankingViewType>('group');
   const myId = authStore((s) => s.userId);
   const storedResult = rankingStore((state) => state.result);
   const { show, hide } = loadingStore();
-  const { goToRoomReplace } = useNavigation();
   const players = storedResult?.results;
 
   const highlightRow = (row: GamePlayerResultRow) => row.playerId === myId;
+  const setRoomIsGameRecruiting = roomStore((s) => s.setIsGameRecruiting);
+
+  const handleGoBackClick = () => {
+    if (!roomId) return;
+    setRoomIsGameRecruiting(false);
+    goToRoomReplace(roomId);
+  };
 
   useEffect(() => {
     if (players) hide();
@@ -41,7 +46,7 @@ export default function RankingPage({ params }: RankingPageProps) {
     <div className="content">
       <div className={styles.content}>
         <div className={styles.backButton}>
-          <GoBackButton onClick={() => goToRoomReplace(params.roomId)} />
+          <GoBackButton onClick={handleGoBackClick} />
         </div>
         <RankingPageTitleSection view={view} onChange={setView} />
         <div className={styles.podiumWarpper}>

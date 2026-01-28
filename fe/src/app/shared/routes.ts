@@ -8,6 +8,8 @@ export const ROUTES = {
   // 메인 페이지
   HOME: '/home',
 
+  ROOM: (roomId: string) => `/room/${roomId}`,
+
   // 컴포넌트 페이지
   COMPONENTS: {
     ROOT: '/components',
