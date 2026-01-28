@@ -24,7 +24,7 @@ interface GameStoreActions {
   setPlayDurationMs: (playDurationMs: number) => void;
   setDelayMs: (delayMs: number) => void;
   setMyScore: (myScore: number) => void;
-  setHighestScore: (highestScore?: number) => void;
+  setHighestScore: (highestScore: number) => void;
   setAverageScore: (averageScore: number) => void;
   setRanks: (ranks: string[]) => void;
   setSelectedGame: (game?: GameData) => void;

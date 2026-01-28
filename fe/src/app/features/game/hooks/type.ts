@@ -22,6 +22,7 @@ export interface UseGameResult {
   opponentScore: number;
   opponentHighestScore?: number;
   myRank?: number;
+  startTrigger?: number;
 }
 
 export interface UseBeakerGameResult extends UseGameResult {
