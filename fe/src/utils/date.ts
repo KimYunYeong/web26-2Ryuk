@@ -23,7 +23,7 @@ interface DateDescribeOptions {
 const toDate = (value?: DateLike | null): Date | undefined => {
   if (IS.nil(value)) return undefined;
   if (value instanceof Date) return value;
-  return new Date(value);
+  return new Date(value!);
 };
 
 const DateUtil = {
