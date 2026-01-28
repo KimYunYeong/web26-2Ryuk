@@ -1,13 +1,13 @@
-import { IoAdapter } from '@nestjs/platform-socket.io';
-import { ServerOptions, Socket } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
-import { RedisClientType } from 'redis';
-import type { ExtendedError } from 'socket.io/dist/namespace';
 import { INestApplicationContext, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { AuthService } from '@src/modules/auth/auth.service';
 import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 import { parse } from 'cookie';
-import { AuthService } from '@src/modules/auth/auth.service';
+import { RedisClientType } from 'redis';
+import { ServerOptions, Socket } from 'socket.io';
+import type { ExtendedError } from 'socket.io/dist/namespace';
 
 export class RedisIoAdapter extends IoAdapter {
   private adapterConstructor: ReturnType<typeof createAdapter>;
@@ -184,6 +184,12 @@ export class RedisIoAdapter extends IoAdapter {
    * 소켓 disconnect 시 세션 정리 핸들러 설정
    */
   private setupDisconnectHandler(socket: Socket, sessionKey: string): void {
+    // 1. 이미 등록된 리스너 개수 확인
+    const disconnectCount = socket.listenerCount('disconnect');
+
+    // 2. 만약 이미 리스너가 있다면, 새로 등록하지 않고 탈출
+    if (disconnectCount > 0) return;
+
     socket.on('disconnect', async () => {
       const currentId = await this.pubClient.get(sessionKey);
       if (currentId === socket.id) {

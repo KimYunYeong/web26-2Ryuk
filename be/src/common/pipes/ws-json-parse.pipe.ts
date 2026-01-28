@@ -12,8 +12,7 @@ export class WsJsonParsePipe implements PipeTransform {
       try {
         const parsed = JSON.parse(value);
         return parsed;
-      } catch (_e) {
-        // eslint-disable-line @typescript-eslint/no-unused-vars
+      } catch {
         // JSON 파싱 실패 시 원본 반환 (ValidationPipe가 에러 처리)
         return value;
       }
@@ -25,8 +24,7 @@ export class WsJsonParsePipe implements PipeTransform {
       if (typeof first === 'string') {
         try {
           return JSON.parse(first);
-        } catch (_e) {
-          // eslint-disable-line @typescript-eslint/no-unused-vars
+        } catch {
           return first;
         }
       }

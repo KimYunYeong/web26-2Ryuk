@@ -707,13 +707,13 @@ export default function SharedComponents({ iconList }: SharedComponentsProps) {
           <div className={styles.iconRow}>
             <div className={styles.circleItem}>
               <Component>
-                <Slider.Primary />
+                <Slider.Primary value={0.5} />
               </Component>
               <span className={styles.iconLabel}>Primary</span>
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Slider.Primary disabled />
+                <Slider.Primary value={0.5} disabled />
               </Component>
               <span className={styles.iconLabel}>Primary Disabled</span>
             </div>
@@ -724,13 +724,13 @@ export default function SharedComponents({ iconList }: SharedComponentsProps) {
           <div className={styles.iconRow}>
             <div className={styles.circleItem}>
               <Component>
-                <Slider.Secondary />
+                <Slider.Secondary value={0.5} />
               </Component>
               <span className={styles.iconLabel}>Secondary</span>
             </div>
             <div className={styles.circleItem}>
               <Component>
-                <Slider.Secondary disabled />
+                <Slider.Secondary value={0.5} disabled />
               </Component>
               <span className={styles.iconLabel}>Secondary Disabled</span>
             </div>
