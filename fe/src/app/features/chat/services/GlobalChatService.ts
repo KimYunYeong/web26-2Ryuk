@@ -1,22 +1,22 @@
 'use client';
 
+import { ChatConverter } from '@/app/features/chat/dtos/converter';
+import { ChatGlobalSendData, ChatReceiveData } from '@/app/features/chat/dtos/data';
 import {
+  ChatGlobalJoinAckDto,
   ChatGlobalNewMessageDto,
   ChatGlobalParticipantsUpdatedDto,
-  GlobalChatRecentsDto,
-  ChatGlobalJoinAckDto,
   ChatGlobalSendAckDto,
+  GlobalChatRecentsDto,
 } from '@/app/features/chat/dtos/dto';
-import { ChatReceiveData, ChatGlobalSendData } from '@/app/features/chat/dtos/data';
-import { ChatConverter } from '@/app/features/chat/dtos/converter';
 import { WS_EVENTS } from '@/app/services/events';
 import { WebSocketService } from '@/app/services/websocket.service';
 import { authStore } from '@/app/features/user/stores/auth';
 
 import {
   ChatChannel,
-  MessageCallback,
   ConnectionCallback,
+  MessageCallback,
   ParticipantsCallback,
   RecentsCallback,
   WebSocketErrorDto,

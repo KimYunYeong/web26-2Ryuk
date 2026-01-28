@@ -1,46 +1,46 @@
-import styles from '@/app/components/helpers/components.module.css';
-import { ChatBubbles, ChatConverter } from '@/app/features/chat';
-import ChatBubble from '@/app/features/chat/components/ChatBubble';
-import PopularPosts from '@/app/features/post/components/PopularPosts';
-import PostListRow from '@/app/features/post/components/PostListRow';
-import PostListItem from '@/app/features/post/components/PostListItem';
 import Component from '@/app/components/helpers/Component';
 import ComponentRelations from '@/app/components/helpers/ComponentRelations';
-import globalChatMock from '@/mocks/data/globalChat.json';
-import postListCardMock from '@/mocks/data/postListCard.json';
-import { PostConverter } from '@/app/features/post/dtos/Post';
+import styles from '@/app/components/helpers/components.module.css';
+import * as TextButton from '@/app/components/shared/button/TextButton';
+import Dialog from '@/app/components/shared/dialog/Dialog';
+import Modal from '@/app/components/shared/modal/Modal';
+import { ChatBubbles, ChatConverter } from '@/app/features/chat';
+import ChatBubble from '@/app/features/chat/components/ChatBubble';
+import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
 import RoomChatPanel from '@/app/features/chat/components/LocalChatPanel';
+import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
+import GameCardGrid from '@/app/features/game/components/GameCardGrid';
+import GameResultPodium from '@/app/features/game/components/podium/GameResultPodium';
+import PodiumRankItem from '@/app/features/game/components/podium/PodiumRankItem';
+import RankingTable from '@/app/features/game/components/ranking/RankingTable';
+import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
+import { GameConverter } from '@/app/features/game/dtos/converter';
+import PopularPosts from '@/app/features/post/components/PopularPosts';
+import PostListItem from '@/app/features/post/components/PostListItem';
+import PostListRow from '@/app/features/post/components/PostListRow';
+import { PostConverter } from '@/app/features/post/dtos/Post';
+import RoomCard from '@/app/features/room/components/card/RoomCard';
+import VoiceParticipantCard from '@/app/features/room/components/chat/VoiceParticipantCard';
 import MicSetting from '@/app/features/room/components/creation/MicSetting';
 import PasswordSetting from '@/app/features/room/components/creation/PasswordSetting';
 import RoomCreateModalContent from '@/app/features/room/components/creation/RoomCreateModalContent';
 import RoomUpdateModalContent from '@/app/features/room/components/creation/RoomUpdateModalContent';
-import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
-import RoomCard from '@/app/features/room/components/card/RoomCard';
 import RoomInfo from '@/app/features/room/components/info/RoomInfo';
-import Modal from '@/app/components/shared/modal/Modal';
-import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
-import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
-import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
-import VoiceParticipantCard from '@/app/features/room/components/chat/VoiceParticipantCard';
-import * as TextButton from '@/app/components/shared/button/TextButton';
-import Dialog from '@/app/components/shared/dialog/Dialog';
-import Paths from '@/app/shared/path';
-import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
-import GameCardGrid from '@/app/features/game/components/GameCardGrid';
-import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
-import { GameConverter } from '@/app/features/game/dtos/converter';
-import GameResultPodium from '@/app/features/game/components/podium/GameResultPodium';
-import PodiumRankItem from '@/app/features/game/components/podium/PodiumRankItem';
-import RankingTable from '@/app/features/game/components/ranking/RankingTable';
-import gamesMock from '@/mocks/data/games.json';
-import resultsMock from '@/mocks/data/results.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
 import BeakerFillViewShowcase from '@/app/features/game/components/beaker/BeakerFillViewShowcase';
 import ReactionTargetView from '@/app/features/game/components/reflex/ReactionTargetView';
 import ReactionTargetCard from '@/app/features/game/components/reflex/ReactionTargetCard';
+import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
+import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
+import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
+import Paths from '@/app/shared/path';
+import gamesMock from '@/mocks/data/games.json';
+import globalChatMock from '@/mocks/data/globalChat.json';
+import postListCardMock from '@/mocks/data/postListCard.json';
+import resultsMock from '@/mocks/data/results.json';
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
@@ -129,7 +129,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Active</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <SpeakerControlButton initialState={true} />
+                <SpeakerControlButton speakerOn={true} />
               </Component>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Muted</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <SpeakerControlButton initialState={false} />
+                <SpeakerControlButton speakerOn={false} />
               </Component>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Both Active</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState initialSpeakerState />
+                <AudioControlButtons micOn speakerOn />
               </Component>
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Mic Muted</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState={false} initialSpeakerState />
+                <AudioControlButtons micOn={false} speakerOn />
               </Component>
             </div>
           </div>
@@ -168,7 +168,7 @@ export default function FeatureComponents() {
             <h3 className={styles.blockTitle}>Both Muted</h3>
             <div className={styles.buttonColumn}>
               <Component>
-                <AudioControlButtons initialMicState={false} initialSpeakerState={false} />
+                <AudioControlButtons micOn={false} speakerOn={false} />
               </Component>
             </div>
           </div>
@@ -181,20 +181,35 @@ export default function FeatureComponents() {
         <div className={styles.showcaseBlock}>
           <div className={styles.cardRow}>
             <Component>
-              <VoiceParticipantCard nickname="강하늘" isMe active micOn speakerOn volume={60} />
+              <VoiceParticipantCard
+                userId="1111"
+                nickname="강하늘"
+                isMe
+                active
+                micOn
+                speakerOn
+                volume={0.6}
+              />
             </Component>
             <Component>
               <VoiceParticipantCard
+                userId="2222"
                 nickname="박철수"
                 isHost
                 active={false}
                 micOn
                 speakerOn
-                volume={45}
+                volume={0.45}
               />
             </Component>
             <Component>
-              <VoiceParticipantCard nickname="김지영" micOn={false} speakerOn volume={20} />
+              <VoiceParticipantCard
+                userId="3333"
+                nickname="김지영"
+                micOn={false}
+                speakerOn
+                volume={0.2}
+              />
             </Component>
           </div>
         </div>

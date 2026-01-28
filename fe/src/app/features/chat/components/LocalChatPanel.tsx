@@ -70,8 +70,8 @@ export default function LocalChatPanel() {
   const headerChildren = (
     <div className={styles.roomChatHeaderControls}>
       <AudioControlButtons
-        initialMicState={micState}
-        initialSpeakerState={speakerState}
+        micOn={micState}
+        speakerOn={speakerState}
         onMicChange={handleMicChange}
         onSpeakerChange={handleSpeakerChange}
       />
