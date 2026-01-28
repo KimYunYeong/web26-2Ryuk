@@ -34,27 +34,25 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
   const readyDurationMs = delayMs > 0 ? delayMs : playDurationMs;
 
   const buildTimeBar = () => {
-    switch (gameState) {
-      case 'ready':
-        return (
-          <RemainingTimeBar
-            label="준비 시간"
-            variant="secondary"
-            totalDurationMs={readyDurationMs}
-            remainingMs={remainingTime}
-          />
-        );
-      case 'play':
-        return (
-          <RemainingTimeBar
-            label="남은 시간"
-            variant="primary"
-            totalDurationMs={playDurationMs}
-            remainingMs={remainingTime}
-          />
-        );
+    if (gameState === 'ready') {
+      return (
+        <RemainingTimeBar
+          label="준비 시간"
+          variant="secondary"
+          totalDurationMs={readyDurationMs}
+          remainingMs={remainingTime}
+        />
+      );
     }
-    return null;
+
+    return (
+      <RemainingTimeBar
+        label="남은 시간"
+        variant="primary"
+        totalDurationMs={playDurationMs}
+        remainingMs={remainingTime}
+      />
+    );
   };
 
   const buildStats = () => {

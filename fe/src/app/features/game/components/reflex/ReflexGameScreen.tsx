@@ -33,7 +33,7 @@ export default function ReflexGameScreen({ roomId }: ReflexGameScreenProps) {
   // const highestScore = gameStore((s) => s.highestScore);
 
   const buildTimeBar = () => {
-    if (gameState)
+    if (gameState === 'ready')
       return (
         <RemainingTimeBar
           label="준비 시간"
