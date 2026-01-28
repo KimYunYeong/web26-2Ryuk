@@ -38,3 +38,13 @@ export function SliderBase({
     />
   );
 }
+
+export function PrimarySlider(props: Omit<SliderProps, 'variant'>) {
+  return <SliderBase {...props} variant="primary" />;
+}
+
+export function SecondarySlider(props: Omit<SliderProps, 'variant'>) {
+  return <SliderBase {...props} variant="secondary" />;
+}
+
+export { PrimarySlider as Primary, SecondarySlider as Secondary } from './Slider';
