@@ -4,10 +4,56 @@ import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
 import { toUuid } from '@src/common/utils/user-id';
 import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-response.dto';
+import { JwtService } from '@nestjs/jwt';
+
+interface OAuthUser {
+  githubId: string;
+  email?: string;
+  nickname?: string;
+  profileImage?: string;
+}
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectRepository(User) private readonly userRepository: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async validateOAuthUser(profile: OAuthUser): Promise<User> {
+    const { githubId, email, nickname, profileImage } = profile;
+
+    let user = await this.userRepository.findOne({ where: { github_id: githubId } });
+
+    if (user) {
+      return user;
+    }
+
+    user = await this.userRepository.findOne({ where: { email } });
+
+    if (user) {
+      // 기존 이메일 사용자가 GitHub 연동을 시도하는 경우
+      user.github_id = githubId;
+      return this.userRepository.save(user);
+    }
+
+    // 신규 사용자 생성
+    const newUser = this.userRepository.create({
+      email,
+      github_id: githubId,
+      nickname: nickname || `user-${githubId.substring(0, 4)}`, // TODO: 닉네임 중복 처리 필요
+      profile_image: profileImage || null,
+    });
+
+    return this.userRepository.save(newUser);
+  }
+
+  async login(user: User) {
+    const payload = { sub: user.id, email: user.email };
+    return {
+      accessToken: this.jwtService.sign(payload),
+    };
+  }
 
   /**
    * userId로 사용자 정보 조회

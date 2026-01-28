@@ -1,16 +1,22 @@
 // 게임 랭킹 조회 응답
 export class GameRecordRankItemDto {
-  user_id: string;
+  player_id: string;
   nickname: string;
   profile_image: string | null;
   score: number;
   rank: number;
-  achieve_date: Date;
+  achieve_date: number;
 }
 
-export class GameRecordRankResponseDto {
+export class GameRecordRankDataDto {
   total: number;
   page: number;
   podium: GameRecordRankItemDto[];
   rankings: GameRecordRankItemDto[];
+}
+
+export class GameRecordRankResponseDto {
+  success: boolean;
+  message: string;
+  data: GameRecordRankDataDto;
 }

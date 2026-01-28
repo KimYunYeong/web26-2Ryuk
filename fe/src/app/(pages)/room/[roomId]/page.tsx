@@ -14,11 +14,12 @@ import { useParams } from 'next/navigation';
 import { useRoom } from '@/app/features/room/hooks/room';
 import Modal from '@/app/components/shared/modal/Modal';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
+import useNavigation from '@/app/hooks/useNavigation';
 import { authStore } from '@/app/features/user/stores/auth';
 
 export default function RoomPage() {
   const params = useParams();
-  const roomId = params.id as string;
+  const roomId = params.roomId as string;
 
   const userId = authStore((s) => s.userId);
   const { status } = useResponsive();
@@ -36,11 +37,16 @@ export default function RoomPage() {
     isGameRecruiting,
     myStatus,
     gamePlayers,
-    handleGameRecruitClick,
+    selectedGame,
+    handleGameRecruit,
+    handleGameJoin,
     handleReadyChange,
     handleLeaveGame,
     handleCloseGame,
+    handleGameStartButtonClick,
   } = game;
+
+  const { goToRoomGameList } = useNavigation();
 
   const isHost = roomData?.hostId === userId;
   const isGameButtonEnabled = isHost || isGameRecruiting;
@@ -67,7 +73,10 @@ export default function RoomPage() {
 
             <div className={styles.right}>
               <RoomVoiceChat />
-              <GameStartButton disabled={!isGameButtonEnabled} onClick={handleGameRecruitClick} />
+              <GameStartButton
+                disabled={!isGameButtonEnabled}
+                onClick={isHost ? handleGameRecruit : handleGameJoin}
+              />
             </div>
           </div>
         </div>
@@ -90,10 +99,10 @@ export default function RoomPage() {
           myStatus={myStatus}
           players={gamePlayers}
           maxPlayers={roomData?.maxParticipants}
-          selectedGame={undefined}
-          onChangeGame={() => {}}
+          selectedGame={selectedGame}
+          onChangeGame={() => roomId && goToRoomGameList(roomId)}
           onReadyChange={handleReadyChange}
-          onStart={() => {}}
+          onStart={handleGameStartButtonClick}
         />
       </Modal>
     </>

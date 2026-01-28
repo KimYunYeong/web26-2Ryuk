@@ -8,19 +8,27 @@ import BeakerFillView from './BeakerFillView';
 
 function BeakerFillViewShowcase() {
   const maxLevel = 1000;
+  const highestScore = 800;
   const [meScore, setMeScore] = useState(300);
-  const [otherScore, setOtherScore] = useState(500);
+  const [other1Score, setOther1Score] = useState(500);
+  const [other2Score, setOther2Score] = useState(500);
   const [meTrigger, setMeTrigger] = useState(0);
-  const [otherTrigger, setOtherTrigger] = useState(0);
+  const [other1Trigger, setOther1Trigger] = useState(0);
+  const [other2Trigger, setOther2Trigger] = useState(0);
 
   const triggerMe = () => {
     setMeTrigger((value) => value + 1);
     setMeScore((value) => Math.min(maxLevel, value + 1));
   };
 
-  const triggerOther = () => {
-    setOtherTrigger((value) => value + 1);
-    setOtherScore((value) => Math.min(maxLevel, value + 1));
+  const triggerOther1 = () => {
+    setOther1Trigger((value) => value + 1);
+    setOther1Score((value) => Math.min(maxLevel, value + 1));
+  };
+
+  const triggerOther2 = () => {
+    setOther2Trigger((value) => value + 1);
+    setOther2Score((value) => Math.min(maxLevel, value + 1));
   };
 
   return (
@@ -35,12 +43,24 @@ function BeakerFillViewShowcase() {
         <Component>
           <BeakerFillView
             type="other"
-            score={otherScore}
+            score={other1Score}
             maxLevel={maxLevel}
-            dropTrigger={otherTrigger}
+            dropTrigger={other1Trigger}
           />
         </Component>
-        <TextButton.Secondary text="Drop (other)" size="small" onClick={triggerOther} />
+        <TextButton.Secondary text="Drop (other)" size="small" onClick={triggerOther1} />
+      </div>
+      <div className={styles.circleItem}>
+        <Component>
+          <BeakerFillView
+            type="other"
+            score={other2Score}
+            highestScore={highestScore}
+            maxLevel={maxLevel}
+            dropTrigger={other2Trigger}
+          />
+        </Component>
+        <TextButton.Secondary text="Drop (other)" size="small" onClick={triggerOther2} />
       </div>
     </div>
   );

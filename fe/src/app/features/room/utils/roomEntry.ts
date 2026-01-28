@@ -19,6 +19,7 @@ export async function syncRoomState(roomId: string): Promise<void> {
   const dto = await roomService.getRoom(roomId);
   const room = RoomConverter.toData(dto);
 
+  roomStore.getState().setIsGameRecruiting(room.isGameRecruiting ?? false);
   roomStore.getState().setRoomData(room);
 }
 

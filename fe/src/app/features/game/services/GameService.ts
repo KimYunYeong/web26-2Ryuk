@@ -2,6 +2,8 @@
 
 import { WebSocketService } from '@/app/services/websocket.service';
 import { WS_EVENTS } from '@/app/services/events';
+import { HttpService } from '@/app/services/http.service';
+import { ApiResponse } from '@/app/features/room/services/type';
 import { GameConverter } from '@/app/features/game/dtos/converter';
 import * as data from '@/app/features/game/dtos/data';
 import * as dto from '@/app/features/game/dtos/dto';
@@ -19,6 +21,10 @@ class GameService {
   private readyCallbacks = new Set<type.ReadyCallback>();
   private unreadyCallbacks = new Set<type.UnreadyCallback>();
   private closeCallbacks = new Set<type.CloseCallback>();
+  private selectCallbacks = new Set<type.SelectCallback>();
+  private startCallbacks = new Set<type.StartCallback>();
+  private realtimeCallbacks = new Set<type.RealtimeCallback>();
+  private resultCallbacks = new Set<type.ResultCallback>();
 
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
@@ -110,6 +116,45 @@ class GameService {
     WebSocketService.send(WS_EVENTS.GAME_CLOSE, dto);
   }
 
+  async select(roomId: string, gameId: string): Promise<void> {
+    await WebSocketService.ensureConnected();
+
+    const data: data.GameSelectData = { roomId, gameId };
+    const dto: dto.GameSelectDto = GameConverter.toGameSelectDto(data);
+
+    // 순환 참조 방지를 위해 깊은 복사
+    const cleanDto: dto.GameSelectDto = {
+      room_id: String(dto.room_id),
+      game_id: String(dto.game_id),
+    };
+
+    WebSocketService.send(WS_EVENTS.GAME_SELECT, cleanDto);
+  }
+
+  async startGame(roomId: string): Promise<void> {
+    await WebSocketService.ensureConnected();
+
+    const data: data.GameStartData = { roomId };
+    const dto: dto.GameStartDto = GameConverter.toGameStartDto(data);
+    WebSocketService.send(WS_EVENTS.GAME_START, dto);
+  }
+
+  async getGameList(): Promise<data.GameListResponseData> {
+    const uri = '/api/games/all';
+    const response = await HttpService.get<ApiResponse<dto.GameListResponseDto>>(uri);
+    if (!response.data) return GameConverter.toGameListData({ games: [] });
+    if (!response.success) throw new Error(response.message);
+    return GameConverter.toGameListData(response.data);
+  }
+
+  async realtimeInput(roomId: string, delta: number): Promise<void> {
+    await WebSocketService.ensureConnected();
+
+    const data: data.GameRealtimeData = { roomId, delta };
+    const dto: dto.GameRealtimeDto = GameConverter.toGameRealtimeDto(data);
+    WebSocketService.send(WS_EVENTS.GAME_REALTIME, dto);
+  }
+
   onPlayerJoin(cb: type.PlayerJoinCallback): () => void {
     this.playerJoinCallbacks.add(cb);
     return () => this.playerJoinCallbacks.delete(cb);
@@ -138,6 +183,26 @@ class GameService {
   onClose(cb: type.CloseCallback): () => void {
     this.closeCallbacks.add(cb);
     return () => this.closeCallbacks.delete(cb);
+  }
+
+  onSelect(cb: type.SelectCallback): () => void {
+    this.selectCallbacks.add(cb);
+    return () => this.selectCallbacks.delete(cb);
+  }
+
+  onStart(cb: type.StartCallback): () => void {
+    this.startCallbacks.add(cb);
+    return () => this.startCallbacks.delete(cb);
+  }
+
+  onRealtime(cb: type.RealtimeCallback): () => void {
+    this.realtimeCallbacks.add(cb);
+    return () => this.realtimeCallbacks.delete(cb);
+  }
+
+  onResult(cb: type.ResultCallback): () => void {
+    this.resultCallbacks.add(cb);
+    return () => this.resultCallbacks.delete(cb);
   }
 
   private registerEventHandlers(): void {
@@ -174,12 +239,36 @@ class GameService {
       this.closeCallbacks.forEach((cb) => cb(data));
     };
 
+    const selectHandler = (dto: dto.GamePlayerSelectDto) => {
+      const data = GameConverter.toGamePlayerSelectData(dto);
+      this.selectCallbacks.forEach((cb) => cb(data));
+    };
+
+    const startHandler = (dto: dto.GamePlayerStartDto) => {
+      const data = GameConverter.toGamePlayerStartData(dto);
+      this.startCallbacks.forEach((cb) => cb(data));
+    };
+
+    const realtimeHandler = (dto: dto.GamePlayerRealtimeDto) => {
+      const data = GameConverter.toGamePlayerRealtimeData(dto);
+      this.realtimeCallbacks.forEach((cb) => cb(data));
+    };
+
+    const resultHandler = (dto: dto.GamePlayerResultBroadcastDto) => {
+      const data = GameConverter.toGamePlayerResultBroadcastData(dto);
+      this.resultCallbacks.forEach((cb) => cb(data));
+    };
+
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_JOIN, joinHandler);
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_LEAVE, leaveHandler);
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_RECRUIT, recruitHandler);
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_READY, readyHandler);
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_UNREADY, unreadyHandler);
     this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_CLOSE, closeHandler);
+    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_SELECT, selectHandler);
+    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_START, startHandler);
+    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_REALTIME, realtimeHandler);
+    this.eventHandlers.set(WS_EVENTS.GAME_PLAYER_RESULT, resultHandler);
 
     this.eventHandlers.forEach((handler, event) => {
       WebSocketService.on(event, handler);

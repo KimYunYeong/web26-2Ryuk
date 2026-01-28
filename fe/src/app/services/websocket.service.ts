@@ -1,4 +1,3 @@
-import IS from '@/utils/is';
 import { io, Socket } from 'socket.io-client';
 
 export class WebSocketService {
@@ -15,7 +14,6 @@ export class WebSocketService {
    */
   static connect(
     url: string,
-    userId?: string,
     onMessage?: (data: unknown) => void,
     onError?: (error: Error) => void,
   ): void {
@@ -30,14 +28,6 @@ export class WebSocketService {
       reconnectionAttempts: 10,
       timeout: 5000,
     };
-
-    // Mock 인증: query.userId 또는 auth.token 사용
-    if (userId) {
-      connectionOptions.query = { userId };
-    } else {
-      const mockToken = this.getMockToken();
-      if (mockToken) connectionOptions.auth = { token: mockToken };
-    }
 
     this.socket = io(url, connectionOptions);
 
@@ -154,30 +144,6 @@ export class WebSocketService {
    */
   static isConnected(): boolean {
     return this.socket?.connected ?? false;
-  }
-
-  /**
-   * Mock 토큰 가져오기
-   */
-  private static getMockToken(): string | undefined {
-    if (IS.undefined(window)) return undefined;
-    try {
-      const { authStore } = require('@/app/features/user/stores/auth');
-      const token = authStore.getState().token;
-      const storedToken = localStorage.getItem('mock_token');
-      return token || (storedToken === null ? undefined : storedToken);
-    } catch {
-      const storedToken = localStorage.getItem('mock_token');
-      return storedToken === null ? undefined : storedToken;
-    }
-  }
-
-  /**
-   * Mock 토큰 저장
-   */
-  static setMockToken(token: string): void {
-    if (IS.undefined(window)) return;
-    localStorage.setItem('mock_token', token);
   }
 
   /**

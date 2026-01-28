@@ -73,6 +73,19 @@ export default function VoiceParticipantCard({
     isSpeaking && styles.speaking,
   );
 
+  const audioControls = isMe ? (
+    <AudioControlButtons
+      micOn={micOn}
+      speakerOn={speakerOn}
+      onMicChange={onMicChange}
+      onSpeakerChange={onSpeakerChange}
+    />
+  ) : (
+    <SpeakerControlButton speakerOn={speakerOn} onChange={onSpeakerChange} />
+  );
+
+  const volumeIconName = isMe ? 'mic' : 'volume';
+
   return (
     <div className={className}>
       <div className={styles.cardTop}>
@@ -90,22 +103,11 @@ export default function VoiceParticipantCard({
             <span className={styles.statusText}>{statusText}</span>
           </div>
         </div>
-        <div className={styles.controls}>
-          {isMe ? (
-            <AudioControlButtons
-              micOn={micOn}
-              speakerOn={speakerOn}
-              onMicChange={onMicChange}
-              onSpeakerChange={onSpeakerChange}
-            />
-          ) : (
-            <SpeakerControlButton speakerOn={speakerOn} onChange={onSpeakerChange} />
-          )}
-        </div>
+        <div className={styles.controls}>{audioControls}</div>
       </div>
 
       <div className={styles.sliderRow}>
-        <Icon name={isMe ? 'mic' : 'volume'} size="small" />
+        <Icon name={volumeIconName} size="small" />
         <SliderBase
           variant={sliderVariant}
           value={sliderValue} // 1. 현재 상태값 연결

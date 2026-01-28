@@ -30,14 +30,21 @@ import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import SelectedGameCard from '@/app/features/game/components/SelectedGameCard';
 import GameReadyModalContent from '@/app/features/room/components/ready/GameReadyModalContent';
 import { GameConverter } from '@/app/features/game/dtos/converter';
+import GameResultPodium from '@/app/features/game/components/podium/GameResultPodium';
+import PodiumRankItem from '@/app/features/game/components/podium/PodiumRankItem';
+import RankingTable from '@/app/features/game/components/ranking/RankingTable';
 import gamesMock from '@/mocks/data/games.json';
+import resultsMock from '@/mocks/data/results.json';
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
-import BeakerFillViewShowcase from '@/app/features/game/components/BeakerFillViewShowcase';
+import BeakerFillViewShowcase from '@/app/features/game/components/beaker/BeakerFillViewShowcase';
 
 export default function FeatureComponents() {
   const sampleGames = gamesMock.map(GameConverter.toGameData);
+  const rankingSampleData = GameConverter.toGamePlayerRecordsData(resultsMock);
+  const podiumResultPlayers = rankingSampleData.podium;
+  const podiumShowcaseItems = podiumResultPlayers.filter((player) => player.rank <= 3);
 
   return (
     <>
@@ -416,12 +423,13 @@ export default function FeatureComponents() {
           <div className={styles.showcaseBlock}>
             <Component fullWidth>
               <GameCard
-                id="3f1c8c6a-7a4a-4a6c-9b7e-0b5c7f3a9f21"
+                id="5373d4b3-abcc-68a1-9e50-8eb662b38201"
                 title="비커 채우기"
                 description="제한 시간 동안 스페이스바를 빠르게 연타하여 비커를 채우세요!"
                 type="competition"
                 minPlayers={1}
                 maxPlayers={10}
+                time={30000}
               />
             </Component>
           </div>
@@ -463,13 +471,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="my-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <MyReadyStatusCard userId="1" nickname="강하늘" isHost isReady={false} />
+            <MyReadyStatusCard playerId="1" nickname="강하늘" isHost isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard userId="2" nickname="김지영" isHost={false} isReady={false} />
+            <MyReadyStatusCard playerId="2" nickname="김지영" isHost={false} isReady={false} />
           </Component>
           <Component fullWidth>
-            <MyReadyStatusCard userId="3" nickname="박철수" isHost={false} isReady />
+            <MyReadyStatusCard playerId="3" nickname="박철수" isHost={false} isReady />
           </Component>
         </div>
       </section>
@@ -479,13 +487,13 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="other-ready-status-card" />
         <div className={styles.chatRow}>
           <Component fullWidth>
-            <OtherReadyStatusCard userId="1" nickname="강하늘" isHost isReady />
+            <OtherReadyStatusCard playerId="1" nickname="강하늘" isHost isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard userId="2" nickname="김영희" isHost={false} isReady />
+            <OtherReadyStatusCard playerId="2" nickname="김영희" isHost={false} isReady />
           </Component>
           <Component fullWidth>
-            <OtherReadyStatusCard userId="3" nickname="김지영" isHost={false} isReady={false} />
+            <OtherReadyStatusCard playerId="3" nickname="김지영" isHost={false} isReady={false} />
           </Component>
         </div>
       </section>
@@ -497,9 +505,9 @@ export default function FeatureComponents() {
           <Component fullWidth>
             <OtherReadyStatusCardGrid
               players={[
-                { userId: '1', nickname: '강하늘', isHost: true, isReady: true },
-                { userId: '2', nickname: '김영희', isHost: false, isReady: true },
-                { userId: '3', nickname: '김지영', isHost: false, isReady: false },
+                { playerId: '1', nickname: '강하늘', isHost: true, isReady: true },
+                { playerId: '2', nickname: '김영희', isHost: false, isReady: true },
+                { playerId: '3', nickname: '김지영', isHost: false, isReady: false },
               ]}
             />
           </Component>
@@ -524,6 +532,45 @@ export default function FeatureComponents() {
         </div>
       </section>
 
+      <section id="podium-rank-item" className={styles.section}>
+        <h2 className={styles.sectionTitle}>PodiumRankItem</h2>
+        <ComponentRelations componentId="podium-rank-item" />
+        <div className={styles.showcaseBlock}>
+          <div className={styles.cardRow}>
+            {podiumShowcaseItems.map((item) => (
+              <Component key={`${item.nickname}-${item.rank}`}>
+                <PodiumRankItem
+                  rank={item.rank as 1 | 2 | 3}
+                  nickname={item.nickname}
+                  profileImage={item.profileImage}
+                  score={item.score}
+                />
+              </Component>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="game-result-podium" className={styles.section}>
+        <h2 className={styles.sectionTitle}>GameResultPodium</h2>
+        <ComponentRelations componentId="game-result-podium" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <GameResultPodium players={podiumResultPlayers} />
+          </Component>
+        </div>
+      </section>
+
+      <section id="ranking-table" className={styles.section}>
+        <h2 className={styles.sectionTitle}>RankingTable</h2>
+        <ComponentRelations componentId="ranking-table" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <RankingTable data={rankingSampleData.rankings} />
+          </Component>
+        </div>
+      </section>
+
       <section id="game-ready-modal" className={styles.section}>
         <h2 className={styles.sectionTitle}>GameReadyModalContent</h2>
         <ComponentRelations componentId="game-ready-modal" />
@@ -536,11 +583,11 @@ export default function FeatureComponents() {
             />
             <Modal id="game-ready-modal">
               <GameReadyModalContent
-                myStatus={{ userId: '1', nickname: '강하늘', isHost: true, isReady: false }}
+                myStatus={{ playerId: '1', nickname: '강하늘', isHost: true, isReady: false }}
                 players={[
-                  { userId: '1', nickname: '박철수', isHost: false, isReady: true },
-                  { userId: '2', nickname: '김영희', isHost: false, isReady: true },
-                  { userId: '3', nickname: '김지영', isHost: false, isReady: false },
+                  { playerId: '1', nickname: '박철수', isHost: false, isReady: true },
+                  { playerId: '2', nickname: '김영희', isHost: false, isReady: true },
+                  { playerId: '3', nickname: '김지영', isHost: false, isReady: false },
                 ]}
                 selectedGame={sampleGames[0]}
                 maxPlayers={4}
