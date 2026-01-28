@@ -11,7 +11,7 @@ export interface UseGameResult {
   handleReadyChange: (isReady: boolean) => void;
   handleLeaveGame: () => Promise<void>;
   handleCloseGame: () => Promise<void>;
-  handleGameSelect: (gameId?: string) => void;
+  handleGameSelect: (gameId: string) => void;
   handleGameStartButtonClick: () => void;
   selectedGame?: GameData;
   gameState: GameState;
