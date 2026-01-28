@@ -4,7 +4,7 @@ import { GamePageTitleSection } from '@/app/components/layout/pageTitleSection/P
 import RemainingTimeBar from '@/app/components/shared/remainingTimeBar/RemainingTimeBar';
 import BeakerFillView from '@/app/features/game/components/beaker/BeakerFillView';
 import styles from './BeakerGameScreen.module.css';
-import { useGame } from '@/app/features/game/hooks/game';
+import { useBeakerGame } from '@/app/features/game/hooks/useBeakerGame';
 import Rules from '@/app/shared/rule';
 import IS from '@/utils/is';
 import { GAME_IDS } from '@/app/shared/constant';
@@ -29,7 +29,7 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
     myRank,
     myDropTrigger,
     opponentDropTrigger,
-  } = useGame(roomId);
+  } = useBeakerGame(roomId);
 
   const readyDurationMs = delayMs > 0 ? delayMs : playDurationMs;
 

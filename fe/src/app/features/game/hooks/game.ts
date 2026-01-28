@@ -75,41 +75,31 @@ export function useGame(roomId?: string): UseGameResult {
   const isSamePlayer = (a: PData, b: PData) => a.playerId === b.playerId;
   const withHostFlag = (p: PData): PData => ({ ...p, isHost: isHostPlayer(p.playerId) });
 
-  // 쓰로틀링 및 watchDate cleanup 관리
-  const deltaRef = useRef<number>(0);
-  const throttleTimerRef = useRef<NodeJS.Timeout>();
+  // watchDate cleanup 관리
   const watchStartCleanupRef = useRef<(() => void) | null>(null);
   const watchEndCleanupRef = useRef<(() => void) | null>(null);
-  const previousAverageScoreRef = useRef<number>(0);
-  const [opponentDropTrigger, setOpponentDropTrigger] = useState<number>(0);
-  const [myDropTrigger, setMyDropTrigger] = useState<number>(0);
 
-  // user가 로드될 때 myStatus 업데이트 (게임에 참여하지 않은 상태에서만)
+  // user가 로드될 때 myStatus 업데이트
   useEffect(() => {
     if (!user || !userId) return;
 
     setMyStatus((prev) => {
-      const participantAlreadyLoaded =
-        prev.playerId === userId && prev.nickname && prev.nickname !== '';
-
-      if (participantAlreadyLoaded) {
-        const missingProfile = !prev.nickname || !prev.profileImage;
-        if (!missingProfile) return prev;
-
-        return {
-          ...prev,
-          nickname: user.nickname ?? prev.nickname,
-          profileImage: user.profileImage ?? prev.profileImage,
-        };
-      }
-
-      return {
-        ...prev,
+      const joinedUser = {
         playerId: userId,
         nickname: user.nickname ?? prev.nickname,
         profileImage: user.profileImage ?? prev.profileImage,
         isHost: prev.isHost ?? isHost,
       };
+
+      const participantAlreadyLoaded = prev.playerId === userId && !!prev.nickname;
+
+      if (participantAlreadyLoaded) {
+        const missingProfile = !prev.nickname || !prev.profileImage;
+        if (!missingProfile) return prev;
+        return { ...prev, ...joinedUser };
+      }
+
+      return { ...prev, ...joinedUser };
     });
   }, [user, userId, isHost]);
 
@@ -314,15 +304,6 @@ export function useGame(roomId?: string): UseGameResult {
     // isGameStarted 제거하고 GameState 사용
     gameStore.getState().setGameState('result');
 
-    // 스페이스바 입력 차단
-    // delta 누적 중단
-    // 쓰로틀링 타이머 제거
-    if (throttleTimerRef.current) {
-      clearInterval(throttleTimerRef.current);
-      throttleTimerRef.current = undefined;
-    }
-    deltaRef.current = 0;
-
     // watchDate cleanup
     if (watchStartCleanupRef.current) {
       watchStartCleanupRef.current();
@@ -416,87 +397,6 @@ export function useGame(roomId?: string): UseGameResult {
     };
   }, []);
 
-  // game:player:realtime 처리
-  useEffect(() => {
-    return gameService.onRealtime((data) => {
-      // isGameStarted 제거하고 GameState 사용
-      if (gameStore.getState().gameState !== 'play') return;
-
-      gameStore.getState().setHighestScore(data.highestScore);
-      gameStore.getState().setAverageScore(data.averageScore);
-      gameStore.getState().setRanks(data.ranks);
-
-      // 상대 비커 dropTrigger 계산
-      const currentAvg = data.averageScore;
-      const prevAvg = previousAverageScoreRef.current;
-      const scoreDiff = currentAvg - prevAvg;
-
-      if (scoreDiff > 0) {
-        const interval = 100 / scoreDiff;
-        if (interval > 0 && isFinite(interval)) {
-          setOpponentDropTrigger((prev) => prev + 1);
-        }
-      }
-
-      previousAverageScoreRef.current = currentAvg;
-    });
-  }, []);
-
-  // 쓰로틀링: 100ms마다 누적된 delta 전송
-  useEffect(() => {
-    if (gameState !== 'play' || !roomId) {
-      if (throttleTimerRef.current) {
-        clearInterval(throttleTimerRef.current);
-        throttleTimerRef.current = undefined;
-      }
-      return;
-    }
-
-    throttleTimerRef.current = setInterval(() => {
-      if (gameStore.getState().gameState !== 'play') {
-        if (throttleTimerRef.current) {
-          clearInterval(throttleTimerRef.current);
-          throttleTimerRef.current = undefined;
-        }
-        deltaRef.current = 0;
-        return;
-      }
-
-      if (deltaRef.current <= 0) return;
-      gameService.realtimeInput(roomId, deltaRef.current);
-      deltaRef.current = 0;
-    }, 100);
-
-    return () => {
-      if (!throttleTimerRef.current) return;
-      clearInterval(throttleTimerRef.current);
-      throttleTimerRef.current = undefined;
-    };
-  }, [gameState, roomId]);
-
-  // 스페이스바 입력 처리
-  useEffect(() => {
-    if (gameState !== 'play') return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // isGameStarted 제거하고 GameState 사용
-      if (gameStore.getState().gameState !== 'play') return;
-
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        // 낙관적 업데이트
-        gameStore.getState().setMyScore(gameStore.getState().myScore + 1);
-        setMyDropTrigger((prev) => prev + 1);
-
-        // delta 누적
-        deltaRef.current += 1;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState]);
-
   // game:player:result 처리
   useEffect(() => {
     return gameService.onResult((data) => {
@@ -547,10 +447,6 @@ export function useGame(roomId?: string): UseGameResult {
   // 컴포넌트 unmount 시 cleanup
   useEffect(() => {
     return () => {
-      if (throttleTimerRef.current) {
-        clearInterval(throttleTimerRef.current);
-        throttleTimerRef.current = undefined;
-      }
       if (watchStartCleanupRef.current) {
         watchStartCleanupRef.current();
         watchStartCleanupRef.current = null;
@@ -559,7 +455,6 @@ export function useGame(roomId?: string): UseGameResult {
         watchEndCleanupRef.current();
         watchEndCleanupRef.current = null;
       }
-      deltaRef.current = 0;
     };
   }, []);
 
@@ -597,7 +492,5 @@ export function useGame(roomId?: string): UseGameResult {
     opponentScore: displayedOpponentScore,
     opponentHighestScore: displayedOpponentHighestScore,
     myRank: displayedMyRank,
-    myDropTrigger,
-    opponentDropTrigger,
   };
 }
