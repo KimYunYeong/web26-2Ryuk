@@ -137,4 +137,14 @@ export class GameResultItemDto {
 
 export class GameResultBroadcastDto {
   results: GameResultItemDto[];
+  success: boolean;
+  message?: string;
+
+  constructor(results: GameResultItemDto[], success: boolean, message?: string) {
+    this.results = results;
+    this.success = success;
+    if (message) {
+      this.message = message;
+    }
+  }
 }

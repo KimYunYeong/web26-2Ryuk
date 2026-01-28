@@ -1,10 +1,11 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { PrimaryUuidColumn, UuidColumn } from '@src/common/decorators/primary-uuid-column.decorator';
 import { User } from '@src/modules/user/user.entity';
 import { Game } from '@src/modules/game/game.entity';
 import { v4 as uuidv4 } from 'uuid';
 
 @Entity('game_record')
+@Unique('idx_user_game', ['user_id', 'game_id'])
 export class GameRecord {
   @PrimaryUuidColumn()
   id: string = uuidv4();

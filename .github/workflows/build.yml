@@ -71,6 +71,7 @@ jobs:
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
         run: |
           VERSION=${{ steps.bump.outputs.tag }}
           echo "🚀 Building Backend Image: $VERSION"
@@ -88,6 +89,7 @@ jobs:
           NODE_ENV=production
           PORT=4000
           FRONTEND_URL=${FRONTEND_URL}
+          GEMINI_KEY=${GEMINI_KEY}
           EOF
 
           docker build \

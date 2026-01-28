@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Server } from 'socket.io';
 import { RedisClientType } from 'redis';
 import { RoomService } from '@src/modules/room/room.service';
@@ -537,57 +537,104 @@ export class GameService {
       previousScore = score;
     }
 
-    const broadcast: GameResultBroadcastDto = { results };
+    const successBroadcast = new GameResultBroadcastDto(results, true);
+    const failedBroadcast = new GameResultBroadcastDto(results, false, '게임 기록 저장 실패');
 
-    // 결과 브로드캐스트
-    server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_RESULT, broadcast);
+    // game_record 테이블에 최고 점수 기준으로 upsert (트랜잭션 처리)
+    // 모든 플레이어의 기록이 함께 저장되거나, 모두 실패하도록 하여(all or nothing) 공정성 보장
+    // N+1 문제 해결: 벌크 조회 -> 메모리 필터링 -> 벌크 저장
+    try {
+      await this.gameRecordRepository.manager.transaction(async (manager) => {
+        const validResults = results.filter((item) => !isNaN(item.score));
 
-    // game_record 테이블에 최고 점수 기준으로 upsert
-    for (const item of results) {
-      const userId = item.player_id;
-      const score = item.score;
+        if (validResults.length === 0) {
+          this.logger.warn(`유효한 게임 기록이 없음: roomId=${roomId}`);
+          return;
+        }
 
-      if (isNaN(score)) {
-        continue;
-      }
+        // 모든 user_id에 대한 기존 기록을 한 번에 조회 (N+1 -> 1번 쿼리)
+        const userIds = validResults.map((item) => item.player_id);
+        const existingRecords = await manager.find(GameRecord, {
+          where: {
+            game_id: gameId,
+            user_id: In(userIds),
+          },
+        });
 
-      const existingRecord = await this.gameRecordRepository.findOne({
-        where: { user_id: userId, game_id: gameId },
+        // 기존 기록을 Map으로 변환 (빠른 조회)
+        const existingRecordMap = new Map<string, GameRecord>();
+        existingRecords.forEach((record) => {
+          existingRecordMap.set(record.user_id, record);
+        });
+
+        // 메모리에서 비교하여 신규 생성 / 업데이트 분리
+        const recordsToInsert: GameRecord[] = [];
+        const recordsToUpdate: GameRecord[] = [];
+
+        for (const item of validResults) {
+          const existingRecord = existingRecordMap.get(item.player_id);
+
+          if (!existingRecord) {
+            // 기존 기록 없음 -> 신규 생성
+            recordsToInsert.push(
+              manager.create(GameRecord, {
+                user_id: item.player_id,
+                game_id: gameId,
+                score: item.score,
+                achieve_date: achieveDate,
+              }),
+            );
+          } else if (item.score > existingRecord.score) {
+            // 기존 기록보다 점수가 높음 -> 업데이트
+            existingRecord.score = item.score;
+            existingRecord.achieve_date = achieveDate;
+            recordsToUpdate.push(existingRecord);
+          }
+          // 기존 점수가 더 높거나 같으면 아무것도 안 함
+        }
+
+        // 벌크 저장 (insert + update를 각각 한 번씩)
+        if (recordsToInsert.length > 0) {
+          await manager.save(GameRecord, recordsToInsert);
+        }
+        if (recordsToUpdate.length > 0) {
+          await manager.save(GameRecord, recordsToUpdate);
+        }
       });
 
-      // 기존 기록이 없으면 새로 생성
-      if (!existingRecord) {
-        const record = this.gameRecordRepository.create({
-          user_id: userId,
-          game_id: gameId,
-          score,
-          achieve_date: achieveDate.getTime(),
-        });
-        await this.gameRecordRepository.save(record);
-        continue;
+      // DB 저장 성공 후 결과 브로드캐스트
+      server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_RESULT, successBroadcast);
+
+      logMessage(this.logger, LOG.GAME.RESULT_BROADCAST(roomId, results));
+    } catch (error) {
+      // 트랜잭션 실패 시 전체 롤백되므로 에러 로그 남김
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `게임 기록 저장 트랜잭션 실패: roomId=${roomId}, gameId=${gameId}, error=${errorMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      // 저장 실패 시 실패했다고 브로드캐스팅
+      server.to(roomId).emit(WS_EVENTS_GAME.PLAYER_RESULT, failedBroadcast);
+    } finally {
+      // Redis 게임 관련 키 정리
+      try {
+        const participantPattern = `room:${roomId}:game:players:*`;
+        const participantKeys = await this.redisClient.keys(participantPattern);
+
+        const deleteTargets: string[] = [this.getScoreKey(roomId), this.getGameKey(roomId)];
+        if (participantKeys.length > 0) {
+          deleteTargets.push(...participantKeys);
+        }
+
+        if (deleteTargets.length > 0) {
+          await this.redisClient.del(deleteTargets);
+        }
+      } catch (cleanupError) {
+        // Redis 정리 실패 시에도 로그만 남기고 계속 진행
+        const errorMessage = cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
+        this.logger.error(`Redis 정리 실패: roomId=${roomId}, error=${errorMessage}`);
       }
-
-      // 기존 기록보다 점수가 높을 때만 갱신
-      if (score > existingRecord.score) {
-        existingRecord.score = score;
-        await this.gameRecordRepository.save(existingRecord);
-      }
     }
-
-    // Redis 게임 관련 키 정리
-    const participantPattern = `room:${roomId}:game:players:*`;
-    const participantKeys = await this.redisClient.keys(participantPattern);
-
-    const deleteTargets: string[] = [this.getScoreKey(roomId), this.getGameKey(roomId)];
-    if (participantKeys.length > 0) {
-      deleteTargets.push(...participantKeys);
-    }
-
-    if (deleteTargets.length > 0) {
-      await this.redisClient.del(deleteTargets);
-    }
-
-    logMessage(this.logger, LOG.GAME.RESULT_BROADCAST(roomId, results));
   }
 
   // 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️ 헬퍼 함수 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
