@@ -86,8 +86,16 @@ export type RoomLeaveAckDto = {
   room_id: string;
 };
 
+export type RoomBanDto = {
+  room_id: string;
+};
+
 export type RoomParticipantLeaveDto = {
   room_id: string;
+  host: {
+    id: string;
+    nickname: string;
+  };
   user: {
     id: string;
     nickname: string;

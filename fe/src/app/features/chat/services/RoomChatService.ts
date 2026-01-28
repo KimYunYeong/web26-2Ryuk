@@ -13,12 +13,14 @@ import {
   RoomLeaveDto,
   RoomParticipantLeaveDto,
   RoomParticipantDeleteDto,
+  RoomBanDto,
 } from '@/app/features/room/dtos/dto';
 import { WS_EVENTS } from '@/app/services/events';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
 import { authStore } from '@/app/features/user/stores/auth';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
 import { RoomJoinData, RoomLeaveData } from '@/app/features/room/dtos/data';
+import { goHome } from '@/app/hooks/useNavigation';
 
 /**
  * RoomChat 클라이언트 서비스
@@ -159,8 +161,16 @@ export class RoomChatService {
     };
 
     // room:leave ACK 핸들러 (방 퇴장 성공)
-    const leaveAckHandler = (_data: RoomLeaveAckDto) => {
+    const leaveAckHandler = (_dto: RoomLeaveAckDto) => {
       // ACK는 특별한 처리가 필요 없을 수 있음
+    };
+
+    // room:ban 핸들러 (방 추방)
+    const banHandler = async (_dto: RoomBanDto) => {
+      // const data = RoomConverter.toRoomBanData(dto);
+      roomStore.getState().leaveRoom();
+      toastStore.getState().showErrorToast('방에서 추방되었습니다.');
+      setTimeout(() => goHome(), 1000);
     };
 
     // room:participant:leave 브로드캐스트 핸들러 (다른 사용자 퇴장)
@@ -170,14 +180,20 @@ export class RoomChatService {
 
       const currentUserId = authStore.getState().userId;
       const isOtherUser = !currentUserId || data.user.id !== currentUserId;
+      const hostChanged = roomStore.getState().roomData?.hostId !== data.host.id;
 
       if (isOtherUser) {
         toastStore.getState().showInfoToast(`${data.user.nickname}님이 퇴장했습니다.`);
         roomStore.getState().removeParticipant(data.user.id);
+
+        if (hostChanged) {
+          toastStore.getState().showInfoToast(`${data.host.nickname}님이 방장이 되었습니다.`);
+        }
       }
 
       roomStore.getState().updateRoomData({
         currentParticipants: data.currentParticipants,
+        hostId: data.host.id,
       });
     };
 
@@ -200,6 +216,7 @@ export class RoomChatService {
     this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
     this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_JOIN, joinedBroadcastHandler);
     this.eventHandlers.set(WS_EVENTS.ROOM_LEAVE, leaveAckHandler);
+    this.eventHandlers.set(WS_EVENTS.ROOM_BAN, banHandler);
     this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_LEAVE, leftBroadcastHandler);
     this.eventHandlers.set(WS_EVENTS.ROOM_PARTICIPANT_DELETE, deleteBroadcastHandler);
     this.eventHandlers.set(WS_EVENTS.CHAT_ROOM_NEW_MESSAGE, messageHandler);
@@ -310,6 +327,11 @@ export class RoomChatService {
 
     // DTO → Data 변환
     const ackData = ChatConverter.toRoomSendAckData(ackDto);
+
+    // 빈 메시지는 화면에 표시 X (ban 명령어 처리 결과)
+    if (ackData.message.trim() === '') {
+      return;
+    }
 
     // 변환된 Data를 로직에서 사용
     this.messages = [...this.messages, ackData];

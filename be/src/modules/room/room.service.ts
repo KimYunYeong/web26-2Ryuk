@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
+import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME, ROOM_TYPE, RoomType } from '@src/common/constants/constants';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { UUID } from 'crypto';
@@ -31,8 +31,7 @@ import {
   GlobalChatRecentMessageDto,
 } from './dto/room-response.dto';
 import { toUuid } from '@src/common/utils/user-id';
-import { ROOM_TYPE, RoomType } from './room.type';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { GameService } from '../game/game.service';
 
 @Injectable()
@@ -146,6 +145,48 @@ export class RoomService implements OnModuleInit {
     // 참여자 수 증가
     await this.updateCurrentParticipants(roomId);
     logMessage(this.logger, LOG.ROOM.USER_JOINED(userId, roomId));
+  }
+
+  /**
+   * 공통 방 퇴장 처리 로직
+   * Redis 상태 변경, 소켓 룸 탈퇴, 브로드캐스트 수행
+   * @param client - 클라이언트 소켓 (있으면 사용, 없으면 userId로 찾음)
+   */
+  async leaveRoomProcess(server: Server, userId: string, roomId: string, client?: Socket): Promise<void> {
+    const nickname = await this.getRoomMemberNickname(roomId, userId);
+
+    // Redis에서 제거
+    await this.leaveRoom(server, userId, roomId);
+
+    // Socket.io room에서 제거
+    if (client) {
+      // client가 있으면 바로 사용 (일반 퇴장)
+      await client.leave(roomId);
+    } else {
+      // client가 없으면 userId로 찾기 (강제 퇴장)
+      const sockets = await server.fetchSockets();
+      const userSocket = sockets.find((socket) => socket.data.userId === userId);
+      if (userSocket) {
+        userSocket.emit(WS_EVENTS_ROOM.BAN, { room_id: roomId });
+        userSocket.leave(roomId);
+      }
+    }
+
+    // 퇴장 후 참여자 수 조회
+    const currentParticipants = await this.getCurrentParticipants(roomId);
+
+    // 현재 hostId 조회
+    const hostId = (await this.redisClient.hGet(`room:${roomId}`, 'host_id')) || '';
+    const hostNickname = hostId ? await this.getRoomMemberNickname(roomId, hostId) : '';
+
+    // 다른 참여자에게 알림
+    await this.notifyUserLeft(
+      server,
+      roomId,
+      { hostId, nickname: hostNickname },
+      { userId, nickname },
+      currentParticipants,
+    );
   }
 
   /**
@@ -327,11 +368,11 @@ export class RoomService implements OnModuleInit {
   /**
    * 사용자 연결 해제 시 모든 방에서 제거
    */
-  async leaveAllRooms(server: Server, userId: string): Promise<void> {
+  async leaveAllRooms(server: Server, userId: string, client?: Socket): Promise<void> {
     const uuid = toUuid(userId);
     const rooms = await this.redisClient.sMembers(`user:${uuid}:rooms`);
     for (const roomId of rooms) {
-      await this.leaveRoom(server, userId, roomId);
+      await this.leaveRoomProcess(server, userId, roomId, client);
     }
   }
 
@@ -809,11 +850,16 @@ export class RoomService implements OnModuleInit {
   async notifyUserLeft(
     server: Server,
     roomId: string,
+    hostInfo: { hostId: string; nickname: string },
     userInfo: { userId: string; nickname: string },
     currentParticipants: number,
   ): Promise<void> {
     const data = {
       room_id: roomId,
+      host: {
+        id: hostInfo.hostId,
+        nickname: hostInfo.nickname,
+      },
       user: {
         id: userInfo.userId,
         nickname: userInfo.nickname,
@@ -832,6 +878,23 @@ export class RoomService implements OnModuleInit {
     server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_LEAVE, data);
     logMessage(this.logger, LOG.CHAT.BROADCAST_SENT(roomId, 'notifyUserLeft', userInfo.userId, roomClientsCount));
     logMessage(this.logger, LOG.CHAT.USER_LEFT(roomId, userInfo.userId));
+  }
+
+  /**
+   * Redis에서 해당 방 내에 해당 닉네임을 가진 사용자의 userId 조회
+   */
+  async getUserInfoByNickname(
+    nickname: string,
+    roomId: string,
+  ): Promise<{ userId: string | null; nickname: string | null }> {
+    const memberIds = await this.getRoomMemberIds(roomId);
+
+    for (const userId of memberIds) {
+      const memberDetails = await this.redisClient.hGetAll(`room:${roomId}:members:${userId}`);
+      if (memberDetails.nickname === nickname) return { userId, nickname: memberDetails.nickname };
+    }
+
+    return { userId: null, nickname: null };
   }
 
   /**
