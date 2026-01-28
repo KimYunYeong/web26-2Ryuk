@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { MockAuthService } from './mock-auth.service';
 import { User } from '../user/user.entity';
 import { PassportModule } from '@nestjs/passport';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { GithubStrategy } from './github.strategy';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -25,7 +25,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         return {
           secret,
           signOptions: {
-            expiresIn: configService.get<string>('JWT_EXPIRATION_TIME', '1h') as any,
+            expiresIn: configService.get<string>('JWT_EXPIRATION_TIME', '1h') as JwtSignOptions['expiresIn'],
           },
         };
       },

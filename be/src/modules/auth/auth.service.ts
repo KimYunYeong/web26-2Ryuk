@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
 import { toUuid } from '@src/common/utils/user-id';
 import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-response.dto';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 interface OAuthUser {
   githubId: string;
@@ -18,6 +19,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async validateOAuthUser(profile: OAuthUser): Promise<User> {
@@ -50,8 +52,9 @@ export class AuthService {
 
   async login(user: User) {
     const payload = { sub: user.id, email: user.email };
+    const expiresIn = this.configService.get<string>('JWT_EXPIRATION_TIME') || '1h'; // 환경 변수 사용, 기본값 '1h'
     return {
-      accessToken: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload, { expiresIn: expiresIn as JwtSignOptions['expiresIn'] }),
     };
   }
 

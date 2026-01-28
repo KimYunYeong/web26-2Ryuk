@@ -70,6 +70,13 @@ export class RoomService implements OnModuleInit {
           create_date: new Date().toISOString(),
         });
 
+        // 기존에 남아있을 수 있는 유령 멤버 데이터 정리 (글로벌 방 초기화 시에만)
+        const staleMemberKeys = await this.redisClient.keys(`room:${roomId}:members:*`);
+        if (staleMemberKeys.length > 0) {
+          await this.redisClient.del(staleMemberKeys);
+          logMessage(this.logger, LOG.ROOM.CLEANUP_STALE_GLOBAL_MEMBERS(roomId, staleMemberKeys.length));
+        }
+
         logMessage(this.logger, LOG.ROOM.GLOBAL_ROOM_INITIALIZED(roomId));
       }
     } catch (error) {
