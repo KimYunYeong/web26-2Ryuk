@@ -17,7 +17,7 @@ function PostCategoryChip({ category }: { category: PostCategory }) {
 }
 
 function PostListRow({
-  id,
+  _id,
   title,
   content,
   category,

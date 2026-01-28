@@ -52,8 +52,9 @@ export function useRoom(roomId?: string): UseRoomResult {
       await gameService.subscribe(roomId);
 
       // 이미 소속된 방일 경우 토스트 표시 안함
-      if (joinInfo.isMember) return;
-      showSuccessToast('방에 입장했습니다!');
+      if (!joinInfo.isMember) {
+        showSuccessToast('방에 입장했습니다!');
+      }
     })().finally(hide);
   }, [roomId, userId]);
 

@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        port: '',
+        pathname: '/u/**',
+      },
+    ],
+  },
   async rewrites() {
     const apiServerUrl = process.env.NEXT_PUBLIC_API_SERVER_URL;
     if (!apiServerUrl) throw new Error('환경변수가 없습니다: NEXT_PUBLIC_API_SERVER_URL');

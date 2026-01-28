@@ -17,7 +17,6 @@ import { useModal } from '@/app/components/shared/modal/useModal';
 import { roomStore, RoomStore } from '../stores/room';
 import { useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
-import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { loadingStore } from '@/app/features/loading/stores/loading';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
@@ -54,9 +53,6 @@ export default function RealtimeRoomsSection() {
 
     const createdRoom = await roomService.createRoom(roomDto);
     closeModal('room-creation');
-
-    // 호스트가 방을 만든 직후 Socket.io room에 참여하도록 구독
-    await roomChatService.subscribe(createdRoom.id);
 
     goToRoom(createdRoom.id);
     setRoom(createdRoom.id);

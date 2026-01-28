@@ -3,7 +3,7 @@
 import CSSUtil from '@/utils/css';
 import Avatar from './Avatar';
 import styles from './profile.module.css';
-import { ProfileProps, type ProfileVariant } from './type';
+import { ProfileProps } from './type';
 
 function Profile({ nickname, profileImage, variant }: ProfileProps) {
   const className = CSSUtil.buildCls(styles.profile, styles[variant]);

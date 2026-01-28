@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { AudioControlsProps } from './type';
 import styles from './audioControlButtons.module.css';
 import { IconButtonBase } from '@/app/components/shared/icon/IconButton';
-import { IconVariant } from '@/app/components/shared/icon/type';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { IconVariant as _IconVariant } from '@/app/components/shared/icon/type';
 
 export default function AudioControlButtons({
   initialMicState = true,

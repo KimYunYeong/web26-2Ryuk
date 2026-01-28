@@ -10,7 +10,10 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 8 })
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+  github_id: string;
+
+  @Column({ type: 'varchar', length: 50 })
   nickname: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })

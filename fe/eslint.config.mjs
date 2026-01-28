@@ -26,6 +26,7 @@ export default [
         ...globals.node,
         ...globals.es2023,
         RequestInit: 'readonly',
+        React: true,
       },
     },
     plugins: {

@@ -7,7 +7,7 @@ import CSSUtil from '@/utils/css';
 import styles from './floatingWidget.module.css';
 
 const FloatingWidget = forwardRef<FloatingWidgetHandle, FloatingWidgetProps>(
-  ({ children, id, initialPosition, dragHandleId, onActivate, elevated }, ref) => {
+  ({ children, _id, initialPosition, dragHandleId, onActivate, elevated }, ref) => {
     const { widgetRef, handleMouseDown, position, isDragging, isTransitioning, ensureInBounds } =
       useFloatingWidget({ initialPosition, dragHandleId });
 

@@ -8,14 +8,14 @@ import NumberUtil from '@/utils/number';
 import { PostListItemProps } from './type';
 
 function PostListItem({
-  id,
+  _id,
   title,
   tags = [],
   viewCount = 0,
   likeCount = 0,
   commentCount = 0,
   createDate,
-  updateDate,
+  _updateDate,
 }: PostListItemProps) {
   return (
     <li className={styles.postListItem}>

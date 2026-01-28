@@ -100,6 +100,7 @@ export class RoomChatService {
       if (joinData.currentParticipants != null) {
         roomStore.getState().updateRoomData({
           currentParticipants: joinData.currentParticipants,
+          participants: joinData.participants ?? [],
         });
       }
 

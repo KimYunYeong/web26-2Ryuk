@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 'use client';
 
 import Avatar from '@/app/components/shared/profile/Avatar';
@@ -8,7 +9,6 @@ import AudioControlButtons from '@/app/features/voice/components/AudioControlBut
 import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
 import { VoiceParticipantCardProps } from './type';
 import styles from './chat.module.css';
-import { useState } from 'react';
 import CSSUtil from '@/utils/css';
 import HostBadge from '@/app/components/shared/badge/HostBadge';
 
@@ -25,20 +25,27 @@ export default function VoiceParticipantCard({
   onMicChange,
   onSpeakerChange,
 }: VoiceParticipantCardProps) {
-  const [sliderValue, setSliderValue] = useState(volume);
   const isSpeaking = active && micOn;
   const sliderVariant = isMe || active ? 'primary' : 'secondary';
-
-  const handleSliderChange = (value: number) => {
-    setSliderValue(value);
-    onSliderChange?.(value);
-  };
 
   const className = CSSUtil.buildCls(
     styles.participantCard,
     isMe && styles.me,
     isSpeaking && styles.speaking,
   );
+
+  const audioControls = isMe ? (
+    <AudioControlButtons
+      initialMicState={micOn}
+      initialSpeakerState={speakerOn}
+      onMicChange={onMicChange}
+      onSpeakerChange={onSpeakerChange}
+    />
+  ) : (
+    <SpeakerControlButton initialState={speakerOn} onChange={onSpeakerChange} />
+  );
+
+  const volumeIconName = isMe ? 'mic' : 'volume';
 
   return (
     <div className={className}>
@@ -59,23 +66,12 @@ export default function VoiceParticipantCard({
             </span>
           </div>
         </div>
-        <div className={styles.controls}>
-          {isMe ? (
-            <AudioControlButtons
-              initialMicState={micOn}
-              initialSpeakerState={speakerOn}
-              onMicChange={onMicChange}
-              onSpeakerChange={onSpeakerChange}
-            />
-          ) : (
-            <SpeakerControlButton initialState={speakerOn} onChange={onSpeakerChange} />
-          )}
-        </div>
+        <div className={styles.controls}>{audioControls}</div>
       </div>
 
       <div className={styles.sliderRow}>
-        <Icon name={isMe ? 'mic' : 'volume'} size="small" />
-        <SliderBase variant={sliderVariant} />
+        <Icon name={volumeIconName} size="small" />
+        <SliderBase variant={sliderVariant} initialValue={volume} onChange={onSliderChange} />
       </div>
     </div>
   );
