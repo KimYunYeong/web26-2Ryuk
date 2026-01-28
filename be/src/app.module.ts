@@ -11,6 +11,7 @@ import { RoomModule } from './modules/room/room.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GameModule } from './modules/game/game.module';
 import { RedisModule } from './providers/redis/redis.module';
+import { CurseWordModule } from './modules/curse-word/curse-word.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // Entities
@@ -23,6 +24,7 @@ import { ChattingLog } from './modules/log/chatting-log.entity';
 import { Game } from './modules/game/game.entity';
 import { GameRecord } from './modules/game-record/game-record.entity';
 import { Comment } from './modules/comment/comment.entity';
+import { CurseWord } from './modules/curse-word/curse-word.entity';
 
 @Module({
   imports: [
@@ -32,12 +34,13 @@ import { Comment } from './modules/comment/comment.entity';
     }),
     TypeOrmModule.forRoot({
       ...databaseConfig,
-      entities: [User, ChattingReport, Post, PostPicture, PostLike, ChattingLog, Game, GameRecord, Comment],
+      entities: [User, ChattingReport, Post, PostPicture, PostLike, ChattingLog, Game, GameRecord, Comment, CurseWord],
       // 개발 환경에서는 마이그레이션 자동 실행 비활성화 (CLI로 별도 실행)
       migrationsRun: false,
       migrations: [],
     }),
     RedisModule,
+    CurseWordModule,
     ChatModule,
     RoomModule,
     AuthModule,

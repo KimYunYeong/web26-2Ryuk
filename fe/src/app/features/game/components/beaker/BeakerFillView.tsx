@@ -15,6 +15,7 @@ export interface BeakerFillViewProps {
   dropTrigger: number;
   onDropEnd?: () => void;
   score?: number;
+  highestScore?: number;
   maxLevel?: number;
 }
 
@@ -23,6 +24,7 @@ function BeakerFillView({
   dropTrigger,
   onDropEnd,
   score = 0,
+  highestScore,
   maxLevel = 1000,
 }: BeakerFillViewProps) {
   const [drops, setDrops] = useState<number[]>([]);
@@ -31,7 +33,9 @@ function BeakerFillView({
 
   const beakerSrc = Paths.games(GAME_IDS.BEAKER, 'beaker');
   const maskSrc = Paths.games(GAME_IDS.BEAKER, 'beaker-mask');
-  const BEAKER_HEIGHT = 220;
+  const BEAKER_HEIGHT = 440;
+  const BEAKER_RATIO = 14 / 22;
+  const beakerWidth = Math.round(BEAKER_HEIGHT * BEAKER_RATIO);
 
   const clampedLevel = useMemo(() => {
     const base = maxLevel > 0 ? maxLevel : 1;
@@ -52,6 +56,8 @@ function BeakerFillView({
   };
 
   const containerStyle = {
+    '--beaker-width': `${beakerWidth}px`,
+    '--beaker-height': `${BEAKER_HEIGHT}px`,
     '--drop-distance': `${BEAKER_HEIGHT * (1 - clampedLevel)}px`,
   } as CSSProperties;
 
@@ -61,31 +67,51 @@ function BeakerFillView({
     maskImage: `url(${maskSrc})`,
   } as CSSProperties;
 
+  const otherStyle = {
+    '--highest-percent': `${((highestScore ?? 0) / maxLevel) * 100}%`,
+    '--average-percent': `${(score / maxLevel) * 100}%`,
+  } as CSSProperties;
+
+  const showDetail = type === 'other' && highestScore;
+  const labelText = type === 'me' ? '내 비커' : '상대 비커';
+
   const className = CSSUtil.buildCls(styles.container, styles[type]);
 
   return (
-    <div className={className} style={containerStyle} data-type={type}>
-      <div className={styles.dropLayer}>
-        {drops.map((id) => (
-          <div key={id} className={styles.drop} onAnimationEnd={() => handleDropEnd(id)}>
-            <WaterDrop type={type} />
-          </div>
-        ))}
-      </div>
-
-      <div className={styles.beakerLayer}>
-        <div className={styles.maskLayer} style={maskStyle}>
-          <div className={styles.water} />
+    <div className={styles.beakerColumn} style={containerStyle}>
+      <div className={className} data-type={type}>
+        <div className={styles.dropLayer}>
+          {drops.map((id) => (
+            <div key={id} className={styles.drop} onAnimationEnd={() => handleDropEnd(id)}>
+              <WaterDrop type={type} />
+            </div>
+          ))}
         </div>
 
-        <Image
-          src={beakerSrc}
-          alt=""
-          aria-hidden
-          className={styles.beakerOutline}
-          width={140}
-          height={220}
-        />
+        <div className={styles.beakerLayer}>
+          <div className={styles.maskLayer} style={maskStyle}>
+            <div className={styles.water} />
+          </div>
+
+          <Image
+            src={beakerSrc}
+            alt=""
+            aria-hidden
+            className={styles.beakerOutline}
+            width={beakerWidth}
+            height={BEAKER_HEIGHT}
+          />
+        </div>
+
+        {showDetail && (
+          <div className={styles.detailLayer} style={otherStyle}>
+            <div className={styles.highest} />
+            {Math.abs(highestScore - score) > 10 && <div className={styles.average} />}
+          </div>
+        )}
+      </div>
+      <div className={styles.beakerLabelRow}>
+        <span>{labelText}</span>
       </div>
     </div>
   );

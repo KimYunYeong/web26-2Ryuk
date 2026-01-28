@@ -53,6 +53,17 @@
   --secondary-border: #93a4bd;
   --secondary-bg: #bcc9db;
 
+  /* Podium Colors */
+  --gold: #d4af37;
+  --gold-border: #e6c15a;
+  --gold-bg: #fff7d6;
+  --silver: #bfc3c7;
+  --silver-border: #d1d5d8;
+  --silver-bg: #f3f4f6;
+  --bronze: #cd7f32;
+  --bronze-border: #d9964a;
+  --bronze-bg: #f7e6d5;
+
   /* Overlay Colors */
   --scrim: #00000066;
 

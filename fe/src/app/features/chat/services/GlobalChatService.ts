@@ -155,6 +155,7 @@ export class GlobalChatService implements ChatChannel {
     WebSocketService.disconnect();
     this.connectPromise = undefined;
     this.isSubscribed = false;
+    this.boundToken = undefined;
   }
 
   async sendMessage(message: string): Promise<void> {

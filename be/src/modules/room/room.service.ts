@@ -748,10 +748,10 @@ export class RoomService implements OnModuleInit {
       is_game_recruiting: isRecruiting === '1',
       participants,
       players: players.map((player) => ({
-        user_id: player.user_id,
+        player_id: player.player_id,
         nickname: player.nickname,
         profile_image: player.profile_image,
-        is_host: player.user_id === hostId,
+        is_host: player.player_id === hostId,
         is_ready: player.is_ready,
       })),
       create_date: new Date(roomData.create_date || new Date().toISOString()),
