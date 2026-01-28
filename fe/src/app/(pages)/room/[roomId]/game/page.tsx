@@ -15,9 +15,9 @@ import type { GameData } from '@/app/features/game/dtos/data';
 export default function GameListPage() {
   const params = useParams();
   const roomId = params.roomId as string;
-  const { goToRoomReplace } = useNavigation();
   const { game } = useRoom(roomId);
   const { handleGameSelect } = game;
+  const { goToRoomReplace } = useNavigation();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [games, setGames] = useState<GameData[]>([]);
   const { show, hide } = loadingStore();
@@ -27,15 +27,9 @@ export default function GameListPage() {
 
     (async () => {
       show();
-      try {
-        const response = await gameService.getGameList();
-        if (alive) {
-          setGames(response.games);
-        }
-      } finally {
-        hide();
-      }
-    })();
+      const response = await gameService.getGameList();
+      if (alive) setGames(response.games);
+    })().then(hide);
 
     return () => {
       alive = false;
@@ -64,7 +58,7 @@ export default function GameListPage() {
     <div className="content">
       <div className={styles.content}>
         <div className={styles.backButton}>
-          <GoBackButton onClick={() => roomId && goToRoomReplace(roomId)} />
+          <GoBackButton onClick={roomId && (() => goToRoomReplace(roomId))} />
         </div>
         <GameListPageTitleSection onSearch={handleSearch} />
         <div className={styles.gridWrapper}>

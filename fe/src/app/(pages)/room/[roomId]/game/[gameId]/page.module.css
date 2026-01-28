@@ -5,3 +5,9 @@
   justify-content: center;
   box-sizing: border-box;
 }
+.undefinedText {
+  font-size: 1rem;
+  color: #e11d48;
+  font-weight: 600;
+  margin: auto;
+}

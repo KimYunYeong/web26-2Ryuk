@@ -42,6 +42,9 @@ export function useGame(roomId?: string): UseGameResult {
   const averageScore = gameStore((s) => s.averageScore);
   const ranks = gameStore((s) => s.ranks);
   const [resultSnapshot, setResultSnapshot] = useState<ResultSnapshot>();
+  const [startTrigger, setStartTrigger] = useState<number>();
+  const openModal = modalStore((state) => state.openModal);
+  const closeModal = modalStore((state) => state.closeModal);
 
   const clearResultSnapshot = useCallback(() => setResultSnapshot(undefined), []);
   const resetGameProgress = useCallback(() => {
@@ -68,6 +71,7 @@ export function useGame(roomId?: string): UseGameResult {
   const [myStatus, setMyStatus] = useState<PData>(initialMe());
   const selectedGame = gameStore((s) => s.selectedGame);
   const setSelectedGame = gameStore((s) => s.setSelectedGame);
+  const shouldHandleGameEvents = myStatus?.isHost || Boolean(myStatus?.isReady);
   const [remainingTime, setRemainingTime] = useState<number>(0);
 
   const isMe = (playerId: string) => playerId === userId;
@@ -159,7 +163,7 @@ export function useGame(roomId?: string): UseGameResult {
       setGamePlayers(removePlayer(data.playerId));
 
       if (!isMe(data.playerId)) return;
-      modalStore.getState().closeModal('game-ready');
+      closeModal('game-ready');
     });
 
     return () => {
@@ -192,7 +196,7 @@ export function useGame(roomId?: string): UseGameResult {
 
       setRoomIsGameRecruiting(data.isGameRecruiting);
       setGamePlayers([]);
-      modalStore.getState().closeModal('game-ready');
+      closeModal('game-ready');
 
       isHost
         ? showSuccessToast('게임 모집을 종료했습니다.')
@@ -206,7 +210,7 @@ export function useGame(roomId?: string): UseGameResult {
 
     try {
       await gameService.recruit(roomId);
-      modalStore.getState().openModal('game-ready');
+      openModal('game-ready');
       setSelectedGame(undefined);
       setIsReadyModalOpen(true);
       showSuccessToast('게임 모집을 시작했습니다.');
@@ -225,7 +229,7 @@ export function useGame(roomId?: string): UseGameResult {
       const ack = await gameService.join(roomId);
       applyJoinAck(ack);
 
-      modalStore.getState().openModal('game-ready');
+      openModal('game-ready');
       setIsReadyModalOpen(true);
 
       showSuccessToast('게임에 참여했습니다.');
@@ -237,7 +241,7 @@ export function useGame(roomId?: string): UseGameResult {
   useEffect(() => {
     if (!roomIsGameRecruiting || isReadyModalOpen || !isHost) return;
 
-    modalStore.getState().openModal('game-ready');
+    openModal('game-ready');
     setIsReadyModalOpen(true);
   }, [roomIsGameRecruiting, isReadyModalOpen, isHost]);
 
@@ -254,7 +258,7 @@ export function useGame(roomId?: string): UseGameResult {
   const handleLeaveGame = useCallback(async () => {
     if (!roomId) return;
     await gameService.leave(roomId);
-    modalStore.getState().closeModal('game-ready');
+    closeModal('game-ready');
   }, [roomId]);
 
   const handleCloseGame = useCallback(async () => {
@@ -286,9 +290,9 @@ export function useGame(roomId?: string): UseGameResult {
     gameService.startGame(roomId);
   }, [roomId]);
 
-  const handleGameStart = useCallback(() => {
+  const handleGameStart = useCallback(async () => {
     gameStore.getState().setGameState('play');
-    setIsReadyModalOpen(false);
+    setStartTrigger(Date.now());
   }, []);
 
   // 게임 종료 처리 함수
@@ -313,6 +317,8 @@ export function useGame(roomId?: string): UseGameResult {
       watchEndCleanupRef.current();
       watchEndCleanupRef.current = null;
     }
+
+    setStartTrigger(undefined);
   }, [resetGameProgress, userId]);
 
   // watchDate 설정 함수
@@ -357,8 +363,12 @@ export function useGame(roomId?: string): UseGameResult {
 
   // game:player:start 처리 및 watchDate 설정
   useEffect(() => {
+    const canHandleEvents = shouldHandleGameEvents;
     return gameService.onStart((data) => {
+      if (!canHandleEvents) return;
+
       rankingStore.getState().clearResult();
+      setIsReadyModalOpen(false);
       clearResultSnapshot();
       resetGameProgress();
 
@@ -371,11 +381,20 @@ export function useGame(roomId?: string): UseGameResult {
 
       // watchDate 설정 (startTime 변경으로 인한 중복 호출 방지를 위해 직접 호출)
       setupWatchDates(startTimeDate, data.playDurationMs);
+      setStartTrigger(startTimeDate.getTime());
 
       if (!roomId || !selectedGame?.id) return;
       gotoGame(roomId, selectedGame.id);
     });
-  }, [roomId, selectedGame, gotoGame, setupWatchDates, clearResultSnapshot, resetGameProgress]);
+  }, [
+    roomId,
+    selectedGame,
+    gotoGame,
+    setupWatchDates,
+    clearResultSnapshot,
+    resetGameProgress,
+    shouldHandleGameEvents,
+  ]);
 
   // 새로고침 후 복구: GameStore에서 상태 복구 및 watchDate 재등록
   useEffect(() => {
@@ -399,7 +418,10 @@ export function useGame(roomId?: string): UseGameResult {
 
   // game:player:result 처리
   useEffect(() => {
+    const canHandleEvents = shouldHandleGameEvents;
     return gameService.onResult((data) => {
+      if (!canHandleEvents) return;
+
       rankingStore.getState().setResult(data);
 
       handleGameEnd();
@@ -407,7 +429,7 @@ export function useGame(roomId?: string): UseGameResult {
       if (!roomId || !selectedGame?.id) return;
       gotoRanking(roomId, selectedGame.id);
     });
-  }, [handleGameEnd, gotoRanking, roomId, selectedGame?.id]);
+  }, [handleGameEnd, gotoRanking, roomId, selectedGame?.id, shouldHandleGameEvents]);
 
   // 남은 시간 계산
   useEffect(() => {
@@ -492,5 +514,6 @@ export function useGame(roomId?: string): UseGameResult {
     opponentScore: displayedOpponentScore,
     opponentHighestScore: displayedOpponentHighestScore,
     myRank: displayedMyRank,
+    startTrigger,
   };
 }
