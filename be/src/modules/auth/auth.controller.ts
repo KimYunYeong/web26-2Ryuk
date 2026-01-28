@@ -16,12 +16,14 @@ export class AuthController {
     private readonly mockAuthService: MockAuthService,
   ) {}
 
+  // GitHub OAuth 로그인 라우트
   @Get('github')
   @UseGuards(AuthGuard('github'))
   async githubAuth() {
     // Guard redirects
   }
 
+  // GithHub OAuth 콜백 라우트
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
   @BypassTransform()
@@ -32,7 +34,32 @@ export class AuthController {
       httpOnly: true,
       secure: true, // sameSite: 'none' 일 때 필수
       sameSite: 'none',
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1일 후 만료
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      path: '/',
+    });
+
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
+  }
+
+  // Google OAuth 로그인 라우트
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Guard redirects
+  }
+
+  // Google OAuth 콜백 라우트
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @BypassTransform()
+  async googleAuthCallback(@Req() req, @Res({ passthrough: true }) res: Response) {
+    const { accessToken } = await this.authService.login(req.user);
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
       path: '/',
     });
 

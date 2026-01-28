@@ -7,6 +7,7 @@ import { User } from '../user/user.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { GithubStrategy } from './github.strategy';
+import { GoogleStrategy } from './google.strategy';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
@@ -33,7 +34,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MockAuthService, GithubStrategy, JwtStrategy],
+  providers: [AuthService, MockAuthService, GithubStrategy, GoogleStrategy, JwtStrategy],
   exports: [AuthService, MockAuthService],
 })
 export class AuthModule {}
