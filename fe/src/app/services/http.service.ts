@@ -1,8 +1,6 @@
 import IS from '@/utils/is';
 import { ApiResponse } from '@/app/features/room/services/type';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
-import { goHome } from '@/app/hooks/useNavigation';
-import TimingUtil from '@/utils/timing';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -50,8 +48,6 @@ export class HttpService {
       if (!response.ok && isApiResponse(parsed) && !parsed.success) {
         const errorMessage = parsed.message || '요청에 실패했습니다.';
         toastStore.getState().showErrorToast(errorMessage);
-        await TimingUtil.delay();
-        goHome();
         throw new Error(errorMessage);
       }
 

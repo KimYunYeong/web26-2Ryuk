@@ -12,7 +12,7 @@ import LogoutButton from '@/app/components/shared/button/LogoutButton';
 export default function Header() {
   const { goHome, gotoComponents } = useNavigation();
   const user = authStore((state: AuthStore) => state.user);
-  const isLoggedIn = !!user?.nickname;
+  const isAthenticated = authStore((state: AuthStore) => state.isAuthenticated);
 
   return (
     <header className={styles.header}>
@@ -26,8 +26,8 @@ export default function Header() {
             size="small"
             onClick={() => gotoComponents('shared')}
           />
-          {isLoggedIn ? <LogoutButton /> : <LoginButton />}
-          {isLoggedIn && (
+          {isAthenticated ? <LogoutButton /> : <LoginButton />}
+          {user && isAthenticated && user.nickname && (
             <>
               <div className={styles.separator} />
               <ProfileRow nickname={user.nickname} profileImage={user.profileImage} />

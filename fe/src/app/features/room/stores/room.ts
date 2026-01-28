@@ -8,12 +8,14 @@ interface RoomState {
   roomId?: string;
   isJoined: boolean;
   roomData?: RoomData;
+  isGameRecruiting: boolean;
 }
 
 interface RoomActions {
   setRoom: (roomId?: string) => void;
   setRoomData: (roomData?: RoomData) => void;
   updateRoomData: (updates: Partial<RoomData>) => void;
+  setIsGameRecruiting: (isGameRecruiting: boolean) => void;
   addParticipant: (participant: PData) => void;
   removeParticipant: (userId: string) => void;
   setJoined: (isJoined: boolean) => void;
@@ -28,16 +30,17 @@ export const roomStore = create<RoomStore>()(
       roomId: undefined,
       isJoined: false,
       roomData: undefined,
+      isGameRecruiting: false,
 
       setRoom: (roomId?: string) =>
         set((state) => {
           const roomData = state.roomData?.id === roomId ? state.roomData : undefined;
-          return { roomId, isJoined: false, roomData };
+          return { roomId, isJoined: false, roomData, isGameRecruiting: false };
         }),
 
       setRoomData: (roomData?: RoomData) => {
         const roomId = roomData?.id;
-        set({ roomData, roomId });
+        set({ roomData, roomId, isGameRecruiting: roomData?.isGameRecruiting ?? false });
       },
 
       updateRoomData: (updates: Partial<RoomData>) =>
@@ -58,8 +61,13 @@ export const roomStore = create<RoomStore>()(
               isPrivate: updates.isPrivate ?? false,
             };
           }
+          if (typeof updates.isGameRecruiting === 'boolean') {
+            next.isGameRecruiting = updates.isGameRecruiting;
+          }
           return next;
         }),
+
+      setIsGameRecruiting: (isGameRecruiting: boolean) => set({ isGameRecruiting }),
 
       addParticipant: (participant: PData) =>
         set((state) => {
@@ -79,7 +87,8 @@ export const roomStore = create<RoomStore>()(
 
       setJoined: (isJoined: boolean) => set({ isJoined }),
 
-      leaveRoom: () => set({ roomId: undefined, isJoined: false, roomData: undefined }),
+      leaveRoom: () =>
+        set({ roomId: undefined, isJoined: false, roomData: undefined, isGameRecruiting: false }),
     }),
     {
       name: 'room-storage',

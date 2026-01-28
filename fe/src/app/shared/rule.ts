@@ -7,6 +7,11 @@ const Rules = {
   ROOM: {
     PARTICIPANT_MAX_COUNT: 10,
   },
+  GAME: {
+    BEAKER: {
+      MAX_LEVEL: 500,
+    },
+  },
 } as const;
 
 export default Rules;

@@ -54,7 +54,7 @@ export const toData = (dto: RoomDto): RoomData => ({
     })) ?? [],
   players:
     dto.players?.map((p) => ({
-      userId: p.user_id,
+      playerId: p.player_id,
       nickname: p.nickname,
       profileImage: p.profile_image ?? undefined,
       isHost: p.is_host,
@@ -128,7 +128,7 @@ export const toDto = (data: RoomData): RoomDto => ({
     profile_image: p.profileImage,
   })),
   players: data.players?.map((p) => ({
-    user_id: p.userId,
+    player_id: p.playerId,
     nickname: p.nickname,
     profile_image: p.profileImage,
     is_host: p.isHost,
