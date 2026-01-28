@@ -288,7 +288,7 @@ export class VoiceService {
       room_id: this.roomId,
     });
 
-    if (response.producers && Array.isArray(response.producers)) {
+    if (response.producers && Array.isArray(response.producers) && this.roomId) {
       // 순차적으로 구독 (병렬로 하면 브라우저 부하가 올 수 있으니 순차 처리)
       for (const p of response.producers) {
         await this.handleNewProducer({
