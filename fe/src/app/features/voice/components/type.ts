@@ -1,5 +1,5 @@
 export interface SpeakerControlButtonProps {
-  initialState?: boolean;
+  speakerOn?: boolean;
   onChange?: (state: boolean) => void;
 }
 

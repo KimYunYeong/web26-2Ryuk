@@ -8,11 +8,12 @@ import { SliderBase } from '@/app/components/shared/slider/Slider';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
 import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
 import CSSUtil from '@/utils/css';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './chat.module.css';
 import { VoiceParticipantCardProps } from './type';
 
 export default function VoiceParticipantCard({
+  userId,
   nickname,
   profileImage,
   active = false,
@@ -20,14 +21,16 @@ export default function VoiceParticipantCard({
   isHost = false,
   micOn = true,
   speakerOn = true,
-  volume = 50,
+  volume = 0.5,
   onSliderChange,
   onMicChange,
   onSpeakerChange,
 }: VoiceParticipantCardProps) {
   const [sliderValue, setSliderValue] = useState(volume);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null); //슬라이더용 디바운스 타이머
   const isSpeaking = active && micOn;
   const sliderVariant = isMe || active ? 'primary' : 'secondary';
+
   let statusText = '음소거됨';
   if (isSpeaking) {
     statusText = '말하는 중...';
@@ -36,12 +39,32 @@ export default function VoiceParticipantCard({
   }
 
   const handleSliderChange = (value: number) => {
+    // 1. 슬라이더 UI 상태 업데이트 (즉시)
     setSliderValue(value);
-    onSliderChange?.(value);
+    const targetVolume = value;
+
+    // 2. [Direct DOM] 리액트 렌더링 없이 오디오 볼륨 직접 수정 (즉시)
+    const audioEl = document.getElementById(`audio-${userId}`) as HTMLAudioElement;
+    if (audioEl) {
+      audioEl.volume = targetVolume;
+    }
+
+    // 3. [Debouncing] 스토어(Zustand) 업데이트는 300ms 뒤에 한 번만 실행
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      console.log(`[Store Update] 유저 ${userId}의 볼륨을 ${targetVolume}으로 저장합니다.`);
+      onSliderChange?.(targetVolume);
+      debounceTimer.current = null;
+    }, 300); // 0.3초 동안 추가 움직임이 없으면 실행
   };
 
   useEffect(() => {
-    setSliderValue(volume);
+    if (!debounceTimer.current) {
+      setSliderValue(volume);
+    }
   }, [volume]);
 
   const className = CSSUtil.buildCls(
@@ -76,7 +99,7 @@ export default function VoiceParticipantCard({
               onSpeakerChange={onSpeakerChange}
             />
           ) : (
-            <SpeakerControlButton initialState={speakerOn} onChange={onSpeakerChange} />
+            <SpeakerControlButton speakerOn={speakerOn} onChange={onSpeakerChange} />
           )}
         </div>
       </div>
@@ -88,7 +111,8 @@ export default function VoiceParticipantCard({
           value={sliderValue} // 1. 현재 상태값 연결
           onChange={handleSliderChange} // 2. 바꿨을 때 실행될 핸들러 연결
           min={0}
-          max={100}
+          max={1}
+          step={0.01}
         />
       </div>
     </div>

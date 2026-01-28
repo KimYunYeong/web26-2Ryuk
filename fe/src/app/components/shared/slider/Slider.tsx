@@ -8,8 +8,8 @@ import { SliderProps } from './type';
 export function SliderBase({
   value,
   min = 0,
-  max = 100,
-  step = 1,
+  max = 1,
+  step = 0.01,
   onChange,
   disabled = false,
   variant = 'primary',
@@ -21,7 +21,7 @@ export function SliderBase({
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const newValue = parseFloat(event.target.value);
-    onChange?.(newValue);
+    onChange?.(Number(newValue.toFixed(3)));
   };
 
   return (

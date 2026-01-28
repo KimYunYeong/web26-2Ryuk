@@ -26,6 +26,9 @@ export default [
         ...globals.node,
         ...globals.es2023,          
         RequestInit: 'readonly',
+        MediaTrackConstraints: 'readonly', 
+        MediaStream: 'readonly',
+        MediaStreamTrack: 'readonly',
       },
     },
     plugins: {

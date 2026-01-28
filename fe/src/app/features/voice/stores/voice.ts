@@ -28,7 +28,7 @@ export const useVoiceStore = create<VoiceState>((set) => ({
       const initialUser: UserVoiceState = {
         isMicOn: false,
         isSpeakerOn: true,
-        volume: 50,
+        volume: 0.5,
         stream: undefined,
       };
 

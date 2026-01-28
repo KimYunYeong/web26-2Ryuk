@@ -43,6 +43,20 @@ const mediaCodecs: RtpCodecCapability[] = [
     clockRate: 48000,
     channels: 2,
     preferredPayloadType: 111,
+    parameters: {
+      maxaveragebitrate: 48000,
+
+      // 2. 가변 비트레이트 (소리의 복잡도에 따라 효율적으로 전송)
+      useinbandfec: 1, // 전방 오류 수정: 패킷 손실 시 음질 깨짐 방지
+
+      // 3. 서버/네트워크 효율화
+      usedtx: 1, // 침묵 감지: 말 안 할 때 데이터 전송 중단
+
+      // 4. 기타 품질 옵션
+      'sprop-maxcapturerate': 48000,
+      'sprop-stereo': 0, // 스테레오 기능 끄기
+      minptime: 10, // 지연 시간(Latency) 최적화
+    },
   },
 ];
 
@@ -617,6 +631,33 @@ export class VoiceService implements OnModuleInit {
       kind: consumer.kind,
       rtp_parameters: consumer.rtpParameters,
     };
+  }
+
+  /**
+   * 사용자가 소켓 연결을 끊었을 때 호출되어,
+   * 참여 중인 모든 방의 보이스 리소스를 정리합니다.
+   */
+  async cleanupUserResources(userId: string): Promise<void> {
+    this.logger.log(`[Voice Cleanup] Starting cleanup for user: ${userId}`);
+
+    try {
+      // RoomService가 관리하는 '유저 참여 방 목록' 조회
+      const joinedRooms = await this.redisClient.sMembers(`user:${userId}:rooms`);
+
+      if (!joinedRooms || joinedRooms.length === 0) {
+        this.logger.debug(`[Voice Cleanup] No active rooms found for user: ${userId}`);
+        return;
+      }
+
+      for (const roomId of joinedRooms) {
+        // leaveRoom 호출
+        // 여기서 transport.close()가 일어나며 포트가 반납됨.
+        await this.leaveRoom(userId, roomId);
+        this.logger.debug(`[Voice Cleanup] Resources cleaned for room: ${roomId}`);
+      }
+    } catch (error) {
+      this.logger.error(`[Voice Cleanup] Error cleaning resources for ${userId}`, error.stack);
+    }
   }
 
   // Redis에서 Producer 메타데이터 조회
