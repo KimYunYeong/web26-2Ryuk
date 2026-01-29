@@ -118,7 +118,7 @@ export type GamePlayerRealtimeData = {
   ranks: string[];
 };
 
-export type GamePlayerResultRow = {
+export type GamePlayerResultItemData = {
   playerId: string;
   nickname: string;
   profileImage: string;
@@ -128,12 +128,12 @@ export type GamePlayerResultRow = {
 };
 
 export type GamePlayerResultData = {
-  results: GamePlayerResultRow[];
+  results: GamePlayerResultItemData[];
 };
 
 export type GamePlayerRecordsData = {
   total: number;
   page: number;
-  podium: GamePlayerResultRow[];
-  rankings: GamePlayerResultRow[];
+  podium: GamePlayerResultItemData[];
+  rankings: GamePlayerResultItemData[];
 };

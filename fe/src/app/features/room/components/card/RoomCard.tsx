@@ -22,7 +22,7 @@ function RoomCard({
   isPrivate = false,
   participants = [],
 }: RoomCardProps) {
-  const { goToRoom } = useNavigation();
+  const { gotoRoom } = useNavigation();
   const remainingCount = maxParticipants - currentParticipants;
   const isAuthenticated = authStore((state) => state.isAuthenticated);
 
@@ -43,7 +43,7 @@ function RoomCard({
 
   const handleJoin = () => {
     if (!enterable || !isAuthenticated) return;
-    goToRoom(id);
+    gotoRoom(id);
   };
 
   const OpenButton = isMember ? PrimaryIconButton : SecondaryIconButton;

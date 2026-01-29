@@ -23,7 +23,7 @@ import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/Tex
 
 export default function RealtimeRoomsSection() {
   const { isDesktop } = useResponsive();
-  const { goToRoom } = useNavigation();
+  const { gotoRoom } = useNavigation();
   const { closeModal } = useModal();
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const { setRoom, setRoomData } = roomStore();
@@ -54,7 +54,7 @@ export default function RealtimeRoomsSection() {
     const createdRoom = await roomService.createRoom(roomDto);
     closeModal('room-creation');
 
-    goToRoom(createdRoom.id);
+    gotoRoom(createdRoom.id);
     setRoom(createdRoom.id);
     setRoomData(RoomConverter.toData(createdRoom));
 

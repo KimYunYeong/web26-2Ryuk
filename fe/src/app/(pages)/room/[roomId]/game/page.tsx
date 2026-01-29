@@ -17,7 +17,7 @@ export default function GameListPage() {
   const roomId = params.roomId as string;
   const { game } = useRoom(roomId);
   const { handleGameSelect } = game;
-  const { goToRoomReplace } = useNavigation();
+  const { gotoRoomReplace } = useNavigation();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [games, setGames] = useState<GameData[]>([]);
   const { show, hide } = loadingStore();
@@ -51,14 +51,14 @@ export default function GameListPage() {
     const select = handleGameSelect;
     if (!roomId || !select) return;
     select(gameId);
-    goToRoomReplace(roomId);
+    gotoRoomReplace(roomId);
   };
 
   return (
     <div className="content">
       <div className={styles.content}>
         <div className={styles.backButton}>
-          <GoBackButton onClick={roomId && (() => goToRoomReplace(roomId))} />
+          <GoBackButton onClick={roomId && (() => gotoRoomReplace(roomId))} />
         </div>
         <GameListPageTitleSection onSearch={handleSearch} />
         <div className={styles.gridWrapper}>

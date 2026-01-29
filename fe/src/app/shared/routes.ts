@@ -8,8 +8,6 @@ export const ROUTES = {
   // 메인 페이지
   HOME: '/home',
 
-  ROOM: (roomId: string) => `/room/${roomId}`,
-
   // 컴포넌트 페이지
   COMPONENTS: {
     ROOT: '/components',
@@ -20,10 +18,9 @@ export const ROUTES = {
   },
 
   // 동적 경로 생성 함수
-  post: (id: string | number) => `/post/${id}`,
-  room: (id: string | number) => `/room/${id}`,
-  game: (roomId: string | number, gameId: string | number) => `/room/${roomId}/game/${gameId}`,
-  ranking: (roomId: string | number, gameId: string | number) =>
-    `/room/${roomId}/game/${gameId}/ranking`,
-  profile: (id: string | number) => `/profile/${id}`,
+  post: (id: string) => `/post/${id}`,
+  room: (id: string) => `/room/${id}`,
+  game: (roomId: string, gameId: string) => `/room/${roomId}/game/${gameId}`,
+  ranking: (roomId: string, gameId: string) => `/room/${roomId}/game/${gameId}/ranking`,
+  profile: (id: string) => `/profile/${id}`,
 } as const;

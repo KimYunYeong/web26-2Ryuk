@@ -36,11 +36,11 @@ import Paths from '@/app/shared/path';
 import Table from '@/app/components/table/Table';
 import { RankCoin } from '@/app/components/shared/coin';
 import type { TableColumn } from '@/app/components/table/types';
-import type { GamePlayerResultRow } from '@/app/features/game/dtos/data';
+import type { GamePlayerResultItemData } from '@/app/features/game/dtos/data';
 import { GameConverter } from '@/app/features/game/dtos/converter';
 import resultsMock from '@/mocks/data/results.json';
 
-const sharedTableColumns: TableColumn<GamePlayerResultRow>[] = [
+const sharedTableColumns: TableColumn<GamePlayerResultItemData>[] = [
   {
     key: 'rank',
     header: '순위',
@@ -74,8 +74,8 @@ interface SharedComponentsProps {
 export default function SharedComponents({ iconList }: SharedComponentsProps) {
   const sharedResultData = GameConverter.toGamePlayerRecordsData(resultsMock);
   const sharedTableData = sharedResultData.rankings;
-  const sharedGetRowKey = (row: GamePlayerResultRow) => row.playerId;
-  const sharedHighlightRow = (row: GamePlayerResultRow) => row.rank === 1;
+  const sharedGetRowKey = (row: GamePlayerResultItemData) => row.playerId;
+  const sharedHighlightRow = (row: GamePlayerResultItemData) => row.rank === 1;
   const [selectedDropdownValue, setSelectedDropdownValue] = useState('item2');
 
   return (

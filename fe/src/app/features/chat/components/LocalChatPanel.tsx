@@ -24,7 +24,7 @@ export default function LocalChatPanel() {
   const roomData = roomStore((state: RoomStore) => state.roomData);
   const [micState, setMicState] = useState(true);
   const [speakerState, setSpeakerState] = useState(true);
-  const { goToRoom } = useNavigation();
+  const { gotoRoom } = useNavigation();
   const roomTitle = roomData?.title || '대화방';
 
   const [initialPosition, setInitialPosition] = useState<Position>(PANEL_CONFIG.DEFAULT_POSITION);
@@ -64,7 +64,7 @@ export default function LocalChatPanel() {
   };
 
   const handleGoRoomClick = () => {
-    if (roomId) goToRoom(roomId);
+    if (roomId) gotoRoom(roomId);
   };
 
   const headerChildren = (

@@ -21,10 +21,10 @@ export default function useNavigation() {
     gotoComponents: (category: ComponentCategory) => {
       router.push(getCategoryPath(category));
     },
-    goToPost: (id: string) => {
+    gotoPost: (id: string) => {
       router.push(ROUTES.post(id));
     },
-    goToRoom: (id: string) => {
+    gotoRoom: (id: string) => {
       router.push(ROUTES.room(id));
     },
     gotoGame: (roomId: string, gameId: string) => {
@@ -33,10 +33,10 @@ export default function useNavigation() {
     gotoRanking: (roomId: string, gameId: string) => {
       router.push(ROUTES.ranking(roomId, gameId));
     },
-    goToRoomGameList: (roomId: string) => {
+    gotoRoomGameList: (roomId: string) => {
       router.push(`/room/${roomId}/game`);
     },
-    goToRoomReplace: (id: string) => {
+    gotoRoomReplace: (id: string) => {
       router.replace(ROUTES.room(id));
     },
   };
@@ -50,6 +50,6 @@ export const goHome = () => {
   window.location.href = ROUTES.HOME;
 };
 
-export const goToRoomReplace = (roomId: string) => {
-  window.location.href = ROUTES.ROOM(roomId);
+export const gotoRoomReplace = (roomId: string) => {
+  window.location.href = ROUTES.room(roomId);
 };

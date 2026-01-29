@@ -1,17 +1,10 @@
 'use client';
 
-export type GameRecordItemData = {
-  playerId: string;
-  rank: number;
-  nickname: string;
-  profileImage?: string;
-  score: number;
-  achieveDate: Date;
-};
+import { GamePlayerResultItemData } from '@/app/features/game/dtos/data';
 
 export type GameRecordListData = {
   total: number;
   page: number;
-  podium: GameRecordItemData[];
-  rankings: GameRecordItemData[];
+  podium: GamePlayerResultItemData[];
+  rankings: GamePlayerResultItemData[];
 };

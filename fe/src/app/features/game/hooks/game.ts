@@ -71,7 +71,24 @@ export function useGame(roomId?: string): UseGameResult {
   const [myStatus, setMyStatus] = useState<PData>(initialMe());
   const selectedGame = gameStore((s) => s.selectedGame);
   const setSelectedGame = gameStore((s) => s.setSelectedGame);
+  const lastSelectedGameIdRef = useRef<string>();
+
+  useEffect(() => {
+    if (selectedGame?.id) lastSelectedGameIdRef.current = selectedGame.id;
+  }, [selectedGame?.id]);
   const shouldHandleGameEvents = myStatus?.isHost || Boolean(myStatus?.isReady);
+  useEffect(() => {
+    const players = roomData?.players;
+    if (!players || players.length === 0) return;
+
+    const hostStatus = players.find((p) => p.playerId === userId);
+    if (hostStatus) {
+      setMyStatus((prev) => (prev ? { ...prev, ...hostStatus } : hostStatus));
+    }
+
+    const filtered = players.filter((p) => p.playerId !== userId);
+    setGamePlayers(filtered);
+  }, [roomData?.players, userId]);
   const [remainingTime, setRemainingTime] = useState<number>(0);
 
   const isMe = (playerId: string) => playerId === userId;
@@ -418,18 +435,16 @@ export function useGame(roomId?: string): UseGameResult {
 
   // game:player:result 처리
   useEffect(() => {
-    const canHandleEvents = shouldHandleGameEvents;
     return gameService.onResult((data) => {
-      if (!canHandleEvents) return;
-
       rankingStore.getState().setResult(data);
 
       handleGameEnd();
 
-      if (!roomId || !selectedGame?.id) return;
-      gotoRanking(roomId, selectedGame.id);
+      const targetGameId = selectedGame?.id ?? lastSelectedGameIdRef.current;
+      if (!roomId || !targetGameId) return;
+      gotoRanking(roomId, targetGameId);
     });
-  }, [handleGameEnd, gotoRanking, roomId, selectedGame?.id, shouldHandleGameEvents]);
+  }, [handleGameEnd, gotoRanking, roomId, selectedGame?.id]);
 
   // 남은 시간 계산
   useEffect(() => {
