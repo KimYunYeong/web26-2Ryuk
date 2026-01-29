@@ -16,14 +16,14 @@ import { GameRecordRankResponseDto } from '@src/modules/game-record/dto/game-rec
 import { ApiResponseMessage } from '@src/common/decorators/api-response-message.decorator';
 import { AuthGuard } from '../auth/auth.guard';
 
-@Controller('game_records')
+@Controller('game-records')
 export class GameRecordController {
   private readonly logger = new Logger(GameRecordController.name);
 
   constructor(private readonly gameRecordService: GameRecordService) {}
 
   /**
-   * 게임 랭킹 조회 -> GET /api/game_records/:game_id?page=1&limit=10
+   * 게임 랭킹 조회 -> GET /api/game-records/:game_id?page=1&limit=10
    */
   @Get(':game_id')
   @UseGuards(AuthGuard)

@@ -15,9 +15,9 @@ import {
   RankingScoreHeader,
   RankingAchieveDateHeader,
 } from './headers';
-import type { GamePlayerResultRow } from '@/app/features/game/dtos/data';
+import type { GamePlayerResultItemData } from '@/app/features/game/dtos/data';
 
-export const rankingColumns: TableColumn<GamePlayerResultRow>[] = [
+export const rankingColumns: TableColumn<GamePlayerResultItemData>[] = [
   {
     key: 'rank',
     header: <RankingRankHeader />,

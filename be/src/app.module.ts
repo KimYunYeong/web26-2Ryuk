@@ -10,6 +10,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { RoomModule } from './modules/room/room.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GameModule } from './modules/game/game.module';
+import { GameRecordModule } from './modules/game-record/game-record.module';
 import { RedisModule } from './providers/redis/redis.module';
 import { CurseWordModule } from './modules/curse-word/curse-word.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -45,6 +46,7 @@ import { CurseWord } from './modules/curse-word/curse-word.entity';
     RoomModule,
     AuthModule,
     GameModule,
+    GameRecordModule,
   ],
   controllers: [AppController],
   providers: [

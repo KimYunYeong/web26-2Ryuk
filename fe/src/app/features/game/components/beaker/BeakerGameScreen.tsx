@@ -4,7 +4,7 @@ import { GamePageTitleSection } from '@/app/components/layout/pageTitleSection/P
 import RemainingTimeBar from '@/app/components/shared/remainingTimeBar/RemainingTimeBar';
 import BeakerFillView from '@/app/features/game/components/beaker/BeakerFillView';
 import styles from './BeakerGameScreen.module.css';
-import { useGame } from '@/app/features/game/hooks/game';
+import { useBeakerGame } from '@/app/features/game/hooks/useBeakerGame';
 import Rules from '@/app/shared/rule';
 import IS from '@/utils/is';
 import { GAME_IDS } from '@/app/shared/constant';
@@ -29,32 +29,30 @@ export default function BeakerGameScreen({ roomId }: BeakerGameScreenProps) {
     myRank,
     myDropTrigger,
     opponentDropTrigger,
-  } = useGame(roomId);
+  } = useBeakerGame(roomId);
 
   const readyDurationMs = delayMs > 0 ? delayMs : playDurationMs;
 
   const buildTimeBar = () => {
-    switch (gameState) {
-      case 'ready':
-        return (
-          <RemainingTimeBar
-            label="준비 시간"
-            variant="secondary"
-            totalDurationMs={readyDurationMs}
-            remainingMs={remainingTime}
-          />
-        );
-      case 'play':
-        return (
-          <RemainingTimeBar
-            label="남은 시간"
-            variant="primary"
-            totalDurationMs={playDurationMs}
-            remainingMs={remainingTime}
-          />
-        );
+    if (gameState === 'ready') {
+      return (
+        <RemainingTimeBar
+          label="준비 시간"
+          variant="secondary"
+          totalDurationMs={readyDurationMs}
+          remainingMs={remainingTime}
+        />
+      );
     }
-    return null;
+
+    return (
+      <RemainingTimeBar
+        label="남은 시간"
+        variant="primary"
+        totalDurationMs={playDurationMs}
+        remainingMs={remainingTime}
+      />
+    );
   };
 
   const buildStats = () => {

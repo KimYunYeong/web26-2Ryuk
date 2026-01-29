@@ -46,7 +46,7 @@ export default function RoomPage() {
     handleGameStartButtonClick,
   } = game;
 
-  const { goToRoomGameList } = useNavigation();
+  const { gotoRoomGameList } = useNavigation();
 
   const isHost = roomData?.hostId === userId;
   const isGameButtonEnabled = isHost || isGameRecruiting;
@@ -100,7 +100,7 @@ export default function RoomPage() {
           players={gamePlayers}
           maxPlayers={roomData?.maxParticipants}
           selectedGame={selectedGame}
-          onChangeGame={() => roomId && goToRoomGameList(roomId)}
+          onChangeGame={() => roomId && gotoRoomGameList(roomId)}
           onReadyChange={handleReadyChange}
           onStart={handleGameStartButtonClick}
         />

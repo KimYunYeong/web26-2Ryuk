@@ -41,7 +41,7 @@ import {
   GamePlayerRealtimeData,
   GamePlayerRecruitData,
   GamePlayerResultData,
-  GamePlayerResultRow,
+  GamePlayerResultItemData,
   GamePlayerRecordsData,
   GamePlayerSelectData,
   GamePlayerStartData,
@@ -196,7 +196,7 @@ export const toGamePlayerRealtimeData = (dto: GamePlayerRealtimeDto): GamePlayer
   ranks: dto.ranks,
 });
 
-const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultRow => ({
+const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultItemData => ({
   playerId: result.player_id,
   nickname: result.nickname,
   profileImage: result.profile_image,
@@ -205,7 +205,7 @@ const mapResultItem = (result: GamePlayerResultItemDto): GamePlayerResultRow => 
   achieveDate: new Date(result.achieve_date),
 });
 
-const normalizeResults = (items?: GamePlayerResultItemDto[]): GamePlayerResultRow[] =>
+const normalizeResults = (items?: GamePlayerResultItemDto[]): GamePlayerResultItemData[] =>
   (items ?? []).map(mapResultItem).sort((a, b) => a.rank - b.rank);
 
 export const toGamePlayerResultBroadcastData = (

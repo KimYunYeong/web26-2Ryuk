@@ -8,7 +8,6 @@ import { ChatBubbles, ChatConverter } from '@/app/features/chat';
 import ChatBubble from '@/app/features/chat/components/ChatBubble';
 import GlobalChatPanel from '@/app/features/chat/components/GlobalChatPanel';
 import RoomChatPanel from '@/app/features/chat/components/LocalChatPanel';
-import BeakerFillViewShowcase from '@/app/features/game/components/beaker/BeakerFillViewShowcase';
 import GameCard, { EmptyGameCard } from '@/app/features/game/components/GameCard';
 import GameCardGrid from '@/app/features/game/components/GameCardGrid';
 import GameResultPodium from '@/app/features/game/components/podium/GameResultPodium';
@@ -31,6 +30,9 @@ import GameReadyModalContent from '@/app/features/room/components/ready/GameRead
 import MyReadyStatusCard from '@/app/features/room/components/ready/MyReadyStatusCard';
 import OtherReadyStatusCard from '@/app/features/room/components/ready/OtherReadyStatusCard';
 import OtherReadyStatusCardGrid from '@/app/features/room/components/ready/OtherReadyStatusCardGrid';
+import BeakerFillViewShowcase from '@/app/features/game/components/beaker/BeakerFillViewShowcase';
+import ReactionTargetView from '@/app/features/game/components/reflex/ReactionTargetView';
+import ReactionTargetCard from '@/app/features/game/components/reflex/ReactionTargetCard';
 import RealtimeRoomsSection from '@/app/features/room/components/RealtimeRoomsSection';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
 import SpeakerControlButton from '@/app/features/voice/components/SpeakerControlButton';
@@ -544,6 +546,30 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="beaker-fill-view" />
         <div className={styles.showcaseBlock}>
           <BeakerFillViewShowcase />
+        </div>
+      </section>
+
+      <section id="reaction-target-view" className={styles.section}>
+        <h2 className={styles.sectionTitle}>ReactionTargetView</h2>
+        <ComponentRelations componentId="reaction-target-view" />
+        <div className={styles.cardRow}>
+          {(['idle', 'ready', 'active', 'missed', 'success', 'finished'] as const).map(
+            (variant) => (
+              <Component key={variant}>
+                <ReactionTargetView text={variant.toUpperCase()} variant={variant} />
+              </Component>
+            ),
+          )}
+        </div>
+      </section>
+
+      <section id="reaction-target-card" className={styles.section}>
+        <h2 className={styles.sectionTitle}>ReactionTargetCard</h2>
+        <ComponentRelations componentId="reaction-target-card" />
+        <div className={styles.showcaseBlock}>
+          <Component fullWidth>
+            <ReactionTargetCard />
+          </Component>
         </div>
       </section>
 
