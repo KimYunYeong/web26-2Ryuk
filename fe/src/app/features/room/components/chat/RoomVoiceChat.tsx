@@ -1,8 +1,8 @@
 'use client';
 
 import { SecondaryChip } from '@/app/components/shared/chip/Chip';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
 import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
+import { roomStore, RoomStore } from '@/app/features/room/stores/room';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import { useVoiceChat } from '@/app/features/voice/hooks/useVoiceChat';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -94,10 +94,15 @@ export default function RoomVoiceChat() {
   const currentParticipants = roomData?.currentParticipants;
   const maxParticipants = roomData?.maxParticipants;
   const showChip = currentParticipants || maxParticipants;
-  const { voiceUsers, isMyMicOn, toggleMic, toggleUserAudio, changeUserVolume } = useVoiceChat(
-    roomId!,
-    isJoined,
-  );
+  const {
+    voiceUsers,
+    isMyMicOn,
+    isMasterMute, // 전체 음소거
+    toggleMic,
+    toggleUserAudio,
+    changeUserVolume,
+    toggleMasterMute,
+  } = useVoiceChat(roomId!, isJoined);
 
   useEffect(() => {
     // mount/refresh 시 필요한 로직
@@ -159,6 +164,8 @@ export default function RoomVoiceChat() {
               profileImage={me.profileImage}
               isMe
               micOn={isMyMicOn}
+              speakerOn={!isMasterMute}
+              onSpeakerChange={toggleMasterMute}
               onMicChange={toggleMic}
               active={false}
               isHost={roomData?.hostId === me.id}
@@ -197,7 +204,7 @@ export default function RoomVoiceChat() {
                 key={`audio-${userId}`} // 고유한 키 부여로 재생성 방지
                 userId={userId}
                 stream={voiceInfo.stream}
-                volume={voiceInfo.volume ?? 0.5}
+                volume={isMasterMute ? 0 : (voiceInfo.volume ?? 0.5)}
                 isMicOn={voiceInfo.isMicOn} // 👈 상대방 마이크 상태를 전달!
                 isSpeakerOn={voiceInfo.isSpeakerOn}
               />

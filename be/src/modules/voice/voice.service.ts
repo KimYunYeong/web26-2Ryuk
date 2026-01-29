@@ -46,13 +46,10 @@ const mediaCodecs: RtpCodecCapability[] = [
     parameters: {
       maxaveragebitrate: 48000,
 
-      // 2. 가변 비트레이트 (소리의 복잡도에 따라 효율적으로 전송)
       useinbandfec: 1, // 전방 오류 수정: 패킷 손실 시 음질 깨짐 방지
 
-      // 3. 서버/네트워크 효율화
       usedtx: 1, // 침묵 감지: 말 안 할 때 데이터 전송 중단
 
-      // 4. 기타 품질 옵션
       'sprop-maxcapturerate': 48000,
       'sprop-stereo': 0, // 스테레오 기능 끄기
       minptime: 10, // 지연 시간(Latency) 최적화
