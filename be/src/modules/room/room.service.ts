@@ -30,7 +30,6 @@ import {
   RoomJoinInfoResponseDto,
   GlobalChatRecentMessageDto,
 } from './dto/room-response.dto';
-import { toUuid } from '@src/common/utils/user-id';
 import { Server, Socket } from 'socket.io';
 import { GameService } from '../game/game.service';
 
@@ -123,11 +122,9 @@ export class RoomService implements OnModuleInit {
    * 사용자 방 참여 처리
    */
   async joinRoom(userId: string, roomId: string): Promise<void> {
-    const uuid = toUuid(userId);
-
     // MySQL에서 사용자 정보 조회 (Single Source of Truth)
     const user = await this.userRepository.findOne({
-      where: { id: uuid },
+      where: { id: userId },
       select: ['id', 'nickname', 'profile_image', 'role'],
     });
 
@@ -136,7 +133,7 @@ export class RoomService implements OnModuleInit {
     }
 
     // room:{roomId}:members:{uuid} Hash에 멤버 상세 정보 저장
-    await this.redisClient.hSet(`room:${roomId}:members:${uuid}`, {
+    await this.redisClient.hSet(`room:${roomId}:members:${userId}`, {
       nickname: user.nickname,
       profile_image: user.profile_image ?? '',
       role: user.role ?? 'USER',
@@ -147,10 +144,10 @@ export class RoomService implements OnModuleInit {
     });
 
     // room:{roomId}:members Set에 멤버 ID 추가 (효율적인 멤버 조회를 위해)
-    await this.redisClient.sAdd(`room:${roomId}:members`, uuid);
+    await this.redisClient.sAdd(`room:${roomId}:members`, userId);
 
-    // user:{uuid}:rooms Set에 방 ID 추가
-    await this.redisClient.sAdd(`user:${uuid}:rooms`, roomId);
+    // user:{userId}:rooms Set에 방 ID 추가
+    await this.redisClient.sAdd(`user:${userId}:rooms`, roomId);
 
     // 참여자 수 증가
     await this.updateCurrentParticipants(roomId);
@@ -203,11 +200,10 @@ export class RoomService implements OnModuleInit {
    * 사용자 방 제거 처리
    */
   async leaveRoom(server: Server, userId: string, roomId: string): Promise<void> {
-    const uuid = toUuid(userId);
     // 방 멤버 목록에서 제거 (Hash), 사용자의 참여 방 목록에서 제거 (Set)
-    await this.redisClient.del(`room:${roomId}:members:${uuid}`);
-    await this.redisClient.sRem(`room:${roomId}:members`, uuid);
-    await this.redisClient.sRem(`user:${uuid}:rooms`, roomId);
+    await this.redisClient.del(`room:${roomId}:members:${userId}`);
+    await this.redisClient.sRem(`room:${roomId}:members`, userId);
+    await this.redisClient.sRem(`user:${userId}:rooms`, roomId);
 
     // 게임 참가자 목록에서도 제거 (게임 중일 경우)
     await this.gameService.leaveGame(server, roomId, userId);
@@ -250,8 +246,7 @@ export class RoomService implements OnModuleInit {
    * 사용자 특정 방 참여 여부 확인
    */
   async isUserInRoom(userId: string, roomId: string): Promise<boolean> {
-    const uuid = toUuid(userId);
-    const exists = await this.redisClient.exists(`room:${roomId}:members:${uuid}`);
+    const exists = await this.redisClient.exists(`room:${roomId}:members:${userId}`);
     return Boolean(exists);
   }
 
@@ -259,8 +254,7 @@ export class RoomService implements OnModuleInit {
    * 사용자 참여 중인 모든 방 목록 조회 (글로벌 포함)
    */
   async getUserRooms(userId: string): Promise<string[]> {
-    const uuid = toUuid(userId);
-    const rooms = await this.redisClient.sMembers(`user:${uuid}:rooms`);
+    const rooms = await this.redisClient.sMembers(`user:${userId}:rooms`);
     return rooms;
   }
 
@@ -388,8 +382,7 @@ export class RoomService implements OnModuleInit {
    * 방 특정 멤버 닉네임 조회
    */
   async getRoomMemberNickname(roomId: string, userId: string): Promise<string> {
-    const uuid = toUuid(userId);
-    const nickname = await this.redisClient.hGet(`room:${roomId}:members:${uuid}`, 'nickname');
+    const nickname = await this.redisClient.hGet(`room:${roomId}:members:${userId}`, 'nickname');
     return nickname || '';
   }
 
@@ -397,8 +390,7 @@ export class RoomService implements OnModuleInit {
    * 사용자 연결 해제 시 모든 방에서 제거
    */
   async leaveAllRooms(server: Server, userId: string, client?: Socket): Promise<void> {
-    const uuid = toUuid(userId);
-    const rooms = await this.redisClient.sMembers(`user:${uuid}:rooms`);
+    const rooms = await this.redisClient.sMembers(`user:${userId}:rooms`);
     for (const roomId of rooms) {
       await this.leaveRoomProcess(server, userId, roomId, client);
     }
@@ -408,9 +400,8 @@ export class RoomService implements OnModuleInit {
    * 사용자 방 호스트 여부 확인
    */
   async isHost(userId: string, roomId: string): Promise<boolean> {
-    const uuid = toUuid(userId);
     const host = await this.redisClient.hGet(`room:${roomId}`, 'host_id');
-    return host === uuid;
+    return host === userId;
   }
 
   /**
@@ -424,15 +415,14 @@ export class RoomService implements OnModuleInit {
 
     if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
 
-    const hostUuid = toUuid(hostId);
-    if (await this.getUserLocalRoom(hostUuid)) {
-      logMessage(this.logger, LOG.ROOM.ROOM_CREATE_ALREADY_IN_ROOM(hostUuid, id));
+    if (await this.getUserLocalRoom(hostId)) {
+      logMessage(this.logger, LOG.ROOM.ROOM_CREATE_ALREADY_IN_ROOM(hostId, id));
       throw new ConflictException('이미 참여 중인 방이 있습니다.');
     }
 
     await this.redisClient.hSet(`room:${id}`, {
       title: roomData.title,
-      host_id: hostUuid,
+      host_id: hostId,
       type: ROOM_TYPE.LOCAL,
       max_participants: roomData.max_participants.toString(),
       current_participants: '0',
@@ -471,12 +461,11 @@ export class RoomService implements OnModuleInit {
     const roomKey = `room:${roomId}`;
     const tagKey = `room:${roomId}:tags`;
 
-    const hostUuid = toUuid(hostId);
     const existingHostId = await this.redisClient.hGet(roomKey, 'host_id');
 
     if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
 
-    if (existingHostId !== hostUuid) throw new HttpException('방 수정 권한이 없습니다.', 403);
+    if (existingHostId !== hostId) throw new HttpException('방 수정 권한이 없습니다.', 403);
 
     if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
 
@@ -522,12 +511,11 @@ export class RoomService implements OnModuleInit {
     const roomKey = `room:${roomId}`;
     const tagKey = `room:${roomId}:tags`;
 
-    const hostUuid = toUuid(hostId);
     const existingHostId = await this.redisClient.hGet(roomKey, 'host_id');
 
     if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
 
-    if (existingHostId !== hostUuid) throw new HttpException('방 삭제 권한이 없습니다.', 403);
+    if (existingHostId !== hostId) throw new HttpException('방 삭제 권한이 없습니다.', 403);
 
     // 멤버 ID 목록 가져오기
     const memberIds = await this.getRoomMemberIds(roomId);
@@ -535,7 +523,7 @@ export class RoomService implements OnModuleInit {
     // 방 참가자가 남아있는 경우 삭제된다고 브로드캐스팅 해주기
     if (memberIds.length > 0) {
       // 방장 제외 참가자들에게 알림-> 방장은 이미 나가는 중
-      const otherMemberIds = memberIds.filter((id) => id !== hostUuid);
+      const otherMemberIds = memberIds.filter((id) => id !== hostId);
       if (otherMemberIds.length > 0) {
         server.to(roomId).emit(WS_EVENTS_ROOM.PARTICIPANT_DELETE, {
           room_id: roomId,
@@ -570,7 +558,7 @@ export class RoomService implements OnModuleInit {
       this.gameService.stopRealtimeBroadcast(roomId);
     }
 
-    logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId, hostUuid));
+    logMessage(this.logger, LOG.ROOM.ROOM_DELETED(roomId, hostId));
 
     return { id: roomId };
   }
