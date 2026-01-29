@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, InternalServerErrorException, Logger } f
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
-import { toUuid } from '@src/common/utils/user-id';
 import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-response.dto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -122,12 +121,11 @@ export class AuthService {
 
   /**
    * userId로 사용자 정보 조회
-   * @param userId 원본 ID('J001') 또는 UUID 형식
+   * @param userId UUID 형식
    */
   async getUserById(userId: string): Promise<UserInfoResponseDto> {
-    const uuid = toUuid(userId);
     const user = await this.userRepository.findOne({
-      where: { id: uuid },
+      where: { id: userId },
       select: ['id', 'nickname', 'profile_image'],
     });
 
@@ -143,9 +141,8 @@ export class AuthService {
    * 채팅 등에서 사용자 정보와 role이 모두 필요한 경우 사용
    */
   async getUserWithRole(userId: string): Promise<UserWithRoleResponseDto> {
-    const uuid = toUuid(userId);
     const user = await this.userRepository.findOne({
-      where: { id: uuid },
+      where: { id: userId },
       select: ['id', 'nickname', 'profile_image', 'role'],
     });
 
