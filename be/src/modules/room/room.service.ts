@@ -305,8 +305,7 @@ export class RoomService implements OnModuleInit {
 
     // 4. 결과 매핑
     const members: ParticipantDetailDto[] = results.map((result, index) => {
-      const data = result && Array.isArray(result) ? (result[1] as Record<string, string>) : null;
-
+      const data = result as unknown as Record<string, string>;
       const userId = memberIds[index];
 
       return {
