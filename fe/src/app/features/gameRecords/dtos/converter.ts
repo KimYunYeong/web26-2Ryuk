@@ -1,14 +1,16 @@
 'use client';
 
-import { GameRecordItemDto, GameRecordListDto } from './dto';
-import { GameRecordItemData, GameRecordListData } from './data';
+import { GameRecordListDto } from './dto';
+import { GameRecordListData } from './data';
+import { GamePlayerResultItemDto } from '@/app/features/game/dtos/dto';
+import { GamePlayerResultItemData } from '@/app/features/game/dtos/data';
 
-const toGameRecordItemData = (dto: GameRecordItemDto): GameRecordItemData => ({
+const toGameRecordItemData = (dto: GamePlayerResultItemDto): GamePlayerResultItemData => ({
   playerId: dto.player_id,
-  rank: dto.rank,
+  rank: Number(dto.rank),
   nickname: dto.nickname,
   profileImage: dto.profile_image,
-  score: dto.score,
+  score: Number(dto.score),
   achieveDate: new Date(dto.achieve_date),
 });
 
