@@ -262,7 +262,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!globalRoomId) return;
 
       // 참여한 모든 방에서 제거 (참여자 수 감소)
-      await this.roomService.leaveAllRooms(this.server, userId);
+      await this.roomService.leaveAllRooms(this.server, userId, client);
 
       // disconnect 타이머 취소 (로그아웃 시 세션 복구 불필요)
       const existingTimer = this.disconnectTimers.get(userId);

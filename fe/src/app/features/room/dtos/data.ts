@@ -91,8 +91,16 @@ export type RoomLeaveAckData = {
   roomId: string;
 };
 
+export type RoomBanData = {
+  roomId: string;
+};
+
 export type RoomParticipantLeaveData = {
   roomId: string;
+  host: {
+    id: string;
+    nickname: string;
+  };
   user: {
     id: string;
     nickname: string;
