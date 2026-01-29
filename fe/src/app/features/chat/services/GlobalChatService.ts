@@ -35,7 +35,6 @@ export class GlobalChatService implements ChatChannel {
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private connectPromise?: Promise<void>;
   private currentParticipants = 0;
-  private boundToken?: string;
 
   async connect(): Promise<void> {
     if (WebSocketService.isConnected()) {
@@ -155,7 +154,6 @@ export class GlobalChatService implements ChatChannel {
     WebSocketService.disconnect();
     this.connectPromise = undefined;
     this.isSubscribed = false;
-    this.boundToken = undefined;
   }
 
   async sendMessage(message: string): Promise<void> {
