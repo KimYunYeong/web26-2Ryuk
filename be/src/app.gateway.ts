@@ -153,6 +153,16 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       } else {
         // 비인증 사용자 최종 연결 상태 로그
         logMessage(this.logger, LOG.WS.UNAUTH_CONNECT(client.id));
+
+        // JWT 만료 등으로 인증 실패했으나 Redis에 유령 세션 정보가 남아있는 경우 정리
+        if (userId) {
+          const userRooms = await this.roomService.getUserRooms(userId);
+          if (userRooms && userRooms.length > 0) {
+            logMessage(this.logger, LOG.WS.CLEANUP_STALE_SESSION(userId));
+            await this.roomService.leaveAllRooms(this.server, userId);
+            await this.roomService.clearUserSession(userId); // 혹시 모를 세션 정보 정리
+          }
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -252,7 +262,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!globalRoomId) return;
 
       // 참여한 모든 방에서 제거 (참여자 수 감소)
-      await this.roomService.leaveAllRooms(this.server, userId);
+      await this.roomService.leaveAllRooms(this.server, userId, client);
 
       // disconnect 타이머 취소 (로그아웃 시 세션 복구 불필요)
       const existingTimer = this.disconnectTimers.get(userId);

@@ -58,7 +58,7 @@ export default function GameListPage() {
     <div className="content">
       <div className={styles.content}>
         <div className={styles.backButton}>
-          <GoBackButton onClick={roomId && (() => gotoRoomReplace(roomId))} />
+          <GoBackButton onClick={() => gotoRoomReplace(roomId)} />
         </div>
         <GameListPageTitleSection onSearch={handleSearch} />
         <div className={styles.gridWrapper}>

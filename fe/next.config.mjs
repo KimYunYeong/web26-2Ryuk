@@ -2,11 +2,17 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
+      { // GitHub User Content 이미지 추가
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
         port: '',
         pathname: '/u/**',
+      },
+      { // Google User Content 이미지 추가
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/a/**',
       },
     ],
   },

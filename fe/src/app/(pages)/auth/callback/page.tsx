@@ -24,8 +24,7 @@ export default function AuthCallbackPage() {
 
         // 3. 홈으로 리디렉션
         router.replace(ROUTES.HOME);
-      } catch (error) {
-        console.error('GitHub 로그인 처리 중 오류 발생:', error);
+      } catch {
         // 오류가 발생하면 기존 상태를 초기화하고 홈으로 이동
         authStore.getState().logout();
         router.replace(ROUTES.HOME);
