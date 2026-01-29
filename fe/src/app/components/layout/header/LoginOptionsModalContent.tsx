@@ -16,6 +16,7 @@ export default function LoginOptionsModalContent() {
     closeModal('login-options');
   };
 
+  // GitHub OAuth 로그인
   const handleGitHubLogin = () => {
     // GitHub OAuth 시작 엔드포인트로 리다이렉션
     // Next.js rewrites 설정을 통해 /api/auth/github는 백엔드 서버로 프록시 됨
@@ -23,10 +24,17 @@ export default function LoginOptionsModalContent() {
     closeModal('login-options'); // 리다이렉트 전 close
   };
 
+  // Google OAuth 로그인
+  const handleGoogleLogin = () => {
+    window.location.href = '/api/auth/google';
+    closeModal('login-options');
+  };
+
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>로그인</h2>
-      <PrimaryTextButton text="GitHub으로 로그인" size="medium" onClick={handleGitHubLogin} />
+      <PrimaryTextButton text="GitHub로 로그인" size="medium" onClick={handleGitHubLogin} />
+      <PrimaryTextButton text="Google로 로그인" size="medium" onClick={handleGoogleLogin} />
       <PrimaryTextButton text="Mock 로그인" size="medium" onClick={handleMockLogin} />
     </div>
   );

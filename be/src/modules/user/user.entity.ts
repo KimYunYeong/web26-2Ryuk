@@ -13,6 +13,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   github_id: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+  google_id: string;
+
   @Column({ type: 'varchar', length: 50, unique: true })
   nickname: string;
 

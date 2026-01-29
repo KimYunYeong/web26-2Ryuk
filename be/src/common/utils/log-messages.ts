@@ -99,6 +99,22 @@ export const LOG = {
       message: `Voice Gateway 처리 중 에러 발생: ${error}${stack ? `\n${stack}` : ''}`,
       level: 'error',
     }),
+    CLEANUP_STALE_SESSION: (userId: string): LogMessage => ({
+      message: `만료된 JWT로 인한 유령 세션 정리: userId=${userId}`,
+      level: 'warn',
+    }),
+  },
+
+  // AUTH 관련
+  AUTH: {
+    GITHUB_EMAIL_FETCH_FAILED: (userId: string, error: string): LogMessage => ({
+      message: `GitHub 이메일 가져오기 실패: userId=${userId}, error=${error}`,
+      level: 'error',
+    }),
+    TEMP_EMAIL_GENERATED: (userId: string, tempEmail: string): LogMessage => ({
+      message: `GitHub 이메일 부재로 임시 이메일 생성: userId=${userId}, tempEmail=${tempEmail}`,
+      level: 'warn',
+    }),
   },
 
   // 채팅 관련
@@ -285,6 +301,10 @@ export const LOG = {
     }),
     ROOM_CREATE_ALREADY_IN_ROOM: (userId: string, roomId: string): LogMessage => ({
       message: `방 생성 실패 - 이미 참여 중인 방이 있음: userId=${userId}, roomId=${roomId}`,
+      level: 'warn',
+    }),
+    CLEANUP_STALE_GLOBAL_MEMBERS: (roomId: string, count: number): LogMessage => ({
+      message: `글로벌 방(${roomId}) 초기화 중 유령 멤버 데이터 ${count}개 정리.`,
       level: 'warn',
     }),
   },
