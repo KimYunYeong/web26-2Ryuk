@@ -136,3 +136,9 @@
   <img src="https://img.shields.io/badge/GitHub%20Projects-181717?style=for-the-badge&logo=github&logoColor=white">
   <img src="https://img.shields.io/badge/GitHub%20Wiki-181717?style=for-the-badge&logo=github&logoColor=white">
 </span>
+
+#### 🗺️ Architecture
+
+<span>
+  <img width="1069" height="547" alt="image" src="https://github.com/user-attachments/assets/9b6abaed-30b2-4dc1-bc41-1bdb76cb6a10" />
+</span>
