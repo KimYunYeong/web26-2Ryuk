@@ -6,6 +6,7 @@ import {
   RoomJoinInfoDto,
   RoomLeaveAckDto,
   RoomLeaveDto,
+  RoomBanDto,
   RoomListDto,
   RoomParticipantJoinDto,
   RoomParticipantLeaveDto,
@@ -24,6 +25,7 @@ import {
   RoomJoinInfoData,
   RoomLeaveAckData,
   RoomLeaveData,
+  RoomBanData,
   RoomParticipantJoinData,
   RoomParticipantLeaveData,
   RoomParticipantDeleteData,
@@ -179,10 +181,22 @@ export const toRoomLeaveData = (dto: RoomLeaveAckDto): RoomLeaveAckData => ({
   roomId: dto.room_id,
 });
 
+export const toRoomBanDto = (dto: RoomBanData): RoomBanDto => ({
+  room_id: dto.roomId,
+});
+
+export const toRoomBanData = (dto: RoomBanDto): RoomBanData => ({
+  roomId: dto.room_id,
+});
+
 export const toRoomParticipantLeaveData = (
   dto: RoomParticipantLeaveDto,
 ): RoomParticipantLeaveData => ({
   roomId: dto.room_id,
+  host: {
+    id: dto.host.id,
+    nickname: dto.host.nickname,
+  },
   user: {
     id: dto.user.id,
     nickname: dto.user.nickname,
@@ -214,6 +228,8 @@ export const RoomConverter = {
   toRoomParticipantJoinData,
   toRoomLeaveDto,
   toRoomLeaveData,
+  toRoomBanDto,
+  toRoomBanData,
   toRoomParticipantLeaveData,
   toRoomParticipantDeleteData,
 };

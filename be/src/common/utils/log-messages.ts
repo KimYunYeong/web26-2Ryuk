@@ -135,6 +135,10 @@ export const LOG = {
       message: `글로벌 채팅 참여자 수 업데이트: roomId=${roomId}, 참여자 수: ${currentParticipants}`,
       level: 'log',
     }),
+    USER_BAN: (roomId: string, userId: string, targetNickname: string): LogMessage => ({
+      message: `사용자 강제 퇴장: roomId=${roomId}, userId=${userId}, targetNickname=${targetNickname}`,
+      level: 'log',
+    }),
     BROADCAST_CLIENTS_COUNT: (roomId: string, eventType: string, clientsCount: number): LogMessage => ({
       message: `[${eventType}] roomId=${roomId}에 참여한 클라이언트 수: ${clientsCount}`,
       level: 'debug',
@@ -185,6 +189,10 @@ export const LOG = {
     }),
     USER_LEFT: (userId: string, roomId: string): LogMessage => ({
       message: `사용자 ${userId}가 방 ${roomId}에서 퇴장했습니다.`,
+      level: 'log',
+    }),
+    USER_KICKED: (userId: string, roomId: string): LogMessage => ({
+      message: `사용자 ${userId}가 방 ${roomId}에서 강제 퇴장당했습니다.`,
       level: 'log',
     }),
     HOST_CHANGED: (roomId: string, newHostId: string): LogMessage => ({
