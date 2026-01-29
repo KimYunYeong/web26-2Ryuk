@@ -6,7 +6,15 @@ import { useEffect } from 'react';
 
 export function useVoiceChat(roomId: string, isJoined: boolean) {
   const isMicAvailable = roomStore((state) => state.roomData?.isMicAvailable ?? false);
-  const { voiceUsers, isMyMicOn, setVoiceUser, removeVoiceUser, setMyMic } = useVoiceStore();
+  const {
+    voiceUsers,
+    isMyMicOn,
+    setVoiceUser,
+    removeVoiceUser,
+    setMyMic,
+    isMasterMute,
+    toggleMasterMute,
+  } = useVoiceStore();
 
   useEffect(() => {
     // 룸 ID가 없거나 입장이 완료되지 않았다면 실행하지 않음
@@ -113,5 +121,13 @@ export function useVoiceChat(roomId: string, isJoined: boolean) {
     setVoiceUser(userId, { volume: volume });
   };
 
-  return { voiceUsers, isMyMicOn, toggleMic, toggleUserAudio, changeUserVolume };
+  return {
+    voiceUsers,
+    isMyMicOn,
+    isMasterMute,
+    toggleMic,
+    toggleUserAudio,
+    changeUserVolume,
+    toggleMasterMute,
+  };
 }
