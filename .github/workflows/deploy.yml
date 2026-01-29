@@ -75,7 +75,14 @@ jobs:
             MEDIASOUP_ANNOUNCED_IP,
             MEDIASOUP_RTC_MIN_PORT,
             MEDIASOUP_RTC_MAX_PORT,
-            MEDIASOUP_LISTEN_IP
+            MEDIASOUP_LISTEN_IP,
+            GITHUB_CLIENT_ID,
+            GITHUB_CLIENT_SECRET,
+            JWT_SECRET,
+            JWT_EXPIRATION_TIME,
+            BACKEND_BASE_URL,
+            GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET
 
           script: |
             set -e
@@ -103,6 +110,14 @@ jobs:
           MEDIASOUP_RTC_MIN_PORT: ${{ secrets.MEDIASOUP_RTC_MIN_PORT }}
           MEDIASOUP_RTC_MAX_PORT: ${{ secrets.MEDIASOUP_RTC_MAX_PORT }}
           MEDIASOUP_LISTEN_IP: '0.0.0.0'
+          GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID}}
+          GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION_TIME: ${{ secrets.JWT_EXPIRATION_TIME }}
+          BACKEND_BASE_URL: ${{ secrets.BACKEND_BASE_URL}}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
 
       # 5️⃣ 성공 로그
       - name: Notify Success
