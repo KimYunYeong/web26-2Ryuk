@@ -49,6 +49,7 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'
+      MEDIASOUP_WORKER_NUM: "auto"
     command: pnpm dev
     volumes:
       - ./be:/app/be:cached # 소스만 부분 바인드
