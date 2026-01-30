@@ -23,8 +23,6 @@ services:
     depends_on:
       redis:
         condition: service_started
-    networks:
-      - eryuk_net
     restart: unless-stopped
 
   redis:
