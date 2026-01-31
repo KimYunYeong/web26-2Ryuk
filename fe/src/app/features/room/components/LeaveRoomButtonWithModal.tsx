@@ -10,8 +10,8 @@ import { roomStore, RoomStore } from '@/app/features/room/stores/room';
 export default function LeaveRoomButtonWithModal() {
   const roomId = roomStore((state: RoomStore) => state.roomId);
 
-  const { leaveModalId, openLeaveModal, handleLeaveModalCancel, handleLeaveModalConfirm } =
-    useRoom(roomId);
+  const { exit } = useRoom(roomId);
+  const { leaveModalId, openLeaveModal, handleLeaveModalCancel, handleLeaveModalConfirm } = exit;
 
   return (
     <>

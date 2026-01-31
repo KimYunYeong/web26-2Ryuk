@@ -24,14 +24,7 @@ export default function RoomPage() {
   const userId = authStore((s) => s.userId);
   const { status } = useResponsive();
 
-  const {
-    roomData,
-    roomJoinInfoData,
-    showPasswordAuth,
-    handlePasswordConfirm,
-    handlePasswordCancel,
-    game,
-  } = useRoom(roomId);
+  const { roomData, entry, game } = useRoom(roomId);
 
   const {
     isGameRecruiting,
@@ -61,11 +54,11 @@ export default function RoomPage() {
             <div className={styles.left}>
               <RoomInfoWithModal
                 roomId={roomId}
-                title={roomData?.title ?? roomJoinInfoData?.title}
-                tags={roomData?.tags ?? roomJoinInfoData?.tags}
+                title={roomData?.title ?? entry.joinInfo?.title}
+                tags={roomData?.tags ?? entry.joinInfo?.tags}
                 isHost={isHost}
-                isMicAvailable={roomData?.isMicAvailable ?? roomJoinInfoData?.isMicAvailable}
-                isPrivate={roomData?.isPrivate ?? roomJoinInfoData?.isPrivate}
+                isMicAvailable={roomData?.isMicAvailable ?? entry.joinInfo?.isMicAvailable}
+                isPrivate={roomData?.isPrivate ?? entry.joinInfo?.isPrivate}
                 maxParticipants={roomData?.maxParticipants}
               />
               <RoomTextChat />
@@ -83,9 +76,9 @@ export default function RoomPage() {
       </div>
 
       <PasswordAuthDialog
-        isOpen={showPasswordAuth}
-        onConfirm={handlePasswordConfirm}
-        onCancel={handlePasswordCancel}
+        isOpen={entry.isPasswordModalOpen}
+        onConfirm={entry.confirmEntryWithPassword}
+        onCancel={entry.cancelPasswordEntry}
       />
 
       <Modal

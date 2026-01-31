@@ -10,8 +10,9 @@ import { roomStore, RoomStore } from '@/app/features/room/stores/room';
 export default function DeleteRoomButtonWithModal() {
   const roomId = roomStore((state: RoomStore) => state.roomId);
 
+  const { exit } = useRoom(roomId);
   const { deleteModalId, openDeleteModal, handleDeleteModalCancel, handleDeleteModalConfirm } =
-    useRoom(roomId);
+    exit;
 
   return (
     <>
