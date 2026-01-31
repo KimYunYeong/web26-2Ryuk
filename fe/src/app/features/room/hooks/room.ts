@@ -70,7 +70,12 @@ export function useRoom(roomId?: string): UseRoomResult {
   }, [entry.status, entry.joinInfo, roomId, currentRoomId]);
 
   useEffect(() => {
-    return roomChatService.onRoomInvalidated(goHome);
+    const unsubDelete = roomChatService.onDelete(goHome);
+    const unsubBan = roomChatService.onBan(goHome);
+    return () => {
+      unsubDelete();
+      unsubBan();
+    };
   }, [goHome]);
 
   const exit = useRoomExit(roomId, {
