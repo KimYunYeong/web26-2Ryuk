@@ -1,44 +1,41 @@
 'use client';
 
-import { ChatConverter } from '@/app/features/chat/dtos/converter';
-import { ChatGlobalSendData, ChatReceiveData } from '@/app/features/chat/dtos/data';
-import {
-  ChatGlobalJoinAckDto,
-  ChatGlobalNewMessageDto,
-  ChatGlobalParticipantsUpdatedDto,
-  ChatGlobalSendAckDto,
-  GlobalChatRecentsDto,
-} from '@/app/features/chat/dtos/dto';
-import { WS_EVENTS } from '@/app/services/events';
+import * as chatConverter from '@/app/features/chat/dtos/converter';
+import * as chatData from '@/app/features/chat/dtos/data';
+import * as chatDto from '@/app/features/chat/dtos/dto';
+import * as wsEvents from '@/app/services/events';
 import { WebSocketService } from '@/app/services/websocket.service';
 import { authStore } from '@/app/features/user/stores/auth';
+import * as callback from './type';
 
-import {
-  ChatChannel,
-  ConnectionCallback,
-  MessageCallback,
-  ParticipantsCallback,
-  RecentsCallback,
-  WebSocketErrorDto,
-} from './type';
+export class GlobalChatService implements callback.ChatChannel {
+  private readonly GLOBAL_ROOM_ID = 'global-room-001';
 
-/**
- * GlobalChat 클라이언트 서비스
- */
-export class GlobalChatService implements ChatChannel {
-  private messageCallbacks: Set<MessageCallback> = new Set();
-  private connectionCallbacks: Set<ConnectionCallback> = new Set();
-  private participantsCallbacks: Set<ParticipantsCallback> = new Set();
-  private recentsCallbacks: Set<RecentsCallback> = new Set();
+  private messageCallbacks: Set<callback.MessageCallback> = new Set();
+  private connectionCallbacks: Set<callback.ConnectionCallback> = new Set();
+  private participantsCallbacks: Set<callback.ParticipantsCallback> = new Set();
+  private recentsCallbacks: Set<callback.RecentsCallback> = new Set();
+
   private isSubscribed = false;
-  private messages: ChatReceiveData[] = [];
-  private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
-  private connectPromise?: Promise<void>;
+  private messages: chatData.ChatReceiveData[] = [];
   private currentParticipants = 0;
+
+  private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
+  private handlersRegistered = false;
+  private boundSocket?: unknown;
+  private connectPromise?: Promise<void>;
+
+  constructor() {
+    WebSocketService.onReconnect(() => {
+      if (!this.isSubscribed) return;
+      this.removeEventHandlers();
+      this.registerEventHandlers();
+    });
+  }
 
   async connect(): Promise<void> {
     if (WebSocketService.isConnected()) {
-      if (this.eventHandlers.size === 0) this.registerEventHandlers();
+      this.ensureHandlersRegistered();
       this.notifyConnection(true);
       return;
     }
@@ -46,14 +43,16 @@ export class GlobalChatService implements ChatChannel {
     if (this.connectPromise) return this.connectPromise;
 
     const wsUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!wsUrl) throw Error(`환경변수가 없습니다: NEXT_PUBLIC_API_URL`);
+    if (!wsUrl) throw Error('환경변수가 없습니다: NEXT_PUBLIC_API_URL');
 
-    this.registerEventHandlers();
+    this.ensureHandlersRegistered();
     WebSocketService.connect(wsUrl);
 
     this.connectPromise = WebSocketService.ensureConnected();
     await this.connectPromise;
     this.connectPromise = undefined;
+
+    this.ensureHandlersRegistered();
   }
 
   async ensureConnected(): Promise<void> {
@@ -62,23 +61,22 @@ export class GlobalChatService implements ChatChannel {
   }
 
   async subscribe(): Promise<void> {
-    // 이미 구독 중이면 중복 구독 방지
-    if (this.isSubscribed) {
-      return;
-    }
+    if (this.isSubscribed) return;
 
     await this.connect();
-    if (WebSocketService.isConnected()) this.notifyConnection(true);
+    if (!WebSocketService.isConnected()) return;
 
-    // chat:global:join ACK 기반 초기 상태 세팅
-    const joinDataPayload = { roomId: 'global-room-001' };
-    const joinDto = ChatConverter.toGlobalJoinDto(joinDataPayload);
+    const joinDto = chatConverter.toGlobalJoinDto({
+      roomId: this.GLOBAL_ROOM_ID,
+    });
+
     const joinAckDto = (await WebSocketService.request(
-      WS_EVENTS.CHAT_GLOBAL_JOIN,
+      wsEvents.WS_EVENTS.CHAT_GLOBAL_JOIN,
       joinDto,
-    )) as ChatGlobalJoinAckDto;
+    )) as chatDto.ChatGlobalJoinAckDto;
 
-    const joinData = ChatConverter.toGlobalJoinAckData(joinAckDto);
+    const joinData = chatConverter.toGlobalJoinAckData(joinAckDto);
+
     this.messages = joinData.messages;
     this.currentParticipants = joinData.currentParticipants ?? 0;
 
@@ -88,71 +86,15 @@ export class GlobalChatService implements ChatChannel {
     this.isSubscribed = true;
   }
 
-  private registerEventHandlers(): void {
-    this.removeEventHandlers();
-
-    const connectHandler = () => this.notifyConnection(true);
-    this.eventHandlers.set(WS_EVENTS.CONNECT, connectHandler);
-    WebSocketService.on(WS_EVENTS.CONNECT, connectHandler);
-
-    const disconnectHandler = () => this.notifyConnection(false);
-    this.eventHandlers.set(WS_EVENTS.DISCONNECT, disconnectHandler);
-    WebSocketService.on(WS_EVENTS.DISCONNECT, disconnectHandler);
-
-    const messageHandler = (dto: ChatGlobalNewMessageDto) => this.handleGlobalMessage(dto);
-    this.eventHandlers.set(WS_EVENTS.CHAT_GLOBAL_NEW_MESSAGE, messageHandler);
-    WebSocketService.on(WS_EVENTS.CHAT_GLOBAL_NEW_MESSAGE, messageHandler);
-
-    const participantsHandler = (dto: ChatGlobalParticipantsUpdatedDto) => {
-      const data = ChatConverter.toGlobalParticipantsUpdatedData(dto);
-      this.currentParticipants = data.currentParticipants;
-      this.notifyParticipants(this.currentParticipants);
-    };
-    this.eventHandlers.set(WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, participantsHandler);
-    WebSocketService.on(WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, participantsHandler);
-
-    const recentsHandler = (dto: GlobalChatRecentsDto) => this.handleGlobalChatRecents(dto);
-    this.eventHandlers.set(WS_EVENTS.CHAT_GLOBAL_RECENTS, recentsHandler);
-    WebSocketService.on(WS_EVENTS.CHAT_GLOBAL_RECENTS, recentsHandler);
-
-    const errorHandler = (error: WebSocketErrorDto) =>
-      console.error('[GlobalChatService] WebSocket error:', error);
-    this.eventHandlers.set(WS_EVENTS.ERROR, errorHandler);
-    WebSocketService.on(WS_EVENTS.ERROR, errorHandler);
-  }
-
-  private removeEventHandlers(): void {
-    // 이벤트 이름만으로 모든 리스너 제거 (핸들러 참조 문제 방지)
-    this.eventHandlers.forEach((_, event) => WebSocketService.off(event));
-    this.eventHandlers.clear();
-  }
-
-  private handleGlobalMessage(dto: ChatGlobalNewMessageDto): void {
-    const chatData = ChatConverter.toGlobalNewMessageData(dto);
-    this.messages = [...this.messages, chatData];
-    this.notifyMessage(chatData);
-  }
-
-  private handleGlobalChatRecents(dto: GlobalChatRecentsDto): void {
-    this.messages = [];
-
-    const chatMessages = dto.messages.map(ChatConverter.toReceiveData);
-    this.messages = chatMessages;
-
-    this.notifyRecents(chatMessages);
-    if (dto.current_participants != null) {
-      this.currentParticipants = dto.current_participants;
-      this.notifyParticipants(this.currentParticipants);
-    }
-  }
-
   async unsubscribe(): Promise<void> {
     if (!this.isSubscribed) return;
 
     this.notifyConnection(false);
     this.removeEventHandlers();
     WebSocketService.disconnect();
+
     this.connectPromise = undefined;
+    this.boundSocket = undefined;
     this.isSubscribed = false;
   }
 
@@ -161,29 +103,22 @@ export class GlobalChatService implements ChatChannel {
       throw new Error('메시지를 보내려면 로그인이 필요합니다.');
     if (!WebSocketService.isConnected()) throw new Error('WebSocket이 연결되지 않았습니다.');
 
-    // Data → DTO 변환
-    const sendData: ChatGlobalSendData = {
-      message,
-    };
-    const dto = ChatConverter.toGlobalSendDto(sendData);
+    const sendDto = chatConverter.toGlobalSendDto({ message } as chatData.ChatGlobalSendData);
 
-    // ACK 응답 받기 (DTO 형태)
     const ackDto = (await WebSocketService.request(
-      WS_EVENTS.CHAT_GLOBAL_SEND,
-      dto,
-    )) as ChatGlobalSendAckDto;
+      wsEvents.WS_EVENTS.CHAT_GLOBAL_SEND,
+      sendDto,
+    )) as chatDto.ChatGlobalSendAckDto;
 
-    // DTO → Data 변환
-    const ackData = ChatConverter.toGlobalSendAckData(ackDto);
+    const ackData = chatConverter.toGlobalSendAckData(ackDto);
 
-    // 변환된 Data를 로직에서 사용
     this.messages = [...this.messages, ackData];
     this.notifyMessage(ackData);
   }
 
   notifyLogout(): void {
     if (!WebSocketService.isConnected()) return;
-    WebSocketService.send(WS_EVENTS.AUTH_LOGOUT, {});
+    WebSocketService.send(wsEvents.WS_EVENTS.AUTH_LOGOUT, {});
   }
 
   incrementParticipantsOptimistic(): void {
@@ -197,49 +132,129 @@ export class GlobalChatService implements ChatChannel {
     this.notifyParticipants(this.currentParticipants);
   }
 
-  onMessage(callback: MessageCallback): () => void {
-    this.messageCallbacks.add(callback);
-    return () => this.messageCallbacks.delete(callback);
+  onMessage(cb: callback.MessageCallback): () => void {
+    this.messageCallbacks.add(cb);
+    return () => this.messageCallbacks.delete(cb);
   }
 
-  onConnectionChange(callback: ConnectionCallback): () => void {
-    this.connectionCallbacks.add(callback);
-    return () => this.connectionCallbacks.delete(callback);
+  onConnectionChange(cb: callback.ConnectionCallback): () => void {
+    this.connectionCallbacks.add(cb);
+    return () => this.connectionCallbacks.delete(cb);
   }
 
-  onParticipantsChange(callback: ParticipantsCallback): () => void {
-    this.participantsCallbacks.add(callback);
-    callback(this.currentParticipants);
-    return () => this.participantsCallbacks.delete(callback);
+  onParticipantsChange(cb: callback.ParticipantsCallback): () => void {
+    this.participantsCallbacks.add(cb);
+    cb(this.currentParticipants);
+    return () => this.participantsCallbacks.delete(cb);
   }
 
-  onRecents(callback: RecentsCallback): () => void {
-    this.recentsCallbacks.add(callback);
-    return () => this.recentsCallbacks.delete(callback);
+  onRecents(cb: callback.RecentsCallback): () => void {
+    this.recentsCallbacks.add(cb);
+    return () => this.recentsCallbacks.delete(cb);
   }
 
   isConnected(): boolean {
     return WebSocketService.isConnected();
   }
 
-  getMessages(): ChatReceiveData[] {
+  getMessages(): chatData.ChatReceiveData[] {
     return [...this.messages];
   }
 
-  private notifyMessage(message: ChatReceiveData): void {
-    this.messageCallbacks.forEach((callback) => callback(message));
+  private ensureHandlersRegistered(): void {
+    const socket = WebSocketService.getSocket();
+    if (!socket) return;
+
+    if (this.boundSocket !== socket) {
+      this.removeEventHandlers();
+      this.boundSocket = socket;
+    }
+
+    this.registerEventHandlers();
+  }
+
+  private registerEventHandlers(): void {
+    if (this.handlersRegistered) return;
+    this.handlersRegistered = true;
+
+    // connect
+    const onConnect = () => this.notifyConnection(true);
+    this.eventHandlers.set(wsEvents.WS_EVENTS.CONNECT, onConnect);
+    WebSocketService.on(wsEvents.WS_EVENTS.CONNECT, onConnect);
+
+    // disconnect
+    const onDisconnect = () => this.notifyConnection(false);
+    this.eventHandlers.set(wsEvents.WS_EVENTS.DISCONNECT, onDisconnect);
+    WebSocketService.on(wsEvents.WS_EVENTS.DISCONNECT, onDisconnect);
+
+    // chat:global:new-message
+    const onMessage = (dto: chatDto.ChatGlobalNewMessageDto) => this.handleGlobalMessage(dto);
+    this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_NEW_MESSAGE, onMessage);
+    WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_NEW_MESSAGE, onMessage);
+
+    // chat:global:participants-updated
+    const onParticipants = (dto: chatDto.ChatGlobalParticipantsUpdatedDto) => {
+      const data = chatConverter.toGlobalParticipantsUpdatedData(dto);
+      this.currentParticipants = data.currentParticipants;
+      this.notifyParticipants(this.currentParticipants);
+    };
+    this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, onParticipants);
+    WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, onParticipants);
+
+    // chat:global:recents
+    const onRecents = (dto: chatDto.GlobalChatRecentsDto) => this.handleGlobalChatRecents(dto);
+    this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_RECENTS, onRecents);
+    WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_RECENTS, onRecents);
+
+    // error
+    const onError = (error: any) => this.handleError(error);
+    this.eventHandlers.set(wsEvents.WS_EVENTS.ERROR, onError);
+    WebSocketService.on(wsEvents.WS_EVENTS.ERROR, onError);
+  }
+
+  private removeEventHandlers(): void {
+    this.eventHandlers.forEach((handler, event) => {
+      WebSocketService.off(event, handler);
+    });
+    this.eventHandlers.clear();
+    this.handlersRegistered = false;
+  }
+
+  private handleGlobalMessage(dto: chatDto.ChatGlobalNewMessageDto): void {
+    const chatData = chatConverter.toGlobalNewMessageData(dto);
+    this.messages = [...this.messages, chatData];
+    this.notifyMessage(chatData);
+  }
+
+  private handleGlobalChatRecents(dto: chatDto.GlobalChatRecentsDto): void {
+    const chatMessages = dto.messages.map(chatConverter.toReceiveData);
+    this.messages = [...chatMessages];
+
+    this.notifyRecents(chatMessages);
+    if (dto.current_participants != null) {
+      this.currentParticipants = dto.current_participants;
+      this.notifyParticipants(this.currentParticipants);
+    }
+  }
+
+  private handleError(error: any): void {
+    console.error('[GlobalChatService] WebSocket error:', error);
+  }
+
+  private notifyMessage(message: chatData.ChatReceiveData): void {
+    this.messageCallbacks.forEach((cb) => cb(message));
   }
 
   private notifyConnection(isConnected: boolean): void {
-    this.connectionCallbacks.forEach((callback) => callback(isConnected));
+    this.connectionCallbacks.forEach((cb) => cb(isConnected));
   }
 
   private notifyParticipants(count: number): void {
-    this.participantsCallbacks.forEach((callback) => callback(count));
+    this.participantsCallbacks.forEach((cb) => cb(count));
   }
 
-  private notifyRecents(messages: ChatReceiveData[]): void {
-    this.recentsCallbacks.forEach((callback) => callback(messages));
+  private notifyRecents(messages: chatData.ChatReceiveData[]): void {
+    this.recentsCallbacks.forEach((cb) => cb(messages));
   }
 }
 
