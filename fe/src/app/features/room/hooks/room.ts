@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { roomStore } from '@/app/features/room/stores/room';
 import { useRoomEntry } from '@/app/features/room/hooks/roomEntry';
 import { useRoomExit } from '@/app/features/room/hooks/roomExit';
@@ -20,48 +20,6 @@ export function useRoom(roomId?: string): UseRoomResult {
   const prevRoomIdForToastRef = useRef<string>();
 
   const currentRoomId = roomStore((s) => s.id);
-  const title = roomStore((s) => s.title);
-  const tags = roomStore((s) => s.tags);
-  const hostId = roomStore((s) => s.hostId);
-  const currentParticipants = roomStore((s) => s.currentParticipants);
-  const maxParticipants = roomStore((s) => s.maxParticipants);
-  const isMicAvailable = roomStore((s) => s.isMicAvailable);
-  const isPrivate = roomStore((s) => s.isPrivate);
-  const isGameRecruiting = roomStore((s) => s.isGameRecruiting);
-  const participants = roomStore((s) => s.participants);
-  const players = roomStore((s) => s.players);
-  const createDate = roomStore((s) => s.createDate);
-
-  const roomData = useMemo(
-    () => ({
-      id: currentRoomId,
-      title,
-      tags,
-      hostId,
-      currentParticipants,
-      maxParticipants,
-      isMicAvailable,
-      isPrivate,
-      isGameRecruiting,
-      participants,
-      players,
-      createDate,
-    }),
-    [
-      currentRoomId,
-      title,
-      tags,
-      hostId,
-      currentParticipants,
-      maxParticipants,
-      isMicAvailable,
-      isPrivate,
-      isGameRecruiting,
-      participants,
-      players,
-      createDate,
-    ],
-  );
 
   const entry = useRoomEntry(roomId, {
     onAlreadyInOtherRoom: () => {
@@ -126,10 +84,5 @@ export function useRoom(roomId?: string): UseRoomResult {
     },
   });
 
-  return {
-    roomData,
-    entry,
-    exit,
-    game,
-  };
+  return { entry, exit, game };
 }

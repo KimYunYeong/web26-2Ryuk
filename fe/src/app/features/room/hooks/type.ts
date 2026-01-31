@@ -1,8 +1,7 @@
 import { RoomJoinInfoData } from '@/app/features/room/dtos/data';
-import { RoomData } from '@/app/features/room/dtos/data';
 import { UseGameResult } from '@/app/features/game/hooks/type';
 
-/** useRoomEntry 입장 상태 */
+// useRoomEntry 입장 상태
 export type RoomEntryStatus =
   | 'idle'
   | 'checking'
@@ -11,7 +10,7 @@ export type RoomEntryStatus =
   | 'failed'
   | 'redirecting';
 
-/** useRoomEntry 콜백 (라우팅 및 토스트는 호출부에서 처리 강제) */
+// useRoomEntry 콜백
 export interface UseRoomEntryCallbacks {
   // 이미 다른 방 소속 시: 토스트 "이미 소속 중인 방이 있습니다" 후 홈 이동
   onAlreadyInOtherRoom: () => void;
@@ -48,7 +47,6 @@ export interface UseRoomExitCallbacks {
 }
 
 export interface UseRoomResult {
-  roomData?: Partial<RoomData>;
   entry: UseRoomEntryResult;
   exit: UseRoomExitResult;
   game: UseGameResult;
