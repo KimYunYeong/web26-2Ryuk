@@ -19,7 +19,7 @@ import { WS_EVENTS } from '@/app/services/events';
 import { toastStore } from '@/app/components/shared/toast/toast.store';
 import { authStore } from '@/app/features/user/stores/auth';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
-import { RoomJoinData, RoomLeaveData } from '@/app/features/room/dtos/data';
+import { RoomData, RoomJoinData, RoomLeaveData } from '@/app/features/room/dtos/data';
 import { goHome } from '@/app/hooks/useNavigation';
 
 /**
@@ -96,14 +96,11 @@ export class RoomChatService {
         this.notifyRecents(this.messages);
       }
 
-      roomStore.getState().setRoom(roomId);
-      roomStore.getState().setJoined(true);
-
+      const roomUpdates: Partial<RoomData> = { id: roomId };
       if (joinData.currentParticipants != null) {
-        roomStore.getState().updateRoomData({
-          currentParticipants: joinData.currentParticipants,
-        });
+        roomUpdates.currentParticipants = joinData.currentParticipants;
       }
+      roomStore.getState().updateRoom(roomUpdates);
 
       this.isSubscribed = true;
       this.notifyConnection(true);
@@ -155,7 +152,7 @@ export class RoomChatService {
         });
       }
 
-      roomStore.getState().updateRoomData({
+      roomStore.getState().updateRoom({
         currentParticipants: data.currentParticipants,
       });
     };
@@ -168,7 +165,7 @@ export class RoomChatService {
     // room:ban 핸들러 (방 추방)
     const banHandler = async (_dto: RoomBanDto) => {
       // const data = RoomConverter.toRoomBanData(dto);
-      roomStore.getState().leaveRoom();
+      roomStore.getState().resetRoom();
       toastStore.getState().showErrorToast('방에서 추방되었습니다.');
       setTimeout(() => goHome(), 1000);
     };
@@ -180,7 +177,7 @@ export class RoomChatService {
 
       const currentUserId = authStore.getState().userId;
       const isOtherUser = !currentUserId || data.user.id !== currentUserId;
-      const hostChanged = roomStore.getState().roomData?.hostId !== data.host.id;
+      const hostChanged = roomStore.getState().hostId !== data.host.id;
 
       if (isOtherUser) {
         toastStore.getState().showInfoToast(`${data.user.nickname}님이 퇴장했습니다.`);
@@ -191,7 +188,7 @@ export class RoomChatService {
         }
       }
 
-      roomStore.getState().updateRoomData({
+      roomStore.getState().updateRoom({
         currentParticipants: data.currentParticipants,
         hostId: data.host.id,
       });
@@ -202,7 +199,7 @@ export class RoomChatService {
       const data = RoomConverter.toRoomParticipantDeleteData(dto);
       if (data.roomId !== this.currentRoomId) return;
 
-      roomStore.getState().leaveRoom();
+      roomStore.getState().resetRoom();
       this.clearSubscriptionOnly();
       this.roomInvalidatedCallbacks.forEach((cb) => cb());
     };
@@ -253,7 +250,7 @@ export class RoomChatService {
    */
   private handleError(error: any): void {
     console.error('[RoomChatService] WebSocket error:', error);
-    roomStore.getState().leaveRoom();
+    roomStore.getState().resetRoom();
     this.clearSubscriptionOnly();
     this.roomInvalidatedCallbacks.forEach((cb) => cb());
   }
@@ -284,7 +281,7 @@ export class RoomChatService {
     if (!this.isSubscribed) return;
 
     this.removeEventHandlers();
-    roomStore.getState().leaveRoom();
+    roomStore.getState().resetRoom();
 
     if (this.currentRoomId && WebSocketService.isConnected()) {
       // 백엔드에서 ACK를 반환하므로 request() 사용

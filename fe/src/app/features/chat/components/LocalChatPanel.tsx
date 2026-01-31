@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import ChatPanel from './ChatPanel';
 import styles from './chat.module.css';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
+import { roomStore } from '@/app/features/room/stores/room';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { useRoomChat } from '../hooks/useRoomChat';
 import { Position } from '@/app/components/shared/floatingWidget/type';
@@ -19,13 +19,15 @@ import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 
 export default function LocalChatPanel() {
   const myId = authStore((state: AuthStore) => state.userId);
-  const roomId = roomStore((state: RoomStore) => state.roomId);
-  const isJoined = roomStore((state: RoomStore) => state.isJoined);
-  const roomData = roomStore((state: RoomStore) => state.roomData);
+  const roomId = roomStore((state) => state.id);
+  const roomTitle = roomStore((state) => state.title);
+  const participants = roomStore((state) => state.participants);
+  const currentParticipants = roomStore((state) => state.currentParticipants);
+  const isJoined = Boolean(roomId);
   const [micState, setMicState] = useState(true);
   const [speakerState, setSpeakerState] = useState(true);
   const { gotoRoom } = useNavigation();
-  const roomTitle = roomData?.title || '대화방';
+  const roomTitleText = roomTitle || '대화방';
 
   const [initialPosition, setInitialPosition] = useState<Position>(PANEL_CONFIG.DEFAULT_POSITION);
 
@@ -44,17 +46,17 @@ export default function LocalChatPanel() {
   // 채팅 구독, 메시지, 연결 상태를 자동으로 관리
   const { chats, isConnected } = useRoomChat(roomId, isJoined);
 
-  const participantCount = roomData?.currentParticipants ?? 0;
+  const participantCount = currentParticipants ?? 0;
   useEffect(() => {
     if (!roomId || !isJoined) return;
-    if (roomData?.title) return;
+    if (roomTitle) return;
 
     (async () => {
       const roomDto = await roomService.getRoom(roomId);
       const data = RoomConverter.toData(roomDto);
-      roomStore.getState().setRoomData(data);
+      roomStore.getState().replaceRoom(data);
     })().catch();
-  }, [roomId, isJoined, roomData?.title]);
+  }, [roomId, isJoined, roomTitle]);
 
   const handleMicChange = (state: boolean) => setMicState(state);
   const handleSpeakerChange = (state: boolean) => setSpeakerState(state);
@@ -78,13 +80,13 @@ export default function LocalChatPanel() {
     </div>
   );
 
-  const participants = roomData?.participants?.filter((p: PData) => p.userId !== myId) ?? [];
+  const participantsList = participants?.filter((p: PData) => p.userId !== myId) ?? [];
 
   const panelChildren = (
     <>
       <div className={styles.sectionTop}>
         <div className={styles.sectionTitleGroup}>
-          <div className={styles.sectionTitle}>{roomTitle}</div>
+          <div className={styles.sectionTitle}>{roomTitleText}</div>
         </div>
         <TextButton.Outline
           iconName="open"
@@ -94,7 +96,7 @@ export default function LocalChatPanel() {
         />
       </div>
       <div className={styles.sectionAvatars}>
-        {participants.map((p: PData) => (
+        {participantsList.map((p: PData) => (
           <Avatar key={p.nickname} nickname={p.nickname} profileImage={p.profileImage} />
         ))}
       </div>

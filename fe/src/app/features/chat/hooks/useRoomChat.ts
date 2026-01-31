@@ -6,7 +6,7 @@ import { ChatReceiveData } from '../dtos/data';
 export function useRoomChat(roomId?: string, isJoined?: boolean) {
   const [chats, setChats] = useState<ChatReceiveData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const storeRoomId = roomStore((s) => s.roomId);
+  const storeRoomId = roomStore((s) => s.id);
 
   useEffect(() => {
     // 현재 소속된 방과 요청 roomId 가 다르면 구독하지 않음

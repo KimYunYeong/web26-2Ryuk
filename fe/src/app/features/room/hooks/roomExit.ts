@@ -21,7 +21,7 @@ export function useRoomExit(
 
   const handleLeaveRoom = useCallback(async () => {
     await roomChatService.unsubscribe();
-    roomStore.getState().leaveRoom();
+    roomStore.getState().resetRoom();
     callbacksRef.current.onLeaveSuccess();
   }, []);
 
@@ -29,7 +29,7 @@ export function useRoomExit(
     if (!roomId) return;
     roomChatService.clearSubscriptionOnly();
     await roomService.deleteRoom(roomId);
-    roomStore.getState().leaveRoom();
+    roomStore.getState().resetRoom();
     callbacksRef.current.onDeleteSuccess();
   }, [roomId]);
 

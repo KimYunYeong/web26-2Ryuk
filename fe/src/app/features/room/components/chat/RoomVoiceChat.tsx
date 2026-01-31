@@ -2,7 +2,7 @@
 
 import { SecondaryChip } from '@/app/components/shared/chip/Chip';
 import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
+import { roomStore } from '@/app/features/room/stores/room';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import { useVoiceChat } from '@/app/features/voice/hooks/useVoiceChat';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -77,22 +77,23 @@ export default function RoomVoiceChat() {
 
   const myId = authStore((state: AuthStore) => state.userId);
   const me = authStore((state: AuthStore) => state.user);
-  const roomData = roomStore((state: RoomStore) => state.roomData);
-  const roomId = roomStore((state) => state.roomId);
-  const isJoined = roomStore((state) => state.isJoined);
+  const roomId = roomStore((s) => s.id);
+  const hostId = roomStore((s) => s.hostId);
+  const roomParticipants = roomStore((s) => s.participants);
+  const currentParticipants = roomStore((s) => s.currentParticipants);
+  const maxParticipants = roomStore((s) => s.maxParticipants);
+  const isJoined = Boolean(roomId);
 
   // 1. participants를 useMemo로 정의 (나를 제외한 목록)
   const participants = useMemo(() => {
-    return roomData?.participants?.filter((p: PData) => p.userId !== myId) ?? [];
-  }, [roomData?.participants, myId]);
+    return roomParticipants?.filter((p: PData) => p.userId !== myId) ?? [];
+  }, [roomParticipants, myId]);
 
   // 2. 위에서 메모이제이션된 participants를 사용하여 ID 문자열 생성
   const participantIds = useMemo(() => {
     return participants.map((p) => p.userId).join(',');
   }, [participants]);
 
-  const currentParticipants = roomData?.currentParticipants;
-  const maxParticipants = roomData?.maxParticipants;
   const showChip = currentParticipants || maxParticipants;
   const {
     voiceUsers,
@@ -102,7 +103,7 @@ export default function RoomVoiceChat() {
     toggleUserAudio,
     changeUserVolume,
     toggleMasterMute,
-  } = useVoiceChat(roomId!, isJoined);
+  } = useVoiceChat(roomId ?? '', isJoined);
 
   useEffect(() => {
     // mount/refresh 시 필요한 로직
@@ -168,7 +169,7 @@ export default function RoomVoiceChat() {
               onSpeakerChange={toggleMasterMute}
               onMicChange={toggleMic}
               active={false}
-              isHost={roomData?.hostId === me.id}
+              isHost={hostId === me.id}
             />
           )}
           {participants.map((p: PData) => {
@@ -186,7 +187,7 @@ export default function RoomVoiceChat() {
                   volume={userVolume} // 볼륨 값 전달
                   onSliderChange={(val) => changeUserVolume(p.userId, val)}
                   onSpeakerChange={(val) => toggleUserAudio(p.userId, val)}
-                  isHost={roomData?.hostId === p.userId}
+                  isHost={hostId === p.userId}
                 />
               </div>
             );

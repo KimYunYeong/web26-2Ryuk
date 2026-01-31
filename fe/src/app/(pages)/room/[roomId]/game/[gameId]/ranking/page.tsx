@@ -38,11 +38,10 @@ export default function GameRankingPage() {
   const LIMIT = 10;
 
   const highlightRow = (row: GamePlayerResultItemData) => row.playerId === myId;
-  const setRoomIsGameRecruiting = roomStore((s) => s.setIsGameRecruiting);
 
   const handleGoBackClick = () => {
     if (!roomId) return;
-    setRoomIsGameRecruiting(false);
+    roomStore.getState().updateRoom({ isGameRecruiting: false });
     gotoRoomReplace(roomId);
   };
 

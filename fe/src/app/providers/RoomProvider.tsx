@@ -26,8 +26,8 @@ export default function RoomProvider({ children }: RoomProviderProps) {
       const { isAuthenticated } = authStore.getState();
       if (!isAuthenticated) return;
 
-      const { roomId: storedRoomId, isJoined } = roomStore.getState();
-      if (!storedRoomId || !isJoined) return;
+      const storedRoomId = roomStore.getState().id;
+      if (!storedRoomId) return;
 
       hasRestored.current = true;
 
@@ -38,18 +38,18 @@ export default function RoomProvider({ children }: RoomProviderProps) {
         const { roomId } = await roomService.getMyCurrentRoom();
         beRoomId = roomId;
       } catch {
-        roomStore.getState().leaveRoom();
+        roomStore.getState().resetRoom();
         roomChatService.clearSubscriptionOnly();
         return;
       }
 
       if (!beRoomId) {
-        roomStore.getState().leaveRoom();
+        roomStore.getState().resetRoom();
         roomChatService.clearSubscriptionOnly();
         return;
       }
 
-      if (storedRoomId !== beRoomId) roomStore.getState().leaveRoom();
+      if (storedRoomId !== beRoomId) roomStore.getState().resetRoom();
 
       await roomChatService.subscribe(beRoomId);
     };

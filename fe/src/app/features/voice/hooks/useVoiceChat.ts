@@ -5,7 +5,7 @@ import { WebSocketService } from '@/app/services/websocket.service';
 import { useEffect } from 'react';
 
 export function useVoiceChat(roomId: string, isJoined: boolean) {
-  const isMicAvailable = roomStore((state) => state.roomData?.isMicAvailable ?? false);
+  const isMicAvailable = roomStore((state) => state.isMicAvailable ?? false);
   const {
     voiceUsers,
     isMyMicOn,

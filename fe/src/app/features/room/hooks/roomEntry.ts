@@ -34,7 +34,7 @@ export function useRoomEntry(
     const userId = authStore.getState().userId;
     if (!roomId || !userId) return;
 
-    const myRoomId = roomStore.getState().roomId;
+    const myRoomId = roomStore.getState().id;
 
     try {
       // 이미 다른 방 소속 → 서버 요청 없이 콜백만 호출

@@ -14,10 +14,9 @@ import RoomCreateModalContent from './creation/RoomCreateModalContent';
 import roomService from '../services/RoomService';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useModal } from '@/app/components/shared/modal/useModal';
-import { roomStore, RoomStore } from '../stores/room';
+import { roomStore } from '../stores/room';
 import { useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
-import { loadingStore } from '@/app/features/loading/stores/loading';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
 
@@ -26,12 +25,10 @@ export default function RealtimeRoomsSection() {
   const { gotoRoom } = useNavigation();
   const { closeModal } = useModal();
   const [rooms, setRooms] = useState<RoomData[]>([]);
-  const { setRoom, setRoomData } = roomStore();
-  const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
   const { showSuccessToast } = useToast();
-  const roomId = roomStore((state: RoomStore) => state.roomId);
+  const roomId = roomStore((state) => state.id);
+  const replaceRoom = roomStore((state) => state.replaceRoom);
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
-  const { show, hide } = loadingStore();
 
   useEffect(() => {
     (async () => {
@@ -49,19 +46,18 @@ export default function RealtimeRoomsSection() {
 
   const handleSubmit = async (data: RoomEditData) => {
     const roomDto = RoomConverter.toEditDto(data);
-    show();
+    const createdRoomDto = await roomService.createRoom(roomDto);
+    const createdRoomData = RoomConverter.toData(createdRoomDto);
 
-    const createdRoom = await roomService.createRoom(roomDto);
     closeModal('room-creation');
 
-    gotoRoom(createdRoom.id);
-    setRoom(createdRoom.id);
-    setRoomData(RoomConverter.toData(createdRoom));
+    gotoRoom(createdRoomDto.id);
+    replaceRoom(createdRoomData);
 
     showSuccessToast('방을 생성했습니다!');
-
-    hide();
   };
+
+  const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
 
   return (
     <>

@@ -5,10 +5,10 @@ import Dialog from '@/app/components/shared/dialog/Dialog';
 import Paths from '@/app/shared/path';
 import LeaveRoomButton from './LeaveRoomButton';
 import { useRoom } from '@/app/features/room/hooks/room';
-import { roomStore, RoomStore } from '@/app/features/room/stores/room';
+import { roomStore } from '@/app/features/room/stores/room';
 
 export default function DeleteRoomButtonWithModal() {
-  const roomId = roomStore((state: RoomStore) => state.roomId);
+  const roomId = roomStore((state) => state.id);
 
   const { exit } = useRoom(roomId);
   const { deleteModalId, openDeleteModal, handleDeleteModalCancel, handleDeleteModalConfirm } =
