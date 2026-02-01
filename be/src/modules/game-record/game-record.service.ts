@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, HttpStatus, HttpException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameRecord } from '@src/modules/game-record/game-record.entity';
@@ -48,7 +48,16 @@ export class GameRecordService {
         order: { score: 'DESC' },
       });
       if (allRecords.length === 0) {
-        throw new HttpException('게임 랭킹이 없습니다.', HttpStatus.NO_CONTENT);
+        return {
+          success: true,
+          message: '랭킹이 성공적으로 조회되었습니다.',
+          data: {
+            total: 0,
+            page: 1,
+            podium: [],
+            rankings: [],
+          },
+        };
       }
 
       // 랭킹 계산 (같은 점수는 같은 순위, 다음 순위는 건너뜀)
