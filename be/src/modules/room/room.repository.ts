@@ -270,9 +270,25 @@ export class RoomRepository {
    */
   async updateCurrentParticipants(roomId: string): Promise<void> {
     try {
-      const memberIds = await this.getRoomMemberIds(roomId);
-      const realCount = memberIds.length;
-      await this.redisClient.hSet(`room:${roomId}`, `current_participants`, realCount);
+      const memberSetKey = `room:${roomId}:members`;
+      let count = await this.redisClient.sCard(memberSetKey);
+
+      // Set이 비어있지만 방은 존재하는 경우 (fallback 로직)
+      if (count === 0) {
+        const roomExists = await this.redisClient.exists(`room:${roomId}`);
+        if (roomExists) {
+          const pattern = `room:${roomId}:members:*`;
+          const keys = await this.redisClient.keys(pattern);
+          if (keys.length > 0) {
+            count = keys.length;
+            // Set 복구도 함께 수행
+            const members = keys.map((key) => key.replace(`room:${roomId}:members:`, ''));
+            void (await this.redisClient.sAdd(memberSetKey, members));
+          }
+        }
+      }
+
+      await this.redisClient.hSet(`room:${roomId}`, `current_participants`, count);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.ROOM.PARTICIPANTS_UPDATE_ERROR(roomId, errorMessage));
