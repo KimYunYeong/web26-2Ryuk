@@ -7,8 +7,7 @@ import AudioControlButtons from '@/app/features/voice/components/AudioControlBut
 import { roomStore } from '@/app/features/room/stores/room';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { useRoomChat } from '../hooks/useRoomChat';
-import { Position } from '@/app/components/shared/floatingWidget/type';
-import { PANEL_CONFIG } from './type';
+import { chatPanelStore } from '@/app/features/chat/stores/chatPanel';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import Avatar from '@/app/components/shared/profile/Avatar';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
@@ -29,19 +28,9 @@ export default function LocalChatPanel() {
   const { gotoRoom } = useNavigation();
   const roomTitleText = roomTitle || '대화방';
 
-  const [initialPosition, setInitialPosition] = useState<Position>(PANEL_CONFIG.DEFAULT_POSITION);
-
-  // 초기 위치 계산: 오른쪽 하단
   useEffect(() => {
-    const x = window.innerWidth - PANEL_CONFIG.WIDTH - PANEL_CONFIG.OFFSET;
-    const y =
-      window.innerHeight -
-      PANEL_CONFIG.HEIGHT -
-      PANEL_CONFIG.OFFSET -
-      PANEL_CONFIG.HEIGHT -
-      PANEL_CONFIG.GAP;
-    setInitialPosition({ x, y });
-  }, []);
+    if (roomId && isJoined) chatPanelStore.getState().show('local');
+  }, [roomId, isJoined]);
 
   // 채팅 구독, 메시지, 연결 상태를 자동으로 관리
   const { chats, isConnected } = useRoomChat(roomId, isJoined);
@@ -115,7 +104,6 @@ export default function LocalChatPanel() {
       headerChildren={headerChildren}
       isConnected={isConnected}
       disabled={!isJoined || !isConnected}
-      initialPosition={initialPosition}
     >
       {panelChildren}
     </ChatPanel>
