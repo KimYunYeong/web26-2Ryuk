@@ -4,6 +4,7 @@ import styles from './realtimeRoomsSection.module.css';
 import RoomCard from './card/RoomCard';
 import * as IconCircle from '@/app/components/shared/icon/IconCircle';
 import * as TextButton from '@/app/components/shared/button/TextButton';
+import { OutlineIconButton } from '@/app/components/shared/icon/IconButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import { RoomData, RoomEditData } from '@/app/features/room/dtos/data';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
@@ -15,7 +16,7 @@ import roomService from '../services/RoomService';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useModal } from '@/app/components/shared/modal/useModal';
 import { roomStore } from '../stores/room';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
@@ -30,13 +31,15 @@ export default function RealtimeRoomsSection() {
   const replaceRoom = roomStore((state) => state.replaceRoom);
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
 
-  useEffect(() => {
-    (async () => {
-      const roomsDto = await roomService.getRooms();
-      const roomsData = roomsDto.rooms.map(RoomConverter.toData);
-      setRooms(roomsData);
-    })();
+  const loadRooms = useCallback(async () => {
+    const roomsDto = await roomService.getRooms();
+    const roomsData = roomsDto.rooms.map(RoomConverter.toData);
+    setRooms(roomsData);
   }, []);
+
+  useEffect(() => {
+    loadRooms();
+  }, [loadRooms]);
 
   const handleSearch = async (query: string) => {
     const roomsDto = await roomService.searchRooms(query);
@@ -70,6 +73,9 @@ export default function RealtimeRoomsSection() {
           <div className={styles.actions}>
             <div className={styles.search}>
               <SearchForm placeholder="제목, 내용, 작성자 검색" onSubmit={handleSearch} />
+            </div>
+            <div className={styles.refresh}>
+              <OutlineIconButton name="refresh" size="medium" onClick={loadRooms} />
             </div>
             <div className={styles.createRoom}>
               <TooltipTrigger dataAnchor="create-room-button">
