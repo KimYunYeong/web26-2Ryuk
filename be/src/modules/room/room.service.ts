@@ -51,219 +51,6 @@ export class RoomService implements OnModuleInit {
   }
 
   /**
-   * 방 타입 조회
-   */
-  async getRoomType(roomId: string): Promise<RoomType | null> {
-    return await this.roomRepository.getRoomType(roomId);
-  }
-
-  /**
-   * 사용자 방 참여 처리
-   */
-  async joinRoom(userId: string, roomId: string): Promise<void> {
-    // MySQL에서 사용자 정보 조회 (Single Source of Truth)
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'nickname', 'profile_image', 'role'],
-    });
-
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
-    }
-
-    // 멤버 상세 정보 저장
-    await this.roomRepository.saveMemberDetails(roomId, userId, {
-      nickname: user.nickname,
-      profile_image: user.profile_image ?? '',
-      role: user.role ?? 'USER',
-      is_mic_on: '0',
-      is_audio_on: '1',
-      is_speaking: '0',
-      join_date: new Date().toISOString(),
-    });
-
-    // 멤버를 방에 추가
-    await this.roomRepository.addMemberToRoom(roomId, userId);
-
-    // 사용자에게 방 추가
-    await this.roomRepository.addRoomToUser(userId, roomId);
-
-    // 참여자 수 업데이트
-    await this.roomRepository.updateCurrentParticipants(roomId);
-    logMessage(this.logger, LOG.ROOM.USER_JOINED(userId, roomId));
-  }
-
-  /**
-   * 공통 방 퇴장 처리 로직
-   * Redis 상태 변경, 소켓 룸 탈퇴, 브로드캐스트 수행
-   * @param client - 클라이언트 소켓 (있으면 사용, 없으면 userId로 찾음)
-   */
-  async leaveRoomProcess(server: Server, userId: string, roomId: string, client?: Socket): Promise<void> {
-    const nickname = await this.roomRepository.getMemberNickname(roomId, userId);
-
-    // Redis에서 제거
-    await this.leaveRoom(server, userId, roomId);
-
-    // Socket.io room에서 제거
-    if (client) {
-      // client가 있으면 바로 사용 (일반 퇴장)
-      await client.leave(roomId);
-    } else {
-      // client가 없으면 userId로 찾기 (강제 퇴장)
-      const sockets = await server.fetchSockets();
-      const userSocket = sockets.find((socket) => socket.data.userId === userId);
-      if (userSocket) {
-        userSocket.emit(WS_EVENTS_ROOM.BAN, { room_id: roomId });
-        userSocket.leave(roomId);
-      }
-    }
-
-    // 퇴장 후 참여자 수 조회
-    const currentParticipants = await this.roomRepository.getCurrentParticipants(roomId);
-
-    // 현재 hostId 조회
-    const hostId = (await this.roomRepository.getRoomField(roomId, 'host_id')) || '';
-    const hostNickname = hostId ? await this.roomRepository.getMemberNickname(roomId, hostId) : '';
-
-    // 다른 참여자에게 알림
-    await this.roomNotificationService.notifyUserLeft(
-      server,
-      roomId,
-      { hostId, nickname: hostNickname },
-      { userId, nickname },
-      currentParticipants,
-    );
-  }
-
-  /**
-   * 사용자 방 제거 처리
-   */
-  async leaveRoom(server: Server, userId: string, roomId: string): Promise<void> {
-    // 방 멤버 목록에서 제거
-    await this.roomRepository.deleteMemberDetails(roomId, userId);
-    await this.roomRepository.removeMemberFromRoom(roomId, userId);
-    await this.roomRepository.removeRoomFromUser(userId, roomId);
-
-    // 게임 참가자 목록에서도 제거 (게임 중일 경우)
-    await this.gameService.leaveGame(server, roomId, userId);
-
-    // 참여자 수 감소
-    await this.roomRepository.updateCurrentParticipants(roomId);
-    logMessage(this.logger, LOG.ROOM.USER_LEFT(userId, roomId));
-
-    // 만약 방장이면 방장 권한 넘기기 -> join_date 기준으로 들어온 순서가 빠른 사람에게
-    const isHost = await this.isHost(userId, roomId);
-    if (isHost) {
-      const memberIds = await this.roomRepository.getRoomMemberIds(roomId);
-      if (memberIds.length > 0) {
-        let earliestJoinDate: Date | null = null;
-        let newHostId: string = memberIds[0];
-        for (const memberId of memberIds) {
-          const memberDetails = await this.roomRepository.getMemberDetails(roomId, memberId);
-          const joinDateStr = memberDetails.join_date;
-          const joinDate = new Date(joinDateStr);
-          if (!earliestJoinDate || joinDate < earliestJoinDate) {
-            earliestJoinDate = joinDate;
-            newHostId = memberId;
-          }
-        }
-
-        await this.roomRepository.setRoomField(roomId, 'host_id', newHostId);
-        logMessage(this.logger, LOG.ROOM.HOST_CHANGED(roomId, newHostId));
-
-        return;
-      }
-    }
-
-    // 빈 Local 방 삭제
-    if ((await this.getRoomType(roomId)) === ROOM_TYPE.GLOBAL) return;
-    const currentParticipants = await this.roomRepository.getCurrentParticipants(roomId);
-    if (currentParticipants < 1) void this.deleteRoomForce(roomId);
-  }
-
-  /**
-   * 사용자 특정 방 참여 여부 확인
-   */
-  async isUserInRoom(userId: string, roomId: string): Promise<boolean> {
-    return await this.roomRepository.isUserInRoom(userId, roomId);
-  }
-
-  /**
-   * 사용자 참여 중인 모든 방 목록 조회 (글로벌 포함)
-   */
-  async getUserRooms(userId: string): Promise<string[]> {
-    return await this.roomRepository.getUserRooms(userId);
-  }
-
-  /**
-   * 사용자 참여 중인 로컬 방 하나 조회 (글로벌 제외)
-   * 요구사항: 글로벌 채팅 + 로컬 방 하나까지만 접속 가능
-   */
-  async getUserLocalRoom(userId: string): Promise<string | null> {
-    const rooms = await this.roomRepository.getUserRooms(userId);
-
-    for (const roomId of rooms) {
-      const roomType = await this.getRoomType(roomId);
-      if (roomType === ROOM_TYPE.LOCAL) {
-        return roomId;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * 사용자가 참여 중인 GLOBAL 타입 방 조회
-   */
-  async getUserGlobalRoom(): Promise<string | null> {
-    return GLOBAL_ROOM_ID;
-  }
-
-  /**
-   * 방의 모든 멤버 아이디 목록 조회
-   */
-  async getRoomMemberIds(roomId: string): Promise<string[]> {
-    return await this.roomRepository.getRoomMemberIds(roomId);
-  }
-
-  /**
-   * 방의 모든 멤버 정보 목록 조회
-   */
-  async getRoomMembersDetails(roomId: string, limit?: number): Promise<ParticipantDetailDto[]> {
-    return await this.roomRepository.getAllMemberDetails(roomId, limit);
-  }
-
-  /**
-   * 방 멤버 id, 닉네임, 프로필 이미지 조회
-   */
-  async getRoomMembers(roomId: string, limit?: number): Promise<ParticipantDto[]> {
-    const members = await this.roomRepository.getAllMemberDetails(roomId, limit);
-    return members.map((member) => ({
-      user_id: member.user_id,
-      nickname: member.nickname,
-      profile_image: member.profile_image,
-    }));
-  }
-
-  /**
-   * 사용자 연결 해제 시 모든 방에서 제거
-   */
-  async leaveAllRooms(server: Server, userId: string, client?: Socket): Promise<void> {
-    const rooms = await this.roomRepository.getUserRooms(userId);
-    for (const roomId of rooms) {
-      await this.leaveRoomProcess(server, userId, roomId, client);
-    }
-  }
-
-  /**
-   * 사용자 방 호스트 여부 확인
-   */
-  async isHost(userId: string, roomId: string): Promise<boolean> {
-    const host = await this.roomRepository.getRoomField(roomId, 'host_id');
-    return host === userId;
-  }
-
-  /**
    * 방 생성 (Redis Hash에 방 정보 저장)
    * 개발용: 글로벌 룸 자동 생성에 사용
    */
@@ -436,13 +223,6 @@ export class RoomService implements OnModuleInit {
   }
 
   /**
-   * 방 존재 여부 확인
-   */
-  async roomExists(roomId: string): Promise<boolean> {
-    return await this.roomRepository.roomExists(roomId);
-  }
-
-  /**
    * Local방 입장 가능 여부 검증
    */
   async validateJoinRoom(roomId: string, userId: string, password?: string): Promise<void> {
@@ -499,10 +279,230 @@ export class RoomService implements OnModuleInit {
   }
 
   /**
+   * 사용자 방 참여 처리
+   */
+  async joinRoom(userId: string, roomId: string): Promise<void> {
+    // MySQL에서 사용자 정보 조회 (Single Source of Truth)
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'nickname', 'profile_image', 'role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 멤버 상세 정보 저장
+    await this.roomRepository.saveMemberDetails(roomId, userId, {
+      nickname: user.nickname,
+      profile_image: user.profile_image ?? '',
+      role: user.role ?? 'USER',
+      is_mic_on: '0',
+      is_audio_on: '1',
+      is_speaking: '0',
+      join_date: new Date().toISOString(),
+    });
+
+    // 멤버를 방에 추가
+    await this.roomRepository.addMemberToRoom(roomId, userId);
+
+    // 사용자에게 방 추가
+    await this.roomRepository.addRoomToUser(userId, roomId);
+
+    // 참여자 수 업데이트
+    await this.roomRepository.updateCurrentParticipants(roomId);
+    logMessage(this.logger, LOG.ROOM.USER_JOINED(userId, roomId));
+  }
+
+  /**
+   * 공통 방 퇴장 처리 로직
+   * Redis 상태 변경, 소켓 룸 탈퇴, 브로드캐스트 수행
+   * @param client - 클라이언트 소켓 (있으면 사용, 없으면 userId로 찾음)
+   */
+  async leaveRoomProcess(server: Server, userId: string, roomId: string, client?: Socket): Promise<void> {
+    const nickname = await this.roomRepository.getMemberNickname(roomId, userId);
+
+    // Redis에서 제거
+    await this.leaveRoom(server, userId, roomId);
+
+    // Socket.io room에서 제거
+    if (client) {
+      // client가 있으면 바로 사용 (일반 퇴장)
+      await client.leave(roomId);
+    } else {
+      // client가 없으면 userId로 찾기 (강제 퇴장)
+      const sockets = await server.fetchSockets();
+      const userSocket = sockets.find((socket) => socket.data.userId === userId);
+      if (userSocket) {
+        userSocket.emit(WS_EVENTS_ROOM.BAN, { room_id: roomId });
+        userSocket.leave(roomId);
+      }
+    }
+
+    // 퇴장 후 참여자 수 조회
+    const currentParticipants = await this.roomRepository.getCurrentParticipants(roomId);
+
+    // 현재 hostId 조회
+    const hostId = (await this.roomRepository.getRoomField(roomId, 'host_id')) || '';
+    const hostNickname = hostId ? await this.roomRepository.getMemberNickname(roomId, hostId) : '';
+
+    // 다른 참여자에게 알림
+    await this.roomNotificationService.notifyUserLeft(
+      server,
+      roomId,
+      { hostId, nickname: hostNickname },
+      { userId, nickname },
+      currentParticipants,
+    );
+  }
+
+  /**
+   * 사용자 방 제거 처리
+   */
+  async leaveRoom(server: Server, userId: string, roomId: string): Promise<void> {
+    // 방 멤버 목록에서 제거
+    await this.roomRepository.deleteMemberDetails(roomId, userId);
+    await this.roomRepository.removeMemberFromRoom(roomId, userId);
+    await this.roomRepository.removeRoomFromUser(userId, roomId);
+
+    // 게임 참가자 목록에서도 제거 (게임 중일 경우)
+    await this.gameService.leaveGame(server, roomId, userId);
+
+    // 참여자 수 감소
+    await this.roomRepository.updateCurrentParticipants(roomId);
+    logMessage(this.logger, LOG.ROOM.USER_LEFT(userId, roomId));
+
+    // 만약 방장이면 방장 권한 넘기기 -> join_date 기준으로 들어온 순서가 빠른 사람에게
+    const isHost = await this.isHost(userId, roomId);
+    if (isHost) {
+      const memberIds = await this.roomRepository.getRoomMemberIds(roomId);
+      if (memberIds.length > 0) {
+        let earliestJoinDate: Date | null = null;
+        let newHostId: string = memberIds[0];
+        for (const memberId of memberIds) {
+          const memberDetails = await this.roomRepository.getMemberDetails(roomId, memberId);
+          const joinDateStr = memberDetails.join_date;
+          const joinDate = new Date(joinDateStr);
+          if (!earliestJoinDate || joinDate < earliestJoinDate) {
+            earliestJoinDate = joinDate;
+            newHostId = memberId;
+          }
+        }
+
+        await this.roomRepository.setRoomField(roomId, 'host_id', newHostId);
+        logMessage(this.logger, LOG.ROOM.HOST_CHANGED(roomId, newHostId));
+
+        return;
+      }
+    }
+
+    // 빈 Local 방 삭제
+    if ((await this.getRoomType(roomId)) === ROOM_TYPE.GLOBAL) return;
+    const currentParticipants = await this.roomRepository.getCurrentParticipants(roomId);
+    if (currentParticipants < 1) void this.deleteRoomForce(roomId);
+  }
+
+  /**
+   * 방 타입 조회
+   */
+  async getRoomType(roomId: string): Promise<RoomType | null> {
+    return await this.roomRepository.getRoomType(roomId);
+  }
+
+  /**
+   * 사용자 특정 방 참여 여부 확인
+   */
+  async isUserInRoom(userId: string, roomId: string): Promise<boolean> {
+    return await this.roomRepository.isUserInRoom(userId, roomId);
+  }
+
+  /**
    * 방의 현재 참여자 수 조회
    */
   async getCurrentParticipants(roomId: string): Promise<number> {
     return await this.roomRepository.getCurrentParticipants(roomId);
+  }
+
+  /**
+   * 사용자 참여 중인 로컬 방 하나 조회 (글로벌 제외)
+   * 요구사항: 글로벌 채팅 + 로컬 방 하나까지만 접속 가능
+   */
+  async getUserLocalRoom(userId: string): Promise<string | null> {
+    const rooms = await this.roomRepository.getUserRooms(userId);
+
+    for (const roomId of rooms) {
+      const roomType = await this.getRoomType(roomId);
+      if (roomType === ROOM_TYPE.LOCAL) {
+        return roomId;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 사용자 참여 중인 모든 방 목록 조회 (글로벌 포함)
+   */
+  async getUserRooms(userId: string): Promise<string[]> {
+    return await this.roomRepository.getUserRooms(userId);
+  }
+
+  /**
+   * 사용자가 참여 중인 GLOBAL 타입 방 조회
+   */
+  async getUserGlobalRoom(): Promise<string | null> {
+    return GLOBAL_ROOM_ID;
+  }
+
+  /**
+   * 방의 모든 멤버 아이디 목록 조회
+   */
+  async getRoomMemberIds(roomId: string): Promise<string[]> {
+    return await this.roomRepository.getRoomMemberIds(roomId);
+  }
+
+  /**
+   * 방의 모든 멤버 정보 목록 조회
+   */
+  async getRoomMembersDetails(roomId: string, limit?: number): Promise<ParticipantDetailDto[]> {
+    return await this.roomRepository.getAllMemberDetails(roomId, limit);
+  }
+
+  /**
+   * 방 멤버 id, 닉네임, 프로필 이미지 조회
+   */
+  async getRoomMembers(roomId: string, limit?: number): Promise<ParticipantDto[]> {
+    const members = await this.roomRepository.getAllMemberDetails(roomId, limit);
+    return members.map((member) => ({
+      user_id: member.user_id,
+      nickname: member.nickname,
+      profile_image: member.profile_image,
+    }));
+  }
+
+  /**
+   * 사용자 연결 해제 시 모든 방에서 제거
+   */
+  async leaveAllRooms(server: Server, userId: string, client?: Socket): Promise<void> {
+    const rooms = await this.roomRepository.getUserRooms(userId);
+    for (const roomId of rooms) {
+      await this.leaveRoomProcess(server, userId, roomId, client);
+    }
+  }
+
+  /**
+   * 사용자 방 호스트 여부 확인
+   */
+  async isHost(userId: string, roomId: string): Promise<boolean> {
+    const host = await this.roomRepository.getRoomField(roomId, 'host_id');
+    return host === userId;
+  }
+
+  /**
+   * 방 존재 여부 확인
+   */
+  async roomExists(roomId: string): Promise<boolean> {
+    return await this.roomRepository.roomExists(roomId);
   }
 
   /**
