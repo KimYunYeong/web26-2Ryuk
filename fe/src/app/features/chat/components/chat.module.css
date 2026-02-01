@@ -47,6 +47,21 @@
   cursor: grab;
 }
 
+.iconWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.unreadDot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--error);
+  border-radius: 50%;
+}
+
 .chatPanel.global > .header {
   background: var(--primary-3);
 }

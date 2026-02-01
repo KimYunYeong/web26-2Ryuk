@@ -32,6 +32,7 @@ function ChatPanelHeader({
   onMouseLeave,
   onMouseDown,
   onMouseUp,
+  isUnread = false,
 }: ChatPanelHeaderProps) {
   const iconNameToggle = isCollapsed ? 'down' : 'up';
   const counts = `${participantCount.toLocaleString()}명${isCollapsed ? '' : ' 참여중'}`;
@@ -56,6 +57,14 @@ function ChatPanelHeader({
     isConnected ? styles.connected : styles.disconnected,
   );
 
+  const showUnreadDot = isUnread && isCollapsed;
+  const iconWithBadge = (
+    <div className={styles.iconWrap}>
+      {circle}
+      {showUnreadDot && <span className={styles.unreadDot} aria-hidden="true" />}
+    </div>
+  );
+
   return (
     <div
       className={className}
@@ -65,7 +74,7 @@ function ChatPanelHeader({
       onMouseUp={onMouseUp}
     >
       <div id="chat-panel-header" className={styles.headerDragArea}>
-        {circle}
+        {iconWithBadge}
         <div className={styles.headerContent}>
           <div className={styles.title}>{title}</div>
           <div className={styles.status}>
@@ -94,6 +103,7 @@ export default function ChatPanel({
   children,
   isConnected = true,
   disabled = true,
+  isUnread = false,
 }: ChatPanelProps) {
   const panelState = chatPanelStore((s) => s[type]);
   const activePanelId = chatPanelStore((s) => s.activePanelId);
@@ -227,6 +237,7 @@ export default function ChatPanel({
           onToggle={handleToggle}
           headerChildren={headerChildren}
           isConnected={isConnected}
+          isUnread={isUnread}
           onMouseEnter={() => setIsHeaderHover(true)}
           onMouseLeave={() => {
             setIsHeaderHover(false);

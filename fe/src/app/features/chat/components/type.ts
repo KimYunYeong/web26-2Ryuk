@@ -47,6 +47,7 @@ export interface ChatPanelHeaderProps {
   onMouseLeave?: () => void;
   onMouseDown?: () => void;
   onMouseUp?: () => void;
+  isUnread?: boolean;
 }
 
 export interface ChatPanelProps {
@@ -60,6 +61,7 @@ export interface ChatPanelProps {
   isConnected?: boolean;
   disabled?: boolean;
   initialPosition?: Position;
+  isUnread?: boolean;
 }
 
 export interface GlobalChatHeaderProps {

@@ -13,6 +13,7 @@ import * as roomDto from '@/app/features/room/dtos/dto';
 import * as roomData from '@/app/features/room/dtos/data';
 
 import * as callback from './type';
+import { chatPanelStore } from '@/app/features/chat/stores/chatPanel';
 
 export class RoomChatService {
   private roomId?: string;
@@ -24,6 +25,8 @@ export class RoomChatService {
   private leaveCallbacks = new Set<callback.LeaveCallback>();
   private deleteCallbacks = new Set<callback.DeleteCallback>();
   private banCallbacks = new Set<callback.BanCallback>();
+  private unreadCallbacks = new Set<(isUnread: boolean) => void>();
+  private isUnread = false;
 
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
@@ -146,6 +149,22 @@ export class RoomChatService {
     return () => this.connectionCallbacks.delete(cb);
   }
 
+  getIsUnread(): boolean {
+    return this.isUnread;
+  }
+
+  markAsRead(): void {
+    if (!this.isUnread) return;
+    this.isUnread = false;
+    this.notifyUnreadChange(false);
+  }
+
+  onUnreadChange(cb: (isUnread: boolean) => void): () => void {
+    this.unreadCallbacks.add(cb);
+    cb(this.isUnread);
+    return () => this.unreadCallbacks.delete(cb);
+  }
+
   onJoin(cb: callback.JoinCallback): () => void {
     this.joinCallbacks.add(cb);
     return () => this.joinCallbacks.delete(cb);
@@ -263,10 +282,15 @@ export class RoomChatService {
   private handleRoomMessage(dto: chatDto.ChatReceiveDto): void {
     if (!dto.room_id || dto.room_id !== this.roomId) return;
     if (!dto.sender) return;
+    if (!dto.message || !dto.message.trim()) return;
 
     const data = ChatConverter.toReceiveData(dto);
     this.messages = [...this.messages, data];
     this.notifyMessage(data);
+
+    // 닫힌 상태에서만 안읽음 표시
+    const isExpanded = chatPanelStore.getState().local.isExpanded;
+    if (!isExpanded) this.setUnread();
   }
 
   private handleError(error: any): void {
@@ -283,6 +307,16 @@ export class RoomChatService {
 
   private notifyConnection(connected: boolean): void {
     this.connectionCallbacks.forEach((cb) => cb(connected));
+  }
+
+  private notifyUnreadChange(isUnread: boolean): void {
+    this.unreadCallbacks.forEach((cb) => cb(isUnread));
+  }
+
+  private setUnread(): void {
+    if (this.isUnread) return;
+    this.isUnread = true;
+    this.notifyUnreadChange(true);
   }
 }
 

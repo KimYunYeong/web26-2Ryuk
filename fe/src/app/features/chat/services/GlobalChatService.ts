@@ -7,6 +7,7 @@ import * as wsEvents from '@/app/services/events';
 import { WebSocketService } from '@/app/services/websocket.service';
 import { authStore } from '@/app/features/user/stores/auth';
 import * as callback from './type';
+import { chatPanelStore } from '@/app/features/chat/stores/chatPanel';
 
 export class GlobalChatService implements callback.ChatChannel {
   private readonly GLOBAL_ROOM_ID = 'global-room-001';
@@ -15,10 +16,12 @@ export class GlobalChatService implements callback.ChatChannel {
   private connectionCallbacks: Set<callback.ConnectionCallback> = new Set();
   private participantsCallbacks: Set<callback.ParticipantsCallback> = new Set();
   private recentsCallbacks: Set<callback.RecentsCallback> = new Set();
+  private unreadCallbacks: Set<(isUnread: boolean) => void> = new Set();
 
   private isSubscribed = false;
   private messages: chatData.ChatReceiveData[] = [];
   private currentParticipants = 0;
+  private isUnread = false;
 
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
@@ -153,6 +156,22 @@ export class GlobalChatService implements callback.ChatChannel {
     return () => this.recentsCallbacks.delete(cb);
   }
 
+  getIsUnread(): boolean {
+    return this.isUnread;
+  }
+
+  markAsRead(): void {
+    if (!this.isUnread) return;
+    this.isUnread = false;
+    this.notifyUnreadChange(false);
+  }
+
+  onUnreadChange(cb: (isUnread: boolean) => void): () => void {
+    this.unreadCallbacks.add(cb);
+    cb(this.isUnread);
+    return () => this.unreadCallbacks.delete(cb);
+  }
+
   isConnected(): boolean {
     return WebSocketService.isConnected();
   }
@@ -224,6 +243,10 @@ export class GlobalChatService implements callback.ChatChannel {
     const chatData = chatConverter.toGlobalNewMessageData(dto);
     this.messages = [...this.messages, chatData];
     this.notifyMessage(chatData);
+
+    // 닫힌 상태에서만 안읽음 표시
+    const isExpanded = chatPanelStore.getState().global.isExpanded;
+    if (!isExpanded) this.setUnread();
   }
 
   private handleGlobalChatRecents(dto: chatDto.GlobalChatRecentsDto): void {
@@ -255,6 +278,16 @@ export class GlobalChatService implements callback.ChatChannel {
 
   private notifyRecents(messages: chatData.ChatReceiveData[]): void {
     this.recentsCallbacks.forEach((cb) => cb(messages));
+  }
+
+  private notifyUnreadChange(isUnread: boolean): void {
+    this.unreadCallbacks.forEach((cb) => cb(isUnread));
+  }
+
+  private setUnread(): void {
+    if (this.isUnread) return;
+    this.isUnread = true;
+    this.notifyUnreadChange(true);
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import ChatPanel from './ChatPanel';
 import styles from './chat.module.css';
 import AudioControlButtons from '@/app/features/voice/components/AudioControlButtons';
@@ -27,10 +27,22 @@ export default function LocalChatPanel() {
   const [speakerState, setSpeakerState] = useState(true);
   const { gotoRoom } = useNavigation();
   const roomTitleText = roomTitle || '대화방';
+  const [isUnread, setIsUnread] = useState(false);
+  const showPanel = chatPanelStore((state) => state.show);
 
   useEffect(() => {
-    if (roomId && isJoined) chatPanelStore.getState().show('local');
+    if (roomId && isJoined) showPanel('local');
   }, [roomId, isJoined]);
+
+  useEffect(() => roomChatService.onUnreadChange(setIsUnread), []);
+  const isExpanded = chatPanelStore((state) => state.local.isExpanded);
+  const prevExpandedRef = useRef(isExpanded);
+  useEffect(() => {
+    if (!prevExpandedRef.current && isExpanded) {
+      roomChatService.markAsRead();
+    }
+    prevExpandedRef.current = isExpanded;
+  }, [isExpanded]);
 
   // 채팅 구독, 메시지, 연결 상태를 자동으로 관리
   const { chats, isConnected } = useRoomChat(roomId, isJoined);
@@ -100,6 +112,7 @@ export default function LocalChatPanel() {
       type="local"
       participantCount={participantCount}
       chats={chats}
+      isUnread={isUnread}
       onMessageSubmit={handleMessageSubmit}
       headerChildren={headerChildren}
       isConnected={isConnected}

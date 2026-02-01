@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
 import { ChatReceiveData } from '@/app/features/chat/dtos/data';
 import { authStore, type AuthStore } from '@/app/features/user/stores/auth';
@@ -15,9 +15,18 @@ export default function GlobalChatPanel() {
   const [chats, setChats] = useState<ChatReceiveData[]>([]);
   const [currentParticipants, setCurrentParticipants] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
+  const [isUnread, setIsUnread] = useState(false);
+  const showPanel = chatPanelStore((state) => state.show);
+  const isExpanded = chatPanelStore((state) => state.global.isExpanded);
+  const prevExpandedRef = useRef(isExpanded);
+
+  useEffect(() => showPanel('global'), []);
+  useEffect(() => globalChatService.onUnreadChange(setIsUnread), []);
+
   useEffect(() => {
-    chatPanelStore.getState().show('global');
-  }, []);
+    if (isExpanded) globalChatService.markAsRead();
+    prevExpandedRef.current = isExpanded;
+  }, [isExpanded]);
 
   // WebSocket 연결 및 구독
   useEffect(() => {
@@ -71,6 +80,7 @@ export default function GlobalChatPanel() {
       type="global"
       participantCount={currentParticipants}
       chats={chats}
+      isUnread={isUnread}
       onMessageSubmit={handleMessageSubmit}
       isConnected={isConnected}
       disabled={!isConnected || !isAuthenticated}
