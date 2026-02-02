@@ -111,6 +111,10 @@ export class RoomService implements OnModuleInit {
 
     if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
 
+    if (roomData.max_participants < (await this.roomRepository.getCurrentParticipants(roomId))) {
+      throw new HttpException('최대 참여자 수는 현재 참여자 수보다 작을 수 없습니다.', 400);
+    }
+
     let password = '';
 
     if (roomData.is_private) {
