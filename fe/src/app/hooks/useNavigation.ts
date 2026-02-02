@@ -36,11 +36,11 @@ export default function useNavigation() {
     gotoRoom: (id: string) => router.push(ROUTES.room(id)),
 
     // 게임 이동
-    gotoGame: (roomId: string, gameId: string) => router.push(ROUTES.game(roomId, gameId)),
+    gotoGame: (roomId: string, gameId: string) => router.replace(ROUTES.game(roomId, gameId)),
 
     // 게임 랭킹 이동
     gotoGameRanking: (roomId: string, gameId: string) =>
-      router.push(ROUTES.ranking(roomId, gameId)),
+      router.replace(ROUTES.ranking(roomId, gameId)),
 
     // 방 게임 목록 이동
     gotoRoomGameList: (roomId: string) => router.push(`/room/${roomId}/game`),
