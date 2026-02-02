@@ -10,7 +10,6 @@ export const WS_EVENTS_AUTH = {
  */
 export const WS_EVENTS_CHAT = {
   // 수신 이벤트
-  GLOBAL_JOIN: 'chat:global:join',
   GLOBAL_SEND: 'chat:global:send',
   ROOM_SEND: 'chat:room:send',
 
