@@ -12,6 +12,7 @@ export type MessageCallback = (message: ChatReceiveData) => void;
 export type ConnectionCallback = (isConnected: boolean) => void;
 export type ParticipantsCallback = (count: number) => void;
 export type InitCallback = (count: number, messages: ChatReceiveData[]) => void;
+export type RecentsCallback = (messages: ChatReceiveData[]) => void;
 
 export type JoinCallback = (data: data.RoomParticipantJoinData) => void;
 export type LeaveCallback = (data: data.RoomParticipantLeaveData) => void;
