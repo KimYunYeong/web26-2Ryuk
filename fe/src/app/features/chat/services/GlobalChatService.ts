@@ -10,12 +10,10 @@ import * as callback from './type';
 import { chatPanelStore } from '@/app/features/chat/stores/chatPanel';
 
 export class GlobalChatService implements callback.ChatChannel {
-  private readonly GLOBAL_ROOM_ID = 'global-room-001';
-
   private messageCallbacks: Set<callback.MessageCallback> = new Set();
   private connectionCallbacks: Set<callback.ConnectionCallback> = new Set();
   private participantsCallbacks: Set<callback.ParticipantsCallback> = new Set();
-  private recentsCallbacks: Set<callback.RecentsCallback> = new Set();
+  private initCallbacks: Set<callback.InitCallback> = new Set();
   private unreadCallbacks: Set<(isUnread: boolean) => void> = new Set();
 
   private isSubscribed = false;
@@ -36,55 +34,30 @@ export class GlobalChatService implements callback.ChatChannel {
     });
   }
 
-  async connect(): Promise<void> {
+  async ensureConnected(): Promise<void> {
     if (WebSocketService.isConnected()) {
       this.ensureHandlersRegistered();
-      this.notifyConnection(true);
       return;
     }
 
     if (this.connectPromise) return this.connectPromise;
 
-    const wsUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!wsUrl) throw Error('환경변수가 없습니다: NEXT_PUBLIC_API_URL');
+    this.connectPromise = WebSocketService.ensureConnected().then(() => {
+      this.ensureHandlersRegistered();
+    });
 
-    this.ensureHandlersRegistered();
-    WebSocketService.connect(wsUrl);
-
-    this.connectPromise = WebSocketService.ensureConnected();
-    await this.connectPromise;
-    this.connectPromise = undefined;
-
-    this.ensureHandlersRegistered();
-  }
-
-  async ensureConnected(): Promise<void> {
-    if (WebSocketService.isConnected()) return;
-    await this.connect();
+    try {
+      await this.connectPromise;
+    } finally {
+      this.connectPromise = undefined;
+    }
   }
 
   async subscribe(): Promise<void> {
     if (this.isSubscribed) return;
 
-    await this.connect();
+    await this.ensureConnected();
     if (!WebSocketService.isConnected()) return;
-
-    const joinDto = chatConverter.toGlobalJoinDto({
-      roomId: this.GLOBAL_ROOM_ID,
-    });
-
-    const joinAckDto = (await WebSocketService.request(
-      wsEvents.WS_EVENTS.CHAT_GLOBAL_JOIN,
-      joinDto,
-    )) as chatDto.ChatGlobalJoinAckDto;
-
-    const joinData = chatConverter.toGlobalJoinAckData(joinAckDto);
-
-    this.messages = joinData.messages;
-    this.currentParticipants = joinData.currentParticipants ?? 0;
-
-    this.notifyRecents(this.messages);
-    this.notifyParticipants(this.currentParticipants);
 
     this.isSubscribed = true;
   }
@@ -94,7 +67,6 @@ export class GlobalChatService implements callback.ChatChannel {
 
     this.notifyConnection(false);
     this.removeEventHandlers();
-    WebSocketService.disconnect();
 
     this.connectPromise = undefined;
     this.boundSocket = undefined;
@@ -151,9 +123,9 @@ export class GlobalChatService implements callback.ChatChannel {
     return () => this.participantsCallbacks.delete(cb);
   }
 
-  onRecents(cb: callback.RecentsCallback): () => void {
-    this.recentsCallbacks.add(cb);
-    return () => this.recentsCallbacks.delete(cb);
+  onInit(cb: callback.InitCallback): () => void {
+    this.initCallbacks.add(cb);
+    return () => this.initCallbacks.delete(cb);
   }
 
   getIsUnread(): boolean {
@@ -220,10 +192,10 @@ export class GlobalChatService implements callback.ChatChannel {
     this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, onParticipants);
     WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, onParticipants);
 
-    // chat:global:recents
-    const onRecents = (dto: chatDto.GlobalChatRecentsDto) => this.handleGlobalChatRecents(dto);
-    this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_RECENTS, onRecents);
-    WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_RECENTS, onRecents);
+    // chat:global:init
+    const onInit = (dto: chatDto.GlobalChatInitDto) => this.handleGlobalChatInit(dto);
+    this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_INIT, onInit);
+    WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_INIT, onInit);
 
     // error
     const onError = (error: any) => this.handleError(error);
@@ -249,11 +221,14 @@ export class GlobalChatService implements callback.ChatChannel {
     if (!isExpanded) this.setUnread();
   }
 
-  private handleGlobalChatRecents(dto: chatDto.GlobalChatRecentsDto): void {
-    const chatMessages = dto.messages.map(chatConverter.toReceiveData);
-    this.messages = [...chatMessages];
+  private handleGlobalChatInit(dto: chatDto.GlobalChatInitDto): void {
+    const data = chatConverter.toGlobalChatInitData(dto);
 
-    this.notifyRecents(chatMessages);
+    this.currentParticipants = data.currentParticipants ?? 0;
+    this.messages = [...data.messages];
+
+    this.notifyInit(this.currentParticipants, this.messages);
+
     if (dto.current_participants != null) {
       this.currentParticipants = dto.current_participants;
       this.notifyParticipants(this.currentParticipants);
@@ -276,8 +251,8 @@ export class GlobalChatService implements callback.ChatChannel {
     this.participantsCallbacks.forEach((cb) => cb(count));
   }
 
-  private notifyRecents(messages: chatData.ChatReceiveData[]): void {
-    this.recentsCallbacks.forEach((cb) => cb(messages));
+  private notifyInit(count: number, messages: chatData.ChatReceiveData[]): void {
+    this.initCallbacks.forEach((cb) => cb(count, messages));
   }
 
   private notifyUnreadChange(isUnread: boolean): void {

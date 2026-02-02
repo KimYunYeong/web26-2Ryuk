@@ -13,6 +13,7 @@ import Avatar from '@/app/components/shared/profile/Avatar';
 import { AuthStore, authStore } from '@/app/features/user/stores/auth';
 import roomService from '@/app/features/room/services/RoomService';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
+import { useVoiceChat } from '@/app/features/voice/hooks/useVoiceChat';
 import useNavigation from '@/app/hooks/useNavigation';
 import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 
@@ -23,8 +24,7 @@ export default function LocalChatPanel() {
   const participants = roomStore((state) => state.participants);
   const currentParticipants = roomStore((state) => state.currentParticipants);
   const isJoined = Boolean(roomId);
-  const [micState, setMicState] = useState(true);
-  const [speakerState, setSpeakerState] = useState(true);
+  const { isMyMicOn, masterMute, toggleMyMic, toggleMasterMute } = useVoiceChat();
   const { gotoRoom } = useNavigation();
   const roomTitleText = roomTitle || '대화방';
   const [isUnread, setIsUnread] = useState(false);
@@ -59,8 +59,6 @@ export default function LocalChatPanel() {
     })().catch();
   }, [roomId, isJoined, roomTitle]);
 
-  const handleMicChange = (state: boolean) => setMicState(state);
-  const handleSpeakerChange = (state: boolean) => setSpeakerState(state);
   const handleMessageSubmit = async (message: string) => {
     if (!message.trim()) return;
     await roomChatService.sendMessage(message.trim());
@@ -73,10 +71,10 @@ export default function LocalChatPanel() {
   const headerChildren = (
     <div className={styles.roomChatHeaderControls}>
       <AudioControlButtons
-        micOn={micState}
-        speakerOn={speakerState}
-        onMicChange={handleMicChange}
-        onSpeakerChange={handleSpeakerChange}
+        micOn={isMyMicOn}
+        speakerOn={!masterMute}
+        onMicChange={() => toggleMyMic()}
+        onSpeakerChange={() => toggleMasterMute()}
       />
     </div>
   );

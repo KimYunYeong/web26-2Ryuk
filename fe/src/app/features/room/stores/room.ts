@@ -79,7 +79,7 @@ export const roomStore = create<RoomStore>()(
             return { players: next };
           }),
 
-        resetRoom: () => set(() => createEmptyRoomState()),
+        resetRoom: () => set(() => ({ ...createEmptyRoomState() })),
       };
     },
     {

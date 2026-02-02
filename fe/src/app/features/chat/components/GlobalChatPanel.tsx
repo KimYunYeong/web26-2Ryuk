@@ -40,7 +40,10 @@ export default function GlobalChatPanel() {
     subscribe();
 
     // recents 수신 콜백 등록
-    const unsubscribeRecents = globalChatService.onRecents((messages) => setChats(messages));
+    const unsubscribeRecents = globalChatService.onInit((count, messages) => {
+      setCurrentParticipants(count);
+      setChats(messages);
+    });
 
     // 메시지 수신 콜백 등록
     const unsubscribeMessage = globalChatService.onMessage((message) =>

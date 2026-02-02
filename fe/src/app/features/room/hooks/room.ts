@@ -11,6 +11,8 @@ import { UseRoomResult } from '@/app/features/room/hooks/type';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
 import { globalChatService } from '@/app/features/chat/services/GlobalChatService';
 import { gameService } from '@/app/features/game/services/GameService';
+import { authStore } from '@/app/features/user/stores/auth';
+import { RoomParticipantJoinData, RoomParticipantLeaveData } from '@/app/features/room/dtos/data';
 
 export function useRoom(roomId?: string): UseRoomResult {
   const { showSuccessToast, showErrorToast } = useToast();
@@ -18,6 +20,11 @@ export function useRoom(roomId?: string): UseRoomResult {
 
   const hasShownEnterToastRef = useRef(false);
   const prevRoomIdForToastRef = useRef<string>();
+
+  const myId = authStore((state) => state.userId);
+  const addParticipant = roomStore((state) => state.addParticipant);
+  const removeParticipant = roomStore((state) => state.removeParticipant);
+  const resetRoom = roomStore((state) => state.resetRoom);
 
   const currentRoomId = roomStore((s) => s.id);
 
@@ -35,7 +42,7 @@ export function useRoom(roomId?: string): UseRoomResult {
 
   const game = useGame(roomId);
 
-  // 입장 확정 후 채팅 및 게임 구독
+  // 입장 확정 후 채팅 및 게임 구독 (store와 URL 일치 시)
   useEffect(() => {
     const isEntered = entry.status === 'entered';
     if (!isEntered || !roomId) return;
@@ -51,11 +58,26 @@ export function useRoom(roomId?: string): UseRoomResult {
 
     //
     let cancelled = false;
+
+    let unsubJoin: () => void;
+    let unsubLeave: () => void;
+
     (async () => {
       await globalChatService.ensureConnected();
       if (cancelled) return;
+
       await roomChatService.subscribe(roomId);
       if (cancelled) return;
+
+      unsubJoin = roomChatService.onJoin((data: RoomParticipantJoinData) => {
+        if (data.user.userId === myId) return;
+        addParticipant(data.user);
+      });
+
+      unsubLeave = roomChatService.onLeave((data: RoomParticipantLeaveData) => {
+        removeParticipant(data.user.id);
+      });
+
       await gameService.subscribe(roomId);
     })();
 
@@ -66,17 +88,24 @@ export function useRoom(roomId?: string): UseRoomResult {
 
     return () => {
       cancelled = true;
+      unsubJoin?.();
+      unsubLeave?.();
     };
-  }, [entry.status, entry.joinInfo, roomId, currentRoomId]);
+  }, [entry.status, entry.joinInfo, roomId, currentRoomId, myId]);
 
   useEffect(() => {
-    const unsubDelete = roomChatService.onDelete(goHome);
-    const unsubBan = roomChatService.onBan(goHome);
+    const handleRoomRemoved = () => {
+      roomChatService.clearSubscriptionOnly();
+      resetRoom();
+      goHome();
+    };
+    const unsubDelete = roomChatService.onDelete(handleRoomRemoved);
+    const unsubBan = roomChatService.onBan(handleRoomRemoved);
     return () => {
       unsubDelete();
       unsubBan();
     };
-  }, [goHome]);
+  }, [goHome, resetRoom]);
 
   const exit = useRoomExit(roomId, {
     onLeaveSuccess: () => {

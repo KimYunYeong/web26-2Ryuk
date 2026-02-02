@@ -5,6 +5,7 @@ import { useModal } from '@/app/components/shared/modal/useModal';
 import { roomStore } from '@/app/features/room/stores/room';
 import roomService from '@/app/features/room/services/RoomService';
 import { roomChatService } from '@/app/features/chat/services/RoomChatService';
+import { voiceStore } from '@/app/features/voice/stores/voice';
 import type { UseRoomExitCallbacks, UseRoomExitResult } from '@/app/features/room/hooks/type';
 
 const DELETE_MODAL_ID = 'delete-room-modal';
@@ -21,13 +22,15 @@ export function useRoomExit(
 
   const handleLeaveRoom = useCallback(async () => {
     await roomChatService.unsubscribe();
+    voiceStore.getState().reset();
     roomStore.getState().resetRoom();
     callbacksRef.current.onLeaveSuccess();
-  }, []);
+  }, [roomId]);
 
   const handleDeleteRoom = useCallback(async () => {
     if (!roomId) return;
     roomChatService.clearSubscriptionOnly();
+    voiceStore.getState().reset();
     await roomService.deleteRoom(roomId);
     roomStore.getState().resetRoom();
     callbacksRef.current.onDeleteSuccess();

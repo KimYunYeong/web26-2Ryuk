@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { roomStore } from '@/app/features/room/stores/room';
 import LocalChatPanel from '@/app/features/chat/components/LocalChatPanel';
+import VoiceAudioLayer from '@/app/features/voice/components/VoiceAudioLayer';
 import { PageLayoutProps } from '@/app/(pages)/type';
 
 /**
@@ -17,6 +18,7 @@ export default function PageLayout({ children }: PageLayoutProps) {
     <>
       {children}
       {roomId && !isRoomPage && <LocalChatPanel />}
+      {roomId && <VoiceAudioLayer />}
     </>
   );
 }
