@@ -16,7 +16,7 @@ const IS = {
   boolean: is('boolean'),
   number: (v: unknown) => is('number')(v) && !Number.isNaN(v),
   numeric: (v: unknown) =>
-    IS.number(v) || (IS.string(v) && v.trim() !== '' && !Number.isNaN(Number(v))),
+    IS.number(v) || (IS.string(v) && (v as string).trim() !== '' && !Number.isNaN(Number(v))),
   array: Array.isArray,
   null: (v: unknown) => v === null,
   undefined: (v: unknown) => v === undefined,
