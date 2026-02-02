@@ -4,6 +4,17 @@ export class WebSocketService {
   private static socket?: Socket;
   private static connectPromise?: Promise<void>;
   private static connectResolvers: Set<() => void> = new Set();
+  private static socketCreatedCallbacks: Set<(socket: Socket) => void> = new Set();
+
+  /**
+   * 소켓 인스턴스가 생성된 직후 한 번 호출되는 콜백 등록.
+   * (연결 완료 전에 등록해 두어 연결 직후 서버가 보내는 이벤트를 놓치지 않기 위함)
+   * 이미 소켓이 있으면 즉시 콜백을 호출한다.
+   */
+  static onSocketCreated(cb: (socket: Socket) => void): void {
+    this.socketCreatedCallbacks.add(cb);
+    if (this.socket) cb(this.socket);
+  }
 
   /**
    * WebSocket 연결
@@ -36,6 +47,9 @@ export class WebSocketService {
     };
 
     this.socket = io(targetUrl, connectionOptions);
+
+    this.socketCreatedCallbacks.forEach((cb) => cb(this.socket!));
+    this.socketCreatedCallbacks.clear();
 
     // 연결 완료 Promise 관리
     const socket = this.socket;

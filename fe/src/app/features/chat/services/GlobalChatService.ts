@@ -27,6 +27,8 @@ export class GlobalChatService implements callback.ChatChannel {
   private connectPromise?: Promise<void>;
 
   constructor() {
+    WebSocketService.onSocketCreated(() => this.ensureHandlersRegistered());
+
     WebSocketService.onReconnect(() => {
       if (!this.isSubscribed) return;
       this.removeEventHandlers();
