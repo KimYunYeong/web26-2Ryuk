@@ -52,8 +52,8 @@
 
 
 .roomVoiceChat {
-  min-width: 240px;
-  width: 100%;
+  width: 400px;
+  flex: 1 1 auto;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -61,7 +61,6 @@
   overflow: hidden;
   background: var(--neutral-1);
   border: 1px solid var(--neutral-3);
-  flex: 1 1 auto;
   min-height: 0;
   max-height: var(--room-body-max-height);
 }
@@ -70,6 +69,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 80px;
   padding: 24px 40px;
   border-bottom: 1px solid var(--neutral-3);
   background: var(--primary-1);
@@ -183,12 +183,6 @@
   font: var(--label-2);
 }
 
-.statusPrimary {}
-.statusSecondary {}
-.statusError {}
-.statusWarning {}
-.statusDisabled {}
-
 .statusText {
   color: inherit;
 }
@@ -222,7 +216,7 @@
 
 .statusRow.statusDisabled .statusText,
 .statusRow.statusDisabled .statusIcon {
-  color: var(--neutral-4);
+  color: transparent;
 }
 
 .controls {
@@ -249,8 +243,16 @@
   color: var(--secondary);
 }
 
+.me .sliderIcon {
+  color: var(--primary-6);
+}
+
 .disabled .sliderIcon {
   color: var(--neutral-4);
+}
+
+.me.disabled .sliderIcon {
+  color: var(--primary-5);
 }
 
 .sliderRow input[type='range'] {

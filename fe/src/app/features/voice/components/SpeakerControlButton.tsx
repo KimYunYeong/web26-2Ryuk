@@ -1,6 +1,6 @@
 'use client';
 
-import { OutlineIconButton } from '@/app/components/shared/icon/IconButton';
+import { IconButtonBase } from '@/app/components/shared/icon/IconButton';
 import { SpeakerControlButtonProps } from './type';
 
 export default function SpeakerControlButton({
@@ -14,10 +14,10 @@ export default function SpeakerControlButton({
   };
 
   return (
-    <OutlineIconButton
+    <IconButtonBase
       name={speakerOn ? 'volume' : 'mute'}
       size="small"
-      themeColor={speakerOn ? 'default' : 'secondary'}
+      variant={speakerOn ? 'outline' : 'error-secondary'}
       onClick={handleStateChange}
       disabled={disabled}
     />

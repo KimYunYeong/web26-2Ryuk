@@ -11,7 +11,7 @@ import CSSUtil from '@/utils/css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './chat.module.css';
 import { VoiceParticipantCardProps } from './type';
-import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
+import { TextTooltip } from '@/app/components/shared/tooltip/TextTooltip';
 
 export default function VoiceParticipantCard({
   userId,
@@ -122,54 +122,49 @@ export default function VoiceParticipantCard({
   })();
 
   const sliderIconName = isMe ? micIconName : speakerIconName;
-  const statusIconName = micIconName;
+  const statusIconName = speakerOn ? micIconName : speakerIconName;
 
   return (
-    <>
-      <TooltipTrigger dataAnchor="mic-unavailable">
-        <div className={className}>
-          <div className={styles.cardTop}>
-            <div className={styles.avatarWrapper}>
-              <Avatar nickname={nickname} profileImage={profileImage} isActive={isSpeaking} />
-            </div>
-            <div className={styles.meta}>
-              <div className={styles.nameRow}>
-                <span className={styles.participantName}>{nickname}</span>
-                {isHost && <HostBadge />}
-                {isMe && <Chip.Secondary label="나" size="small" />}
-              </div>
-              <div className={statusRowClassName}>
-                <span className={styles.statusIcon}>
-                  <Icon name={statusIconName} size="small" />
-                </span>
-                <span className={styles.statusText}>{statusText}</span>
-              </div>
-            </div>
-            <div className={styles.controls}>{audioControls}</div>
+    <div className={className}>
+      <div className={styles.cardTop}>
+        <div className={styles.avatarWrapper}>
+          <Avatar nickname={nickname} profileImage={profileImage} isActive={isSpeaking} />
+        </div>
+        <div className={styles.meta}>
+          <div className={styles.nameRow}>
+            <>
+              <span data-anchor={`voice-card-${nickname}`} className={styles.participantName}>
+                {nickname}
+              </span>
+              <TextTooltip anchorId={`voice-card-${nickname}`} text={nickname} />
+            </>
+            {isHost && <HostBadge />}
+            {isMe && <Chip.Secondary label="나" size="small" />}
           </div>
-
-          <div className={styles.sliderRow}>
-            <span className={styles.sliderIcon}>
-              <Icon name={sliderIconName} size="small" />
+          <div className={statusRowClassName}>
+            <span className={styles.statusIcon}>
+              <Icon name={statusIconName} size="small" />
             </span>
-            <SliderBase
-              variant={sliderVariant}
-              value={sliderValue} // 1. 현재 상태값 연결
-              onChange={handleSliderChange} // 2. 바꿨을 때 실행될 핸들러 연결
-              min={0}
-              max={1}
-              step={0.01}
-              disabled={disabled}
-            />
+            <span className={styles.statusText}>{statusText}</span>
           </div>
         </div>
-      </TooltipTrigger>
-      {disabled && (
-        <TextTooltip
-          text="텍스트 대화방에서는 음성 채팅을 할 수 없어요"
-          anchorId="mic-unavailable"
+        <div className={styles.controls}>{audioControls}</div>
+      </div>
+
+      <div className={styles.sliderRow}>
+        <span className={styles.sliderIcon}>
+          <Icon name={sliderIconName} size="small" />
+        </span>
+        <SliderBase
+          variant={sliderVariant}
+          value={sliderValue} // 1. 현재 상태값 연결
+          onChange={handleSliderChange} // 2. 바꿨을 때 실행될 핸들러 연결
+          min={0}
+          max={1}
+          step={0.01}
+          disabled={disabled}
         />
-      )}
-    </>
+      </div>
+    </div>
   );
 }

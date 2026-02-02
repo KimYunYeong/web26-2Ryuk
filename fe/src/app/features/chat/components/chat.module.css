@@ -10,6 +10,7 @@
   background: var(--neutral-1);
   box-shadow: 0 4px 8px #00000034;
   transition: all .3s cubic-bezier(0.47, 1.4, 0.5, 0.9);
+  z-index: 100;
 }
 
 .chatPanel.active {

@@ -69,19 +69,6 @@ export default function RoomVoiceChat() {
     };
   }, [isHydrated]);
 
-  if (!isHydrated) {
-    return (
-      <div className={styles.roomVoiceChat}>
-        <div className={styles.header}>
-          <h3 className={styles.title}>참여자 목록</h3>
-        </div>
-        <div className={styles.content}>
-          <div className={styles.emptyState}>참여자 정보를 불러오는 중...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.roomVoiceChat}>
       <div className={styles.header}>
@@ -93,48 +80,52 @@ export default function RoomVoiceChat() {
         </div>
       </div>
       <div className={styles.content}>
-        <div className={styles.participantsList}>
-          {me && (
-            <VoiceParticipantCard
-              userId={me.id}
-              key="me"
-              nickname={me.nickname}
-              profileImage={me.profileImage}
-              isMe
-              micOn={isMyMicOn}
-              speakerOn={!masterMute}
-              onSpeakerChange={toggleMasterMute}
-              onMicChange={toggleMyMic}
-              active={false}
-              isHost={hostId === me.id}
-              disabled={voiceControlsDisabled}
-            />
-          )}
-          {participants.map((p: PData) => {
-            const voiceInfo = users[p.userId];
-            const userVolume = voiceInfo?.volume ?? 0.5;
+        {!isHydrated ? (
+          <div className={styles.emptyState}>참여자 정보를 불러오는 중...</div>
+        ) : (
+          <div className={styles.participantsList}>
+            {me && (
+              <VoiceParticipantCard
+                userId={me.id}
+                key="me"
+                nickname={me.nickname}
+                profileImage={me.profileImage}
+                isMe
+                micOn={isMyMicOn}
+                speakerOn={!masterMute}
+                onSpeakerChange={toggleMasterMute}
+                onMicChange={toggleMyMic}
+                active={false}
+                isHost={hostId === me.id}
+                disabled={voiceControlsDisabled}
+              />
+            )}
+            {participants.map((p: PData) => {
+              const voiceInfo = users[p.userId];
+              const userVolume = voiceInfo?.volume ?? 0.5;
 
-            return (
-              <div key={p.userId}>
-                <VoiceParticipantCard
-                  userId={p.userId}
-                  nickname={p.nickname}
-                  profileImage={p.profileImage}
-                  micOn={voiceInfo?.isMicOn ?? false}
-                  speakerOn={voiceInfo?.isSpeakerOn ?? true}
-                  volume={userVolume} // 볼륨 값 전달
-                  onSliderChange={(val) => setUserVolume(p.userId, val)}
-                  onSpeakerChange={() => toggleUserSpeaker(p.userId)}
-                  active={voiceInfo?.isSpeaking ?? false}
-                  mutedByMe={voiceInfo?.mutedByMe ?? false}
-                  connected={Boolean(voiceInfo)}
-                  isHost={hostId === p.userId}
-                  disabled={voiceControlsDisabled}
-                />
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <div key={p.userId}>
+                  <VoiceParticipantCard
+                    userId={p.userId}
+                    nickname={p.nickname}
+                    profileImage={p.profileImage}
+                    micOn={voiceInfo?.isMicOn ?? false}
+                    speakerOn={voiceInfo?.isSpeakerOn ?? true}
+                    volume={userVolume}
+                    onSliderChange={(val) => setUserVolume(p.userId, val)}
+                    onSpeakerChange={() => toggleUserSpeaker(p.userId)}
+                    active={voiceInfo?.isSpeaking ?? false}
+                    mutedByMe={voiceInfo?.mutedByMe ?? false}
+                    connected={Boolean(voiceInfo)}
+                    isHost={hostId === p.userId}
+                    disabled={voiceControlsDisabled}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
