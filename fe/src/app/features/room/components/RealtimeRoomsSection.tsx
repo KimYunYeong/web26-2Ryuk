@@ -16,7 +16,7 @@ import roomService from '../services/RoomService';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useModal } from '@/app/components/shared/modal/useModal';
 import { roomStore } from '../stores/room';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
@@ -30,6 +30,8 @@ export default function RealtimeRoomsSection() {
   const roomId = roomStore((state) => state.id);
   const replaceRoom = roomStore((state) => state.replaceRoom);
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadRooms = useCallback(async () => {
     const roomsDto = await roomService.getRooms();
@@ -60,6 +62,18 @@ export default function RealtimeRoomsSection() {
     showSuccessToast('방을 생성했습니다!');
   };
 
+  const refreshClassName = CSSUtil.buildCls(styles.refresh, isRefreshing && styles.spin);
+  const handleRefreshClick = useCallback(async () => {
+    setIsRefreshing(true);
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => setIsRefreshing(false), 650);
+    await loadRooms();
+  }, [loadRooms]);
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
   const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
 
   return (
@@ -72,10 +86,13 @@ export default function RealtimeRoomsSection() {
           </div>
           <div className={styles.actions}>
             <div className={styles.search}>
-              <SearchForm placeholder="제목, 내용, 작성자 검색" onSubmit={handleSearch} />
+              <TooltipTrigger dataAnchor="search-form">
+                <SearchForm placeholder="제목, 태그 검색" onSubmit={handleSearch} />
+              </TooltipTrigger>
+              <TextTooltip anchorId="search-form" text="제목과 태그를 검색할 수 있어요" />
             </div>
-            <div className={styles.refresh}>
-              <OutlineIconButton name="refresh" size="medium" onClick={loadRooms} />
+            <div className={refreshClassName}>
+              <OutlineIconButton name="refresh" size="medium" onClick={handleRefreshClick} />
             </div>
             <div className={styles.createRoom}>
               <TooltipTrigger dataAnchor="create-room-button">

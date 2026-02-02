@@ -36,7 +36,7 @@ function RoomCard({
 
   const enterable = isMember || (!noRemain && !myRoomId);
 
-  const getStatusChipStatus = (): 'success' | 'warning' | 'error' => {
+  const getStatus = (): 'success' | 'warning' | 'error' => {
     if (noRemain) return 'error'; // 풀방
     if (remainingCount === 1) return 'warning'; // 한 자리 남음
     return 'success';
@@ -57,20 +57,31 @@ function RoomCard({
   else if (isMember) tooltipText = '기존 방에 입장합니다';
   else if (noRemain) tooltipText = '자리가 없어요!';
   else if (myRoomId) tooltipText = '이미 소속된 방이 있어요!';
+  else if (remainingCount === 1) tooltipText = '한 자리 남았어요!';
 
   return (
     <div className={styles.roomCard}>
       <div className={styles.top}>
         <div className={styles.header}>
-          <div className={styles.titleContainer}>
-            <Icon name={isMicAvailable ? 'voice' : 'message'} size="medium" />
-            <h3 className={styles.title} data-anchor={titleAnchor}>
-              {title}
-            </h3>
-          </div>
-          <TextTooltip text={title} anchorId={titleAnchor} />
+          <>
+            <div className={styles.titleContainer}>
+              <>
+                <TooltipTrigger dataAnchor="roomcard-icon">
+                  <Icon name={isMicAvailable ? 'voice' : 'message'} size="medium" />
+                </TooltipTrigger>
+                <TextTooltip
+                  anchorId="roomcard-icon"
+                  text={isMicAvailable ? '음성 대화방 입니다' : '텍스트 대화방입니다'}
+                />
+              </>
+              <h3 className={styles.title} data-anchor={titleAnchor}>
+                {title}
+              </h3>
+            </div>
+            <TextTooltip text={title} anchorId={titleAnchor} />
+          </>
           <StatusChip
-            status={getStatusChipStatus()}
+            status={getStatus()}
             label={`${currentParticipants}/${maxParticipants}`}
             size="small"
           />
