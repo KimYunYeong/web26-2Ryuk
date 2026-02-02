@@ -102,7 +102,12 @@ export class RoomService implements OnModuleInit {
   /**
    * 방 정보 수정
    */
-  async updateRoom(hostId: string, roomId: string, roomData: RoomRequestDto): Promise<RoomCreateResponseDto> {
+  async updateRoom(
+    hostId: string,
+    roomId: string,
+    roomData: RoomRequestDto,
+    server: Server,
+  ): Promise<RoomCreateResponseDto> {
     const existingHostId = await this.roomRepository.getRoomField(roomId, 'host_id');
 
     if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
@@ -140,6 +145,12 @@ export class RoomService implements OnModuleInit {
     const create_date = create_dateStr ? new Date(create_dateStr) : new Date();
 
     const tags = await this.roomRepository.getTags(roomId);
+
+    // 다른 참여자들에게 방 정보 업데이트 알림
+    const memberIds = await this.roomRepository.getRoomMemberIds(roomId);
+    if (memberIds.length > 0) {
+      await this.roomNotificationService.notifyRoomUpdated(server, roomId, existingHostId);
+    }
 
     return {
       id: roomId,
