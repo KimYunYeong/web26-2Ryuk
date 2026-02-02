@@ -15,7 +15,7 @@ export const WS_EVENTS_CHAT = {
   ROOM_SEND: 'chat:room:send',
 
   // 송신 이벤트
-  GLOBAL_RECENTS: 'chat:global:recents',
+  GLOBAL_INIT: 'chat:global:init',
   GLOBAL_PARTICIPANTS_UPDATED: 'chat:global:participants-updated',
   GLOBAL_NEW_MESSAGE: 'chat:global:new-message',
   ROOM_NEW_MESSAGE: 'chat:room:new-message',
