@@ -573,7 +573,9 @@ export class RoomService implements OnModuleInit {
 
       const searchKeyword = keyword.trim().toLowerCase();
       const filteredRooms = allRooms.rooms.filter((room) => {
-        return room.title.toLowerCase().includes(searchKeyword);
+        const titleIncluded = room.title.toLowerCase().includes(searchKeyword);
+        const tagIncluded = room.tags.includes(searchKeyword);
+        return titleIncluded || tagIncluded;
       });
 
       return { rooms: filteredRooms };
