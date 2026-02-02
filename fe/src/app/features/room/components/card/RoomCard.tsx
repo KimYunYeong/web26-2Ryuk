@@ -25,15 +25,16 @@ function RoomCard({
   const { gotoRoom } = useNavigation();
   const remainingCount = maxParticipants - currentParticipants;
   const isAuthenticated = authStore((state) => state.isAuthenticated);
+  const myRoomId = roomStore((state) => state.id);
 
   const profiles = participants.map((p) => ({
     nickname: p.nickname,
     profileImage: p.profileImage,
   }));
-  const roomId = roomStore((state) => state.roomId);
   const noRemain = remainingCount === 0;
-  const isMember = roomId === id;
-  const enterable = isMember || !noRemain;
+  const isMember = myRoomId === id;
+
+  const enterable = isMember || (!noRemain && !myRoomId);
 
   const getStatusChipStatus = (): 'success' | 'warning' | 'error' => {
     if (noRemain) return 'error'; // 풀방
@@ -55,6 +56,7 @@ function RoomCard({
   if (!isAuthenticated) tooltipText = '먼저 로그인을 해주세요!';
   else if (isMember) tooltipText = '기존 방에 입장합니다';
   else if (noRemain) tooltipText = '자리가 없어요!';
+  else if (myRoomId) tooltipText = '이미 소속된 방이 있어요!';
 
   return (
     <div className={styles.roomCard}>

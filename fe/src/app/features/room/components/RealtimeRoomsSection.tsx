@@ -4,6 +4,7 @@ import styles from './realtimeRoomsSection.module.css';
 import RoomCard from './card/RoomCard';
 import * as IconCircle from '@/app/components/shared/icon/IconCircle';
 import * as TextButton from '@/app/components/shared/button/TextButton';
+import { OutlineIconButton } from '@/app/components/shared/icon/IconButton';
 import SearchForm from '@/app/components/shared/form/search/SearchForm';
 import { RoomData, RoomEditData } from '@/app/features/room/dtos/data';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
@@ -14,10 +15,9 @@ import RoomCreateModalContent from './creation/RoomCreateModalContent';
 import roomService from '../services/RoomService';
 import useNavigation from '@/app/hooks/useNavigation';
 import { useModal } from '@/app/components/shared/modal/useModal';
-import { roomStore, RoomStore } from '../stores/room';
-import { useEffect, useState } from 'react';
+import { roomStore } from '../stores/room';
+import { useCallback, useEffect, useState } from 'react';
 import { authStore, AuthStore } from '@/app/features/user/stores/auth';
-import { loadingStore } from '@/app/features/loading/stores/loading';
 import { useToast } from '@/app/components/shared/toast/useToast';
 import { TextTooltip, TooltipTrigger } from '@/app/components/shared/tooltip/TextTooltip';
 
@@ -26,20 +26,20 @@ export default function RealtimeRoomsSection() {
   const { gotoRoom } = useNavigation();
   const { closeModal } = useModal();
   const [rooms, setRooms] = useState<RoomData[]>([]);
-  const { setRoom, setRoomData } = roomStore();
-  const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
   const { showSuccessToast } = useToast();
-  const roomId = roomStore((state: RoomStore) => state.roomId);
+  const roomId = roomStore((state) => state.id);
+  const replaceRoom = roomStore((state) => state.replaceRoom);
   const isAuthenticated = authStore((state: AuthStore) => state.isAuthenticated);
-  const { show, hide } = loadingStore();
+
+  const loadRooms = useCallback(async () => {
+    const roomsDto = await roomService.getRooms();
+    const roomsData = roomsDto.rooms.map(RoomConverter.toData);
+    setRooms(roomsData);
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      const roomsDto = await roomService.getRooms();
-      const roomsData = roomsDto.rooms.map(RoomConverter.toData);
-      setRooms(roomsData);
-    })();
-  }, []);
+    loadRooms();
+  }, [loadRooms]);
 
   const handleSearch = async (query: string) => {
     const roomsDto = await roomService.searchRooms(query);
@@ -49,19 +49,18 @@ export default function RealtimeRoomsSection() {
 
   const handleSubmit = async (data: RoomEditData) => {
     const roomDto = RoomConverter.toEditDto(data);
-    show();
+    const createdRoomDto = await roomService.createRoom(roomDto);
+    const createdRoomData = RoomConverter.toData(createdRoomDto);
 
-    const createdRoom = await roomService.createRoom(roomDto);
     closeModal('room-creation');
 
-    gotoRoom(createdRoom.id);
-    setRoom(createdRoom.id);
-    setRoomData(RoomConverter.toData(createdRoom));
+    gotoRoom(createdRoomDto.id);
+    replaceRoom(createdRoomData);
 
     showSuccessToast('방을 생성했습니다!');
-
-    hide();
   };
+
+  const className = CSSUtil.buildCls(styles.headerDesktop, !isDesktop && styles.headerTablet);
 
   return (
     <>
@@ -74,6 +73,9 @@ export default function RealtimeRoomsSection() {
           <div className={styles.actions}>
             <div className={styles.search}>
               <SearchForm placeholder="제목, 내용, 작성자 검색" onSubmit={handleSearch} />
+            </div>
+            <div className={styles.refresh}>
+              <OutlineIconButton name="refresh" size="medium" onClick={loadRooms} />
             </div>
             <div className={styles.createRoom}>
               <TooltipTrigger dataAnchor="create-room-button">
