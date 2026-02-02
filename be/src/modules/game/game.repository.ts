@@ -4,9 +4,13 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { GameParticipantDto, GameInfoPayloadDto } from './dto/game-response.dto';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 
+/**
+ * Redis 데이터 접근 전용 Repository
+ * 게임 상태, 참가자 정보, 점수 등의 데이터 CRUD만 담당
+ */
 @Injectable()
-export class GameRedisService {
-  private readonly logger = new Logger(GameRedisService.name);
+export class GameRepository {
+  private readonly logger = new Logger(GameRepository.name);
 
   constructor(@Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType) {}
 
