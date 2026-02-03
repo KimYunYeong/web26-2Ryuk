@@ -252,6 +252,13 @@ export class RoomRepository {
   }
 
   /**
+   * 사용자 참여 방 목록 Set을 Redis에서 삭제 (user:${userId}:rooms)
+   */
+  async deleteUserRoomsSet(userId: string): Promise<void> {
+    await this.redisClient.del(`user:${userId}:rooms`);
+  }
+
+  /**
    * 현재 참여자 수 조회
    */
   async getCurrentParticipants(roomId: string): Promise<number> {

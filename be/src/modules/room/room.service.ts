@@ -503,6 +503,13 @@ export class RoomService implements OnModuleInit {
     for (const roomId of rooms) {
       await this.leaveRoomProcess(server, userId, roomId, client);
     }
+
+    // 모든 방에서 나간 후 user:${userId}:rooms Set이 비어있으면 삭제
+    const remainingRooms = await this.roomRepository.getUserRooms(userId);
+    if (remainingRooms.length === 0) {
+      // user:${userId}:rooms Set을 Redis에서 삭제
+      await this.roomRepository.deleteUserRoomsSet(userId);
+    }
   }
 
   /**
