@@ -29,12 +29,13 @@ export class AuthController {
   @BypassTransform()
   async githubAuthCallback(@Req() req, @Res({ passthrough: true }) res: Response) {
     const { accessToken } = await this.authService.login(req.user);
+    const expiresInMs = this.authService.getJwtExpirationInMs(); // AuthService에서 만료 시간 가져오기
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true, // sameSite: 'none' 일 때 필수
       sameSite: 'none',
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      expires: new Date(Date.now() + expiresInMs), // JWT 만료 시간에 맞춰 쿠키 만료 시간 설정
       path: '/',
     });
 
@@ -54,12 +55,13 @@ export class AuthController {
   @BypassTransform()
   async googleAuthCallback(@Req() req, @Res({ passthrough: true }) res: Response) {
     const { accessToken } = await this.authService.login(req.user);
+    const expiresInMs = this.authService.getJwtExpirationInMs(); // AuthService에서 만료 시간 가져오기
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      expires: new Date(Date.now() + expiresInMs), // JWT 만료 시간에 맞춰 쿠키 만료 시간 설정
       path: '/',
     });
 
@@ -73,13 +75,12 @@ export class AuthController {
   @Post('mock/login')
   async mockLogin(@Body() dto: MockLoginDto, @Res({ passthrough: true }) res: Response) {
     // Mock 사용자 확인
-    // MockAuthService에서 User 엔티티와 유사한 형태로 Mock 사용자 정보를 가져옴
     const mockUser = this.mockAuthService.getMockUserById(dto.userId);
     if (!mockUser) return { success: false, message: '존재하지 않는 Mock 사용자입니다.' };
 
     // Mock 사용자를 실제 User 엔티티 타입으로 변환 (필요한 속성만 매핑)
     const user: any = {
-      id: toUuid(mockUser.id), // Mock user ID를 UUID로 변환
+      id: toUuid(mockUser.id),
       email: mockUser.email,
       // 기타 필요한 User 엔티티 속성
     };
@@ -87,11 +88,13 @@ export class AuthController {
     // 실제 AuthService의 login 메소드를 사용하여 JWT 발급
     const { accessToken: token } = await this.authService.login(user);
 
+    const expiresInMs = this.authService.getJwtExpirationInMs(); // AuthService에서 만료 시간 가져오기
+
     res.cookie('accessToken', token, {
       httpOnly: true,
       secure: true, // sameSite: 'none' 일 때 필수
       sameSite: 'none',
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1일 후 만료
+      expires: new Date(Date.now() + expiresInMs),
       path: '/',
     });
 

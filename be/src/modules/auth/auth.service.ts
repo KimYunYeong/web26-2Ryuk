@@ -5,6 +5,7 @@ import { User } from '../user/user.entity';
 import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-response.dto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { parseExpiresIn } from '@src/common/utils/time.utils';
 
 interface OAuthUser {
   githubId?: string;
@@ -151,5 +152,13 @@ export class AuthService {
     }
 
     return new UserWithRoleResponseDto(user);
+  }
+
+  /**
+   * JWT 토큰 만료시간 조회
+   */
+  public getJwtExpirationInMs(): number {
+    const jwtExpirationTimeStr = this.configService.get<string>('JWT_EXPIRATION_TIME', '1h');
+    return parseExpiresIn(jwtExpirationTimeStr);
   }
 }
