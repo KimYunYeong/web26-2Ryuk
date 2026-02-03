@@ -9,7 +9,6 @@ import {
   HttpException,
   HttpStatus,
   Query,
-  Logger,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -28,8 +27,6 @@ import { JwtAuthGuard } from '@src/modules/auth/jwt-auth.guard';
 
 @Controller('rooms')
 export class RoomController {
-  private readonly logger = new Logger(RoomController.name);
-
   constructor(
     private readonly roomService: RoomService,
     private readonly roomGateway: RoomGateway,
@@ -60,7 +57,7 @@ export class RoomController {
   ): Promise<RoomCreateResponseDto> {
     const userId = req.user.id;
 
-    return await this.roomService.updateRoom(userId, roomId, dto);
+    return await this.roomService.updateRoom(userId, roomId, dto, this.roomGateway.server);
   }
 
   /**

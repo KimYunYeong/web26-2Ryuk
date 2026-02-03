@@ -102,7 +102,12 @@ export class RoomService implements OnModuleInit {
   /**
    * 방 정보 수정
    */
-  async updateRoom(hostId: string, roomId: string, roomData: RoomRequestDto): Promise<RoomCreateResponseDto> {
+  async updateRoom(
+    hostId: string,
+    roomId: string,
+    roomData: RoomRequestDto,
+    server: Server,
+  ): Promise<RoomCreateResponseDto> {
     const existingHostId = await this.roomRepository.getRoomField(roomId, 'host_id');
 
     if (!existingHostId) throw new HttpException('존재하지 않는 방입니다.', 404);
@@ -110,6 +115,10 @@ export class RoomService implements OnModuleInit {
     if (existingHostId !== hostId) throw new HttpException('방 수정 권한이 없습니다.', 403);
 
     if (roomData.max_participants <= 1) throw new HttpException('최대 참여자 수는 2명 이상이어야 합니다.', 400);
+
+    if (roomData.max_participants < (await this.roomRepository.getCurrentParticipants(roomId))) {
+      throw new HttpException('최대 참여자 수는 현재 참여자 수보다 작을 수 없습니다.', 400);
+    }
 
     let password = '';
 
@@ -136,6 +145,12 @@ export class RoomService implements OnModuleInit {
     const create_date = create_dateStr ? new Date(create_dateStr) : new Date();
 
     const tags = await this.roomRepository.getTags(roomId);
+
+    // 다른 참여자들에게 방 정보 업데이트 알림
+    const memberIds = await this.roomRepository.getRoomMemberIds(roomId);
+    if (memberIds.length > 0) {
+      await this.roomNotificationService.notifyRoomUpdated(server, roomId, existingHostId);
+    }
 
     return {
       id: roomId,
