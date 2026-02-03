@@ -367,21 +367,6 @@ export class RoomRepository {
   }
 
   /**
-   * 글로벌 채팅 최신 메시지 조회
-   */
-  async getGlobalChatRecents(roomId: string): Promise<any[]> {
-    try {
-      const recentsKey = `room:${roomId}:recents`;
-      const messages = await this.redisClient.lRange(recentsKey, 0, -1);
-      return messages.map((msg) => JSON.parse(msg));
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`글로벌 채팅 최신 메시지 조회 실패: ${errorMessage}`);
-      return [];
-    }
-  }
-
-  /**
    * 게임 관련 필드 조회
    */
   async getGameField(roomId: string, field: string): Promise<string | null> {

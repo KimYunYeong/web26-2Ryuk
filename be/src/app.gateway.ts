@@ -23,6 +23,7 @@ import {
 } from '@src/common/constants/ws-events.constant';
 import { GameService } from './modules/game/game.service';
 import { GameCloseBroadcastDto } from './modules/game/dto/game-response.dto';
+import { ChatService } from './modules/chat/chat.service';
 
 @UseFilters(new WsExceptionFilter()) // 필터
 @WebSocketGateway({ namespace: '/' })
@@ -47,6 +48,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(
+    private readonly chatService: ChatService,
     private readonly roomService: RoomService,
     private readonly gameService: GameService,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClientType,
@@ -290,19 +292,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private async sendGlobalChatRecents(client: Socket, roomId: string, userId: string | null): Promise<void> {
     try {
       const [recents, currentParticipants] = await Promise.all([
-        this.roomService.getGlobalChatRecents(roomId),
+        this.chatService.getGlobalChatRecents(roomId, userId ? userId : undefined),
         this.roomService.getCurrentParticipants(roomId),
       ]);
 
       const messages = recents.map((msg) => ({
-        message: msg.content,
+        message: msg.message,
         sender: {
-          role: msg.role,
-          nickname: msg.nickname,
-          profile_image: msg.profile_image,
-          is_me: userId ? msg.sender_id === userId : false,
+          role: msg.sender.role,
+          nickname: msg.sender.nickname,
+          profile_image: msg.sender.profile_image,
+          is_me: userId ? msg.sender.is_me : false,
         },
-        timestamp: msg.create_date,
+        timestamp: msg.timestamp ?? new Date().toISOString(),
       }));
 
       client.emit(WS_EVENTS_CHAT.GLOBAL_INIT, {

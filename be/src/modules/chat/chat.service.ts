@@ -4,9 +4,9 @@ import { LOG, logMessage } from '@src/common/utils/log-messages';
 import {
   GlobalChatMessageResponseDto,
   LocalChatMessageResponseDto,
-  GlobalChatRecentMessageDto,
+  ChatRecentMessageDto,
 } from './dto/chat-response.dto';
-import { GLOBAL_ROOM_ID, USER_TYPE } from '@src/common/constants/constants';
+import { USER_TYPE } from '@src/common/constants/constants';
 import { WS_EVENTS_CHAT } from '@src/common/constants/ws-events.constant';
 import { CurseWordService } from '@src/modules/curse-word/curse-word.service';
 import { RoomService } from '../room/room.service';
@@ -51,13 +51,51 @@ export class ChatService {
     server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.GLOBAL_NEW_MESSAGE, responseToOthers.data);
 
     // 글로벌 채팅 메시지를 Redis에 저장 (최신 30개 유지)
-    if (roomId === GLOBAL_ROOM_ID) {
-      await this.chatRepository.saveGlobalChatMessage(roomId, userId, message, senderInfo, timestamp);
-    }
+    await this.chatRepository.saveChatMessage(roomId, userId, message, senderInfo, timestamp);
 
     logMessage(this.logger, LOG.CHAT.GLOBAL_BROADCAST(userId, message));
 
     return message;
+  }
+
+  /**
+   * 글로벌 채팅 최신 메시지 조회
+   */
+  async getGlobalChatRecents(roomId: string, currentUserId?: string): Promise<ChatRecentMessageDto[]> {
+    return await this.chatRepository.getChatRecents(roomId, currentUserId);
+  }
+
+  // 방 채팅 메시지 브로드캐스트
+  async broadcastRoomChat(
+    server: Server,
+    roomId: string,
+    userId: string,
+    message: string,
+    senderInfo: { role: string; nickname: string; profile_image: string | null },
+    senderSocketId: string,
+  ): Promise<string> {
+    const timestamp = new Date().toISOString();
+
+    const { sanitized, hasCurse } = await this.curseWordService.sanitize(message);
+    if (hasCurse) {
+      message = sanitized;
+    }
+
+    // 다른 사용자들에게는 is_me: false로 전송
+    const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
+    server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.ROOM_NEW_MESSAGE, responseToOthers.data);
+
+    // 방 채팅 메시지를 Redis에 저장 (최신 30개 유지)
+    await this.chatRepository.saveChatMessage(roomId, userId, message, senderInfo, timestamp);
+
+    logMessage(this.logger, LOG.CHAT.ROOM_BROADCAST(roomId, userId, message));
+
+    return message;
+  }
+
+  // 방 채팅 최신 메시지 조회 (최대 30개)
+  async getRoomChatRecents(roomId: string, currentUserId?: string): Promise<ChatRecentMessageDto[]> {
+    return this.chatRepository.getChatRecents(roomId, currentUserId);
   }
 
   // 관리자 메시지 전송 헬퍼
@@ -134,38 +172,5 @@ export class ChatService {
 
     this.sendAdminMessage(server, roomId, `${targetNickname}님을 찾을 수 없습니다.`, timestamp, senderSocketId);
     logMessage(this.logger, LOG.CHAT.USER_BAN(roomId, userId, targetNickname));
-  }
-
-  // 방 채팅 메시지 브로드캐스트
-  async broadcastRoomChat(
-    server: Server,
-    roomId: string,
-    userId: string,
-    message: string,
-    senderInfo: { role: string; nickname: string; profile_image: string | null },
-    senderSocketId: string,
-  ): Promise<string> {
-    const timestamp = new Date().toISOString();
-
-    const { sanitized, hasCurse } = await this.curseWordService.sanitize(message);
-    if (hasCurse) {
-      message = sanitized;
-    }
-
-    // 다른 사용자들에게는 is_me: false로 전송
-    const responseToOthers = new LocalChatMessageResponseDto(roomId, message, senderInfo, false, timestamp);
-    server.to(roomId).except(senderSocketId).emit(WS_EVENTS_CHAT.ROOM_NEW_MESSAGE, responseToOthers.data);
-
-    // 방 채팅 메시지를 Redis에 저장 (최신 30개 유지)
-    await this.chatRepository.saveRoomChatMessage(roomId, userId, message, senderInfo, timestamp);
-
-    logMessage(this.logger, LOG.CHAT.ROOM_BROADCAST(roomId, userId, message));
-
-    return message;
-  }
-
-  // 방 채팅 최신 메시지 조회 (최대 30개)
-  async getRoomChatRecents(roomId: string, currentUserId?: string): Promise<GlobalChatRecentMessageDto[]> {
-    return this.chatRepository.getRoomChatRecents(roomId, currentUserId);
   }
 }
