@@ -40,7 +40,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(AppGateway.name);
-  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+  private readonly disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(
     private readonly chatService: ChatService,
