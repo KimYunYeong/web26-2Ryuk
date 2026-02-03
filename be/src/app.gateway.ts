@@ -15,12 +15,7 @@ import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import { RedisClientType } from 'redis';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { GLOBAL_ROOM_ID, USER_SESSION_EXPIRATION_TIME } from '@src/common/constants/constants';
-import {
-  WS_EVENTS_AUTH,
-  WS_EVENTS_ROOM,
-  WS_EVENTS_CHAT,
-  WS_EVENTS_GAME,
-} from '@src/common/constants/ws-events.constant';
+import { WS_EVENTS_AUTH, WS_EVENTS_ROOM, WS_EVENTS_GAME } from '@src/common/constants/ws-events.constant';
 import { GameService } from './modules/game/game.service';
 import { GameCloseBroadcastDto } from './modules/game/dto/game-response.dto';
 import { ChatService } from './modules/chat/chat.service';
@@ -104,9 +99,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
             logMessage(this.logger, LOG.WS.ROOM_PARTICIPATION_CHECK_ERROR(errorMessage));
           }
         }
-
-        // 글로벌 룸 최신 메시지 전송 (인증/비인증 모두)
-        await this.sendGlobalChatRecents(client, globalRoomId, userId || null);
       }
 
       // 인증된 사용자의 경우 세션 복구 및 로컬 방 재참여 처리
@@ -285,39 +277,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logMessage(this.logger, LOG.WS.LOGOUT_ERROR(errorMessage));
-    }
-  }
-
-  // 글로벌 룸 입장 시 최신 메시지 및 참여자 수 전송
-  private async sendGlobalChatRecents(client: Socket, roomId: string, userId: string | null): Promise<void> {
-    try {
-      const [recents, currentParticipants] = await Promise.all([
-        this.chatService.getGlobalChatRecents(roomId, userId ? userId : undefined),
-        this.roomService.getCurrentParticipants(roomId),
-      ]);
-
-      const messages = recents.map((msg) => ({
-        message: msg.message,
-        sender: {
-          role: msg.sender.role,
-          nickname: msg.sender.nickname,
-          profile_image: msg.sender.profile_image,
-          is_me: userId ? msg.sender.is_me : false,
-        },
-        timestamp: msg.timestamp ?? new Date().toISOString(),
-      }));
-
-      client.emit(WS_EVENTS_CHAT.GLOBAL_INIT, {
-        messages,
-        current_participants: currentParticipants,
-      });
-
-      this.logger.debug(
-        `글로벌 채팅 최신 메시지 전송: roomId=${roomId}, userId=${userId || 'anonymous'}, count=${recents.length}`,
-      );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`글로벌 채팅 최신 메시지 전송 실패: ${errorMessage}`);
     }
   }
 }
