@@ -14,6 +14,11 @@ interface OAuthUser {
   profileImage?: string;
 }
 
+interface JwtTokenUser {
+  id: string;
+  email: string;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -111,12 +116,31 @@ export class AuthService {
     return this.userRepository.save(newUser);
   }
 
-  async login(user: User) {
-    const payload = { sub: user.id, email: user.email };
-    const expiresIn = this.configService.get<string>('JWT_EXPIRATION_TIME') || '1h'; // 환경 변수 사용, 기본값 '1h'
+  async login(user: JwtTokenUser) {
+    const accessToken = this.issueAccessToken(user);
+    const refreshToken = this.issueRefreshToken(user.id);
     return {
-      accessToken: this.jwtService.sign(payload, { expiresIn: expiresIn as JwtSignOptions['expiresIn'] }),
+      accessToken,
+      refreshToken,
     };
+  }
+
+  issueAccessToken(user: JwtTokenUser): string {
+    const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+    if (!secret) throw new InternalServerErrorException('환경변수가 없습니다: JWT_ACCESS_SECRET');
+
+    const expiresIn = this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '1h') as JwtSignOptions['expiresIn'];
+    const payload = { sub: user.id, email: user.email };
+    return this.jwtService.sign(payload, { secret, expiresIn });
+  }
+
+  issueRefreshToken(userId: string): string {
+    const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+    if (!secret) {
+      throw new InternalServerErrorException('환경변수가 없습니다: JWT_REFRESH_SECRET');
+    }
+    const expiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d') as JwtSignOptions['expiresIn'];
+    return this.jwtService.sign({ sub: userId }, { secret, expiresIn });
   }
 
   /**
@@ -134,6 +158,12 @@ export class AuthService {
     }
 
     return new UserInfoResponseDto(user);
+  }
+
+  async findUserEntityById(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('존재하지 않는 사용자입니다.');
+    return user;
   }
 
   /**
