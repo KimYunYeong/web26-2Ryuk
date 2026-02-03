@@ -120,7 +120,11 @@ export class ChatService {
     }
 
     if (userInfo.userId) {
+      // 사용자를 블랙리스트에 추가
+      await this.roomService.addUserToBlacklist(roomId, userInfo.userId);
+      // 사용자를 방에서 내보냄
       await this.roomService.leaveRoomProcess(server, userInfo.userId, roomId);
+
       this.sendAdminMessage(
         server,
         roomId,
