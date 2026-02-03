@@ -50,7 +50,7 @@ export class ChatGateway {
         return;
       }
       const currentParticipants = await this.roomService.getCurrentParticipants(roomId);
-      const recents = await this.chatService.getGlobalChatRecents(roomId, userId ? userId : undefined);
+      const recents = await this.chatService.getGlobalChatRecents(roomId, userId);
       return {
         messages: recents,
         current_participants: currentParticipants,
