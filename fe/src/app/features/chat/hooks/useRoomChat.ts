@@ -47,7 +47,8 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
         await roomChatService.subscribe(roomId);
         if (cancelled) return;
 
-        const { addParticipant, removeParticipant, updateRoom, resetRoom } = roomStore.getState();
+        const { addParticipant, removeParticipant, updateRoom, resetRoom, updateHost } =
+          roomStore.getState();
         const myId = authStore.getState().id;
 
         unsubscribeJoin = roomChatService.onJoin((data: RoomParticipantJoinData) => {
@@ -57,6 +58,7 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
 
         unsubscribeLeave = roomChatService.onLeave((data: RoomParticipantLeaveData) => {
           removeParticipant(data.user.id);
+          updateHost(data.host.id);
         });
 
         unsubscribeUpdate = roomChatService.onUpdate((data: RoomParticipantUpdateData) => {
