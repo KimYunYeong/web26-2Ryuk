@@ -54,6 +54,7 @@ export class GlobalChatService implements callback.ChatChannel {
     if (this.isSubscribed) return;
 
     this.isSubscribed = true;
+    this.attachHandlersToCurrentSocket();
 
     // 웹소켓 연결 후 초기 데이터 요청
     try {
