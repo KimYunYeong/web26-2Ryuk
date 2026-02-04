@@ -134,7 +134,7 @@ export class CurseWordService implements OnModuleInit {
     // 각 단어별 정규식 사전 컴파일
     this.cachedPatterns = this.cachedWords.map((word) => {
       const w = word.toLowerCase();
-      return new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      return new RegExp(w.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
     });
 
     this.logger.log(`비속어 캐시 갱신 완료: ${this.cachedWords.length}건`);
