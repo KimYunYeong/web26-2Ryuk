@@ -4,6 +4,7 @@ import { roomStore } from '@/app/features/room/stores/room';
 import { authStore } from '@/app/features/user/stores/auth';
 import { ChatReceiveData } from '../dtos/data';
 import type {
+  RoomParticipantDeleteData,
   RoomParticipantJoinData,
   RoomParticipantLeaveData,
   RoomParticipantUpdateData,
@@ -32,6 +33,7 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
     let unsubscribeJoin: (() => void) | undefined;
     let unsubscribeLeave: (() => void) | undefined;
     let unsubscribeUpdate: (() => void) | undefined;
+    let unsubscribeDelete: (() => void) | undefined;
     let cancelled = false;
 
     const subscribe = async () => {
@@ -39,7 +41,7 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
         await roomChatService.subscribe(roomId);
         if (cancelled) return;
 
-        const { addParticipant, removeParticipant, updateRoom } = roomStore.getState();
+        const { addParticipant, removeParticipant, updateRoom, resetRoom } = roomStore.getState();
         const myId = authStore.getState().id;
 
         unsubscribeJoin = roomChatService.onJoin((data: RoomParticipantJoinData) => {
@@ -65,6 +67,10 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
           });
         });
 
+        unsubscribeDelete = roomChatService.onDelete((_: RoomParticipantDeleteData) => {
+          resetRoom();
+        });
+
         setChats(roomChatService.getMessages());
         setIsConnected(roomChatService.isConnected());
       } catch {
@@ -82,6 +88,7 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
       unsubscribeJoin?.();
       unsubscribeLeave?.();
       unsubscribeUpdate?.();
+      unsubscribeDelete?.();
     };
   }, [roomId, isJoined, storeRoomId]);
 
