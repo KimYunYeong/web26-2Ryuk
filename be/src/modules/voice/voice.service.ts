@@ -13,15 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
 import { REDIS_CLIENT } from '@src/providers/redis/redis.provider';
 import * as mediasoup from 'mediasoup';
-import {
-  Consumer,
-  Producer,
-  Router,
-  RtpCodecCapability,
-  TransportListenIp,
-  WebRtcTransport,
-  Worker,
-} from 'mediasoup/node/lib/types';
+import { Consumer, Producer, Router, RtpCodecCapability, WebRtcTransport, Worker } from 'mediasoup/node/lib/types';
 import { cpus } from 'node:os'; // CPU 코어 수 확인용
 import { RedisClientType } from 'redis';
 import { Socket } from 'socket.io';
@@ -83,7 +75,7 @@ export class VoiceService implements OnModuleInit {
   // consumerId를 키로 실제 mediasoup Consumer 객체를 저장하는 맵 (프로세스 메모리)
   private readonly consumers: Map<string, Consumer> = new Map();
 
-  private mediasoupListenIps: TransportListenIp[];
+  private mediasoupListenIps: Array<{ ip: string; announcedIp: string }>;
   private readonly logger = new Logger(VoiceService.name);
 
   constructor(
