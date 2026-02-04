@@ -251,6 +251,13 @@ export class RoomService implements OnModuleInit {
         return;
       }
 
+      // 블랙리스트 확인
+      const isBanned = await this.roomRepository.isUserInBlacklist(roomId, userId);
+      if (isBanned) {
+        logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '사용자가 블랙리스트에 있습니다.'));
+        throw new ForbiddenException('이 방에서 추방되었습니다.');
+      }
+
       // 방 존재 여부 확인
       if (!roomData || Object.keys(roomData).length === 0) {
         logMessage(this.logger, LOG.ROOM.VALIDATION_ERROR(userId, roomId, '존재하지 않는 방입니다.'));
@@ -713,5 +720,12 @@ export class RoomService implements OnModuleInit {
    */
   async clearUserSession(userId: string): Promise<void> {
     await this.roomRepository.clearUserSession(userId);
+  }
+
+  /**
+   * 사용자를 블랙리스트에 추가
+   */
+  async addUserToBlacklist(roomId: string, userId: string): Promise<void> {
+    return await this.roomRepository.addUserToBlacklist(roomId, userId);
   }
 }

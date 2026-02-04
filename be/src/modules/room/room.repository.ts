@@ -394,4 +394,28 @@ export class RoomRepository {
   async getGameField(roomId: string, field: string): Promise<string | null> {
     return await this.redisClient.hGet(`room:${roomId}:game`, field);
   }
+
+  // ==================== 블랙리스트 관리 ====================
+  /**
+   * 키 생성 헬퍼
+   */
+  private getBlacklistKey(roomId: string): string {
+    return `room:${roomId}:blacklist`;
+  }
+
+  /**
+   * 사용자를 블랙리스트에 추가
+   */
+  async addUserToBlacklist(roomId: string, userId: string): Promise<void> {
+    const blacklistKey = this.getBlacklistKey(roomId);
+    await this.redisClient.sAdd(blacklistKey, userId);
+  }
+
+  /**
+   * 사용자가 블랙리스트에 존재 여부 조회
+   */
+  async isUserInBlacklist(roomId: string, userId: string): Promise<boolean> {
+    const blacklistKey = this.getBlacklistKey(roomId);
+    return Boolean(await this.redisClient.sIsMember(blacklistKey, userId));
+  }
 }
