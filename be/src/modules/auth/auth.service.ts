@@ -49,15 +49,15 @@ export class AuthService {
   async validateOAuthUser(profile: OAuthUser): Promise<User> {
     const { githubId, googleId, email, nickname, profileImage } = profile;
 
-    // 1. OAuth ID로 기존 사용자 조회
+    // OAuth ID로 기존 사용자 조회
     let user = await this.findUserByOAuthId(githubId, googleId);
     if (user) return user;
 
-    // 2. 이메일로 기존 사용자 조회 및 연동
+    // 이메일로 기존 사용자 조회 및 연동
     user = await this.findAndLinkUserByEmail(email, githubId, googleId);
     if (user) return user;
 
-    // 3. 신규 사용자 생성
+    // 신규 사용자 생성
     const finalNickname = await this.generateUniqueNickname(nickname, githubId, googleId);
     const newUser = this.userRepository.create({
       email,
