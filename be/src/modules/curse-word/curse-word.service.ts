@@ -100,12 +100,12 @@ export class CurseWordService implements OnModuleInit {
       const hasJamo = /[ㄱ-ㅎㅏ-ㅣ]/.test(word);
 
       if (isKoreanWord) {
-        // 완성형만으로 된 비속어는 완성형으로만 검색 (씨ㅁ발 같은 변형도 잡기 위해)
-        if (!hasJamo) {
-          this.markCurseWordInMask(word, idx, mask, original, normKoreanComplete);
-        } else {
-          // 자모음을 포함한 비속어는 자모음 포함 버전으로 검색
+        // 자모음을 포함한 비속어는 자모음 포함 버전으로 검색
+        if (hasJamo) {
           this.markCurseWordInMask(word, idx, mask, original, normKoreanWithJamo);
+        } else {
+          // 완성형만으로 된 비속어는 완성형으로만 검색 (바ㅁ보 같은 변형도 잡기 위해)
+          this.markCurseWordInMask(word, idx, mask, original, normKoreanComplete);
         }
       } else {
         // 영문 비속어
