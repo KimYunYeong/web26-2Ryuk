@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'node:crypto';
 import { User } from '../user/user.entity';
 import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-response.dto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
@@ -40,10 +41,9 @@ export class AuthService {
 
   // 랜덤 문자열 생성 헬퍼 함수
   private generateRandomSuffix(length: number = 4): string {
-    // 기본 길이 4
-    return Math.random()
-      .toString(36)
-      .substring(2, 2 + length);
+    return randomBytes(Math.ceil(length / 2))
+      .toString('hex')
+      .substring(0, length);
   }
 
   async validateOAuthUser(profile: OAuthUser): Promise<User> {
