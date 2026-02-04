@@ -435,7 +435,7 @@ export class GameService {
       }
 
       // delta 값 검증
-      const deltaNum = parseInt(delta, 10);
+      const deltaNum = Number.parseInt(delta, 10);
       if (isNaN(deltaNum)) throw new Error('Invalid delta value');
 
       // 현재 방의 선택된 게임 정보 조회

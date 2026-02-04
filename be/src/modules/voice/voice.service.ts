@@ -62,7 +62,7 @@ const mediaCodecs: RtpCodecCapability[] = [
 const NUM_WORKERS =
   process.env.MEDIASOUP_WORKER_NUM === 'auto'
     ? cpus().length
-    : parseInt(process.env.MEDIASOUP_WORKER_NUM || '1', 10) || 1;
+    : Number.parseInt(process.env.MEDIASOUP_WORKER_NUM || '1', 10) || 1;
 interface SocketWithAuth extends Socket {
   data: {
     userId: string;
