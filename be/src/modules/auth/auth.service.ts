@@ -186,6 +186,13 @@ export class AuthService {
   }
 
   /**
+   * 첫 번째 사용자 조회 (테스트용)
+   */
+  async findFirstUser(): Promise<User | null> {
+    return this.userRepository.findOne({ where: {}, order: { create_date: 'ASC' } });
+  }
+
+  /**
    * userId로 사용자 정보 조회 (role 포함)
    * 채팅 등에서 사용자 정보와 role이 모두 필요한 경우 사용
    */
