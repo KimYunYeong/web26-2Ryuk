@@ -66,8 +66,11 @@ export class AuthService {
     WebSocketService.setOnDisconnect((reason) => this.handleWebSocketDisconnect(reason));
 
     this.bindStorageListener();
-    if (this.sessionState === 'expired') return;
-    void this.restoreSession();
+    if (this.sessionState === 'expired') {
+      authStore.getState().setAuthInitDone(true);
+      return;
+    }
+    void this.restoreSession().finally(() => authStore.getState().setAuthInitDone(true));
   }
 
   /**
