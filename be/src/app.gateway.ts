@@ -225,6 +225,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (stillDisconnected) {
         await this.roomService.leaveAllRooms(this.server, userId);
         await this.roomService.clearUserSession(userId);
+        // user:${userId}:rooms Set을 Redis에서 삭제
+        await this.redisClient.del(`user:${userId}:rooms`);
 
         const globalRoomId = GLOBAL_ROOM_ID;
         if (globalRoomId) {
@@ -274,6 +276,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 모든 세션 삭제
       await this.roomService.clearUserSession(userId);
       await this.redisClient.del(`user:session:${userId}`);
+      await this.redisClient.del(`user:${userId}:rooms`);
 
       // 참여자 수 조회 및 브로드캐스트
       const currentParticipants = await this.roomService.getCurrentParticipants(globalRoomId);
