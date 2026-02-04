@@ -22,7 +22,7 @@ import {
   WebRtcTransport,
   Worker,
 } from 'mediasoup/node/lib/types';
-import { cpus } from 'os'; // CPU 코어 수 확인용
+import { cpus } from 'node:os'; // CPU 코어 수 확인용
 import { RedisClientType } from 'redis';
 import { Socket } from 'socket.io';
 import { RoomService } from '../room/room.service';

@@ -15,7 +15,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GLOBAL_ROOM_ID, ROOM_TYPE, RoomType } from '@src/common/constants/constants';
 import { LOG, logMessage } from '@src/common/utils/log-messages';
-import { UUID } from 'crypto';
+import { UUID } from 'node:crypto';
 import { User } from '@src/modules/user/user.entity';
 import { WS_EVENTS_ROOM } from '@src/common/constants/ws-events.constant';
 import { RoomRequestDto } from './dto/room.dto';
