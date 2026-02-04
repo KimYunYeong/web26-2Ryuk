@@ -3,7 +3,6 @@ import { JwtService } from '@nestjs/jwt';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { AuthService } from '@src/modules/auth/auth.service';
-import { MockAuthService } from '@src/modules/auth/mock-auth.service';
 import { RedisClientType } from 'redis';
 import { ServerOptions, Socket } from 'socket.io';
 
@@ -12,7 +11,6 @@ export class RedisIoAdapter extends IoAdapter {
   private pubClient: RedisClientType;
   private subClient: RedisClientType;
   private jwtService: JwtService;
-  private mockAuthService: MockAuthService;
   private authService: AuthService;
   private readonly logger = new Logger(RedisIoAdapter.name);
 
@@ -21,10 +19,6 @@ export class RedisIoAdapter extends IoAdapter {
     // JWT 인증 서비스
     this.jwtService = app.get(JwtService);
     this.authService = app.get(AuthService);
-    // 개발 환경: Mock 인증
-    if (process.env.NODE_ENV !== 'production') {
-      this.mockAuthService = new MockAuthService();
-    }
   }
 
   async connectToRedis(pubClient: RedisClientType): Promise<void> {

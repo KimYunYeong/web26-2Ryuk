@@ -1,10 +1,19 @@
-import { Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
 import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-response.dto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { parseExpiresIn } from '@src/common/utils/time.utils';
+import { buildRefreshCookieOptions } from '@src/common/utils/refresh.utils';
+import { Response } from 'express';
 
 interface OAuthUser {
   githubId?: string;
@@ -181,5 +190,42 @@ export class AuthService {
     }
 
     return new UserWithRoleResponseDto(user);
+  }
+
+  /**
+   * JWT 토큰 만료시간 조회
+   */
+  public getJwtExpirationInMs(): number {
+    const jwtExpirationTimeStr = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d');
+    return parseExpiresIn(jwtExpirationTimeStr);
+  }
+
+  /**
+   * 액세스 토큰을 HttpOnly 쿠키로 설정
+   */
+  public setAccessTokenCookie(res: Response, accessToken: string): void {
+    const expiresInMs = this.getJwtExpirationInMs();
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true, // sameSite: 'none' 일 때 필수 (프로덕션 환경에서 true)
+      sameSite: 'none',
+      expires: new Date(Date.now() + expiresInMs),
+      path: '/',
+    });
+  }
+
+  /**
+   * OAuth 로그인 후 JWT를 발급하고 쿠키를 설정한 뒤 프론트엔드로 리다이렉션
+   */
+  public async handleOAuthLogin(user: User, res: Response): Promise<void> {
+    if (!user?.email) throw new UnauthorizedException();
+
+    const { refreshToken } = await this.login({
+      id: user.id,
+      email: user.email,
+    });
+    res.cookie('refreshToken', refreshToken, buildRefreshCookieOptions(this.configService));
+
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
   }
 }

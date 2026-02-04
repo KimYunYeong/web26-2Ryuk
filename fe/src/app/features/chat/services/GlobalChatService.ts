@@ -8,6 +8,7 @@ import { WebSocketService } from '@/app/services/websocket.service';
 import { authStore } from '@/app/features/user/stores/auth';
 import * as callback from './type';
 import { chatPanelStore } from '@/app/features/chat/stores/chatPanel';
+import { toastStore } from '@/app/components/shared/toast/toast.store';
 
 export class GlobalChatService implements callback.ChatChannel {
   private messageCallbacks: Set<callback.MessageCallback> = new Set();
@@ -20,6 +21,7 @@ export class GlobalChatService implements callback.ChatChannel {
   private messages: chatData.ChatReceiveData[] = [];
   private currentParticipants = 0;
   private isUnread = false;
+  private isInitialized = false;
 
   /** 등록한 핸들러 참조 — 소켓이 바뀌어도 동일 참조로 off 가능, 재등록 시 유실 방지 */
   private readonly connectionHandlers: Array<{ event: string; handler: (...args: any[]) => void }> =
@@ -48,11 +50,21 @@ export class GlobalChatService implements callback.ChatChannel {
       return this.notifyConnection(false);
     }
 
-    this.attachHandlersToCurrentSocket();
+    // React StrictMode 등으로 동일 effect가 두 번 실행될 수 있으므로 비동기 처리 이후에도 다시 한 번 구독 여부 확인
+    if (this.isSubscribed) return;
+
     this.isSubscribed = true;
 
-    if (WebSocketService.isConnected()) {
-      this.notifyConnection(true);
+    // 웹소켓 연결 후 초기 데이터 요청
+    try {
+      const initDto = (await WebSocketService.request(
+        wsEvents.WS_EVENTS.CHAT_GLOBAL_INIT,
+        {},
+      )) as chatDto.GlobalChatInitDto;
+
+      this.handleGlobalChatInit(initDto);
+    } catch (error) {
+      console.error('[GlobalChatService] 초기 데이터 요청 실패:', error);
     }
   }
 
@@ -62,6 +74,7 @@ export class GlobalChatService implements callback.ChatChannel {
     this.notifyConnection(false);
     this.detachHandlers();
     this.isSubscribed = false;
+    this.isInitialized = false;
   }
 
   async sendMessage(message: string): Promise<void> {
@@ -115,6 +128,10 @@ export class GlobalChatService implements callback.ChatChannel {
 
   onInit(cb: callback.InitCallback): () => void {
     this.initCallbacks.add(cb);
+    // 이미 초기화가 완료되었다면 즉시 콜백 호출
+    if (this.isInitialized) {
+      cb(this.currentParticipants, this.messages);
+    }
     return () => this.initCallbacks.delete(cb);
   }
 
@@ -195,17 +212,24 @@ export class GlobalChatService implements callback.ChatChannel {
 
     this.currentParticipants = data.currentParticipants ?? 0;
     this.messages = [...data.messages];
+    this.isInitialized = true;
 
     this.notifyInit(this.currentParticipants, this.messages);
-
-    if (dto.current_participants != null) {
-      this.currentParticipants = dto.current_participants;
-      this.notifyParticipants(this.currentParticipants);
-    }
+    this.notifyParticipants(this.currentParticipants);
   }
 
   private handleError(error: any): void {
     console.error('[GlobalChatService] WebSocket error:', error);
+
+    // 모든 웹소켓 에러 토스트 메시지
+    let message = '오류가 발생했습니다.'; // 기본 메시지
+    if (typeof error === 'string') {
+      message = error;
+    } else if (typeof error === 'object' && error !== null && typeof error.message === 'string') {
+      message = error.message;
+    }
+
+    toastStore.getState().showErrorToast(message);
   }
 
   private notifyMessage(message: chatData.ChatReceiveData): void {

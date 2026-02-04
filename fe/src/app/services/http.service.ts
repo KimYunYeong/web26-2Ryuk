@@ -48,8 +48,10 @@ export class HttpService {
      */
     if (response.status === 401) {
       // refresh 자체가 401 → 세션 만료 확정
+      if (isRefreshRequest) throw new Error(sessionExpiredMessage);
+
       // refresh 시도 자체가 불가능한 상태
-      if (isRefreshRequest || !AuthService.canAttemptRefresh()) {
+      if (!AuthService.canAttemptRefresh()) {
         AuthService.expireSession(sessionExpiredMessage);
         throw new Error(sessionExpiredMessage);
       }

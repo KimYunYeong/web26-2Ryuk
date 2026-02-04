@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { MockAuthService } from './mock-auth.service';
 import { User } from '../user/user.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
@@ -37,7 +36,6 @@ import { JwtRefreshGuard } from './jwt-refresh.guard';
   controllers: [AuthController],
   providers: [
     AuthService,
-    MockAuthService,
     GithubStrategy,
     GoogleStrategy,
     JwtStrategy,
@@ -45,6 +43,6 @@ import { JwtRefreshGuard } from './jwt-refresh.guard';
     JwtRefreshGuard,
     JwtAuthGuard,
   ],
-  exports: [AuthService, MockAuthService],
+  exports: [AuthService],
 })
 export class AuthModule {}

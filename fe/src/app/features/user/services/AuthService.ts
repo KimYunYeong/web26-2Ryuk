@@ -56,17 +56,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * 개발용 Mock 로그인 (토큰 + 사용자 정보)
-   * POST /api/auth/mock/login
-   */
-  static async loginMock(userId: string) {
-    const dto = await UserService.mockLogin(userId);
-    const data = AuthConverter.toMockLoginData(dto);
-    this.setAccessToken(data.accessToken);
-    await this.setUserSession(data.user, { includeOptimisticIncrement: true });
-  }
-
   static initialize() {
     if (this.initialized) return;
     this.initialized = true;
