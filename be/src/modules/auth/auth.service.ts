@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
@@ -6,10 +12,8 @@ import { UserInfoResponseDto, UserWithRoleResponseDto } from './dto/auth-respons
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { parseExpiresIn } from '@src/common/utils/time.utils';
+import { buildRefreshCookieOptions } from '@src/common/utils/refresh.utils';
 import { Response } from 'express';
-import { MockAuthService } from './mock-auth.service';
-import { toUuid } from '@src/common/utils/user-id';
-import { MockLoginDto } from './dto/mock-login.dto';
 
 interface OAuthUser {
   githubId?: string;
@@ -17,6 +21,11 @@ interface OAuthUser {
   email?: string;
   nickname?: string;
   profileImage?: string;
+}
+
+interface JwtTokenUser {
+  id: string;
+  email: string;
 }
 
 @Injectable()
@@ -27,7 +36,6 @@ export class AuthService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly mockAuthService: MockAuthService,
   ) {}
 
   // 랜덤 문자열 생성 헬퍼 함수
@@ -117,12 +125,31 @@ export class AuthService {
     return this.userRepository.save(newUser);
   }
 
-  async login(user: User) {
-    const payload = { sub: user.id, email: user.email };
-    const expiresIn = this.configService.get<string>('JWT_EXPIRATION_TIME') || '1h'; // 환경 변수 사용, 기본값 '1h'
+  async login(user: JwtTokenUser) {
+    const accessToken = this.issueAccessToken(user);
+    const refreshToken = this.issueRefreshToken(user.id);
     return {
-      accessToken: this.jwtService.sign(payload, { expiresIn: expiresIn as JwtSignOptions['expiresIn'] }),
+      accessToken,
+      refreshToken,
     };
+  }
+
+  issueAccessToken(user: JwtTokenUser): string {
+    const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+    if (!secret) throw new InternalServerErrorException('환경변수가 없습니다: JWT_ACCESS_SECRET');
+
+    const expiresIn = this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '1h') as JwtSignOptions['expiresIn'];
+    const payload = { sub: user.id, email: user.email };
+    return this.jwtService.sign(payload, { secret, expiresIn });
+  }
+
+  issueRefreshToken(userId: string): string {
+    const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+    if (!secret) {
+      throw new InternalServerErrorException('환경변수가 없습니다: JWT_REFRESH_SECRET');
+    }
+    const expiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d') as JwtSignOptions['expiresIn'];
+    return this.jwtService.sign({ sub: userId }, { secret, expiresIn });
   }
 
   /**
@@ -140,6 +167,12 @@ export class AuthService {
     }
 
     return new UserInfoResponseDto(user);
+  }
+
+  async findUserEntityById(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('존재하지 않는 사용자입니다.');
+    return user;
   }
 
   /**
@@ -163,7 +196,7 @@ export class AuthService {
    * JWT 토큰 만료시간 조회
    */
   public getJwtExpirationInMs(): number {
-    const jwtExpirationTimeStr = this.configService.get<string>('JWT_EXPIRATION_TIME', '1h');
+    const jwtExpirationTimeStr = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d');
     return parseExpiresIn(jwtExpirationTimeStr);
   }
 
@@ -185,51 +218,14 @@ export class AuthService {
    * OAuth 로그인 후 JWT를 발급하고 쿠키를 설정한 뒤 프론트엔드로 리다이렉션
    */
   public async handleOAuthLogin(user: User, res: Response): Promise<void> {
-    const { accessToken } = await this.login(user);
-    this.setAccessTokenCookie(res, accessToken);
+    if (!user?.email) throw new UnauthorizedException();
+
+    const { refreshToken } = await this.login({
+      id: user.id,
+      email: user.email,
+    });
+    res.cookie('refreshToken', refreshToken, buildRefreshCookieOptions(this.configService));
+
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
-  }
-
-  /**
-   * 개발용 Mock 로그인 처리 로직
-   */
-  public async handleMockLogin(
-    dto: MockLoginDto,
-    res: Response,
-  ): Promise<{ success: boolean; userId: string; user: any }> {
-    // Mock 사용자 확인
-    const mockUser = this.mockAuthService.getMockUserById(dto.userId);
-    if (!mockUser) {
-      // 컨트롤러에서 처리하는 응답과 일관성을 위해 예외 대신 객체 반환
-      return { success: false, userId: '', user: null };
-    }
-
-    // Mock 사용자를 실제 User 엔티티 타입으로 변환 (필요한 속성만 매핑)
-    const user: any = {
-      id: toUuid(mockUser.id), // Mock user ID를 UUID로 변환
-      email: mockUser.email,
-      nickname: mockUser.nickname,
-      profile_image: mockUser.profile_image,
-      role: mockUser.role,
-    };
-
-    // 실제 AuthService의 login 메소드를 사용하여 JWT 발급
-    const { accessToken: token } = await this.login(user);
-
-    this.setAccessTokenCookie(res, token);
-
-    const uuid = user.id;
-
-    return {
-      success: true,
-      userId: uuid,
-      user: {
-        id: uuid,
-        email: mockUser.email,
-        nickname: mockUser.nickname,
-        profile_image: mockUser.profile_image,
-        role: mockUser.role,
-      },
-    };
   }
 }

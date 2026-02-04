@@ -10,7 +10,7 @@ import { useRoomChat } from '../hooks/useRoomChat';
 import { chatPanelStore } from '@/app/features/chat/stores/chatPanel';
 import * as TextButton from '@/app/components/shared/button/TextButton';
 import Avatar from '@/app/components/shared/profile/Avatar';
-import { AuthStore, authStore } from '@/app/features/user/stores/auth';
+import { authStore } from '@/app/features/user/stores/auth';
 import roomService from '@/app/features/room/services/RoomService';
 import { RoomConverter } from '@/app/features/room/dtos/converter';
 import { useVoiceChat } from '@/app/features/voice/hooks/useVoiceChat';
@@ -18,7 +18,7 @@ import useNavigation from '@/app/hooks/useNavigation';
 import { RoomParticipantData as PData } from '@/app/features/room/dtos/data';
 
 export default function LocalChatPanel() {
-  const myId = authStore((state: AuthStore) => state.userId);
+  const myId = authStore((state) => state.id);
   const roomId = roomStore((state) => state.id);
   const roomTitle = roomStore((state) => state.title);
   const participants = roomStore((state) => state.participants);

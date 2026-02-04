@@ -1,4 +1,10 @@
 export function parseExpiresIn(expiresIn: string): number {
+  const match = expiresIn.match(/^(\d+)(ms|s|m|h|d)$/);
+  if (!match) {
+    const parsed = Number(expiresIn);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
   const value = parseInt(expiresIn, 10);
   if (expiresIn.endsWith('s')) {
     return value * 1000;

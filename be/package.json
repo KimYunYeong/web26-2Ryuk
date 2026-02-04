@@ -28,8 +28,6 @@
     "migration:revert": "DB_HOST=localhost DB_PORT=3307 pnpm typeorm migration:revert -d src/providers/database/data-source.ts",
     "migration:revert:prod": "NODE_ENV=production pnpm typeorm:prod migration:revert -d dist/providers/database/data-source.js",
     "migration:create": "pnpm typeorm migration:create src/providers/database/migrations/init",
-    "seed:users": "DB_HOST=localhost DB_PORT=3307 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-users.ts",
-    "seed:game-records": "DB_HOST=localhost DB_PORT=3307 ts-node -P ./tsconfig.json -r tsconfig-paths/register src/scripts/seed-game-records.ts",
     "sonar": "sonar-scanner"
   },
   "dependencies": {
