@@ -21,6 +21,7 @@ export class GlobalChatService implements callback.ChatChannel {
   private messages: chatData.ChatReceiveData[] = [];
   private currentParticipants = 0;
   private isUnread = false;
+  private isInitialized = false;
 
   private eventHandlers: Map<string, (...args: any[]) => void> = new Map();
   private handlersRegistered = false;
@@ -62,7 +63,22 @@ export class GlobalChatService implements callback.ChatChannel {
     await this.ensureConnected();
     if (!WebSocketService.isConnected()) return;
 
+    // React StrictMode 등으로 동일 effect가 두 번 실행될 수 있으므로 비동기 처리 이후에도 다시 한 번 구독 여부 확인
+    if (this.isSubscribed) return;
+
     this.isSubscribed = true;
+
+    // 웹소켓 연결 후 초기 데이터 요청
+    try {
+      const initDto = (await WebSocketService.request(
+        wsEvents.WS_EVENTS.CHAT_GLOBAL_INIT,
+        {},
+      )) as chatDto.GlobalChatInitDto;
+
+      this.handleGlobalChatInit(initDto);
+    } catch (error) {
+      console.error('[GlobalChatService] 초기 데이터 요청 실패:', error);
+    }
   }
 
   async unsubscribe(): Promise<void> {
@@ -74,6 +90,7 @@ export class GlobalChatService implements callback.ChatChannel {
     this.connectPromise = undefined;
     this.boundSocket = undefined;
     this.isSubscribed = false;
+    this.isInitialized = false;
   }
 
   async sendMessage(message: string): Promise<void> {
@@ -128,6 +145,10 @@ export class GlobalChatService implements callback.ChatChannel {
 
   onInit(cb: callback.InitCallback): () => void {
     this.initCallbacks.add(cb);
+    // 이미 초기화가 완료되었다면 즉시 콜백 호출
+    if (this.isInitialized) {
+      cb(this.currentParticipants, this.messages);
+    }
     return () => this.initCallbacks.delete(cb);
   }
 
@@ -195,11 +216,6 @@ export class GlobalChatService implements callback.ChatChannel {
     this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, onParticipants);
     WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_PARTICIPANTS_UPDATED, onParticipants);
 
-    // chat:global:init
-    const onInit = (dto: chatDto.GlobalChatInitDto) => this.handleGlobalChatInit(dto);
-    this.eventHandlers.set(wsEvents.WS_EVENTS.CHAT_GLOBAL_INIT, onInit);
-    WebSocketService.on(wsEvents.WS_EVENTS.CHAT_GLOBAL_INIT, onInit);
-
     // error
     const onError = (error: any) => this.handleError(error);
     this.eventHandlers.set(wsEvents.WS_EVENTS.ERROR, onError);
@@ -229,13 +245,10 @@ export class GlobalChatService implements callback.ChatChannel {
 
     this.currentParticipants = data.currentParticipants ?? 0;
     this.messages = [...data.messages];
+    this.isInitialized = true;
 
     this.notifyInit(this.currentParticipants, this.messages);
-
-    if (dto.current_participants != null) {
-      this.currentParticipants = dto.current_participants;
-      this.notifyParticipants(this.currentParticipants);
-    }
+    this.notifyParticipants(this.currentParticipants);
   }
 
   private handleError(error: any): void {

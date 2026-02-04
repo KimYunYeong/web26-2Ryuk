@@ -26,7 +26,6 @@ import {
   ParticipantDto,
   RoomListResponseDto,
   RoomJoinInfoResponseDto,
-  GlobalChatRecentMessageDto,
   ParticipantDetailDto,
 } from './dto/room-response.dto';
 import { Server, Socket } from 'socket.io';
@@ -692,13 +691,6 @@ export class RoomService implements OnModuleInit {
    */
   async notifyParticipantsUpdated(server: Server, roomId: string, currentParticipants: number): Promise<void> {
     await this.roomNotificationService.notifyParticipantsUpdated(server, roomId, currentParticipants);
-  }
-
-  /**
-   * 글로벌 채팅 최신 메시지 조회
-   */
-  async getGlobalChatRecents(roomId: string): Promise<GlobalChatRecentMessageDto[]> {
-    return await this.roomRepository.getGlobalChatRecents(roomId);
   }
 
   /**
