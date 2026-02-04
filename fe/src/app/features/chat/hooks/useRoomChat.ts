@@ -14,10 +14,16 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
   const [chats, setChats] = useState<ChatReceiveData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const storeRoomId = roomStore((s) => s.id);
+  const sessionRestored = authStore((s) => s.sessionRestored);
+  const myId = authStore((s) => s.id);
 
   useEffect(() => {
     const isInvalid = !roomId || !isJoined || storeRoomId !== roomId;
-
+    if (myId && !sessionRestored) {
+      setChats([]);
+      setIsConnected(false);
+      return;
+    }
     if (isInvalid) {
       setChats([]);
       setIsConnected(false);
@@ -90,7 +96,7 @@ export function useRoomChat(roomId?: string, isJoined?: boolean) {
       unsubscribeUpdate?.();
       unsubscribeDelete?.();
     };
-  }, [roomId, isJoined, storeRoomId]);
+  }, [roomId, isJoined, storeRoomId, sessionRestored, myId]);
 
   return { chats, isConnected };
 }

@@ -8,11 +8,13 @@ interface AuthState {
   id?: string;
   nickname?: string;
   profileImage?: string;
+  sessionRestored: boolean;
 }
 
 interface AuthActions {
   setUser: (user: UserData) => void;
   resetUser: () => void;
+  setSessionRestored: (value: boolean) => void;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -23,6 +25,7 @@ export const authStore = create<AuthStore>()(
       id: undefined,
       nickname: undefined,
       profileImage: undefined,
+      sessionRestored: false,
 
       setUser: (user) =>
         set(() => ({
@@ -36,7 +39,10 @@ export const authStore = create<AuthStore>()(
           id: undefined,
           nickname: undefined,
           profileImage: undefined,
+          sessionRestored: false,
         })),
+
+      setSessionRestored: (value) => set(() => ({ sessionRestored: value })),
     }),
     {
       name: 'auth-storage',
