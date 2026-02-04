@@ -55,6 +55,8 @@ export class WebSocketService {
     }
 
     const token = accessTokenGetter?.() ?? null;
+    if (!token) return;
+
     const connectionOptions: any = {
       transports: ['websocket'],
       reconnection: false,
@@ -139,6 +141,10 @@ export class WebSocketService {
   }
 
   static async ensureConnected(timeout: number = 10000): Promise<void> {
+    const token = accessTokenGetter?.() ?? null;
+    if (!this.socket && !token) {
+      throw new Error('[WebSocket] 로그인 후 연결할 수 있습니다.');
+    }
     if (!this.socket && !this.connectPromise) this.connect();
 
     if (this.socket?.connected) return;
