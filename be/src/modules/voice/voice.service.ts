@@ -71,17 +71,17 @@ interface SocketWithAuth extends Socket {
 
 @Injectable()
 export class VoiceService implements OnModuleInit {
-  private workers: Worker[] = []; // 워커 담을 배열
+  private readonly workers: Worker[] = []; // 워커 담을 배열
   private readonly numWorkers = NUM_WORKERS;
   private nextWorkerIdx = 0; // 라운드 로빈용 인덱스
   // roomId를 키로 실제 mediasoup Router 객체를 저장하는 맵 (프로세스 메모리)
-  private routers: Map<string, Router> = new Map();
+  private readonly routers: Map<string, Router> = new Map();
   // transportId를 키로 실제 mediasoup WebRtcTransport 객체를 저장하는 맵 (프로세스 메모리)
-  private transports: Map<string, WebRtcTransport> = new Map();
+  private readonly transports: Map<string, WebRtcTransport> = new Map();
   // producerId를 키로 실제 mediasoup Producer 객체를 저장하는 맵 (프로세스 메모리)
-  private producers: Map<string, Producer> = new Map();
+  private readonly producers: Map<string, Producer> = new Map();
   // consumerId를 키로 실제 mediasoup Consumer 객체를 저장하는 맵 (프로세스 메모리)
-  private consumers: Map<string, Consumer> = new Map();
+  private readonly consumers: Map<string, Consumer> = new Map();
 
   private mediasoupListenIps: TransportListenIp[];
   private readonly logger = new Logger(VoiceService.name);
