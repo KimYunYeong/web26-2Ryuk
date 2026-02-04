@@ -98,6 +98,7 @@ export class AuthService {
     if (hadSession) {
       globalChatService.decrementParticipantsOptimistic();
       globalChatService.notifyLogout();
+      setTimeout(goHome, 2000);
     }
     if (!options?.skipApi) {
       const uri = `${API_BASE}/auth/logout`;
