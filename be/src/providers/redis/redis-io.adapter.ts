@@ -159,10 +159,7 @@ export class RedisIoAdapter extends IoAdapter {
 
     socket.on('disconnect', async () => {
       const currentId = await this.pubClient.get(sessionKey);
-      if (currentId === socket.id) {
-        await this.pubClient.del(sessionKey);
-      } else {
-      }
+      if (currentId === socket.id) await this.pubClient.del(sessionKey);
     });
   }
 }
