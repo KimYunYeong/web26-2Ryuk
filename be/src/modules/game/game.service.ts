@@ -325,9 +325,6 @@ export class GameService {
       // 게임 정보 삭제
       await this.gameRepository.deleteAllGameData(roomId);
 
-      // 해당 방의 모든 참여자에게 브로드캐스트
-      this.gameBroadcastService.broadcastGameClose(server, roomId, false);
-
       logMessage(this.logger, LOG.GAME.CLOSE(roomId, userId));
     } catch (error) {
       // 예외 발생 시 조용히 처리 (로그만 남김)
@@ -435,8 +432,8 @@ export class GameService {
       }
 
       // delta 값 검증
-      const deltaNum = parseInt(delta, 10);
-      if (isNaN(deltaNum)) throw new Error('Invalid delta value');
+      const deltaNum = Number.parseInt(delta, 10);
+      if (Number.isNaN(deltaNum)) throw new Error('Invalid delta value');
 
       // 현재 방의 선택된 게임 정보 조회
       const selectedGame = await this.gameRepository.getSelectedGame(roomId);
@@ -699,7 +696,13 @@ export class GameService {
       await this.updateParticipantRanksWithTies(roomId, scores);
 
       // 브로드캐스트
-      this.gameBroadcastService.broadcastRealtimeState(server, roomId, highestScore, parseFloat(averageScore), ranks);
+      this.gameBroadcastService.broadcastRealtimeState(
+        server,
+        roomId,
+        highestScore,
+        Number.parseFloat(averageScore),
+        ranks,
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`실시간 상태 브로드캐스트 실패: roomId=${roomId}, error=${errorMessage}`);

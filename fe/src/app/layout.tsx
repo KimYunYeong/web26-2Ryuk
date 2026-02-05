@@ -1,8 +1,8 @@
+import dynamic from 'next/dynamic';
 import './globals.css';
 import AuthProvider from '@/app/providers/AuthProvider';
 import RoomProvider from '@/app/providers/RoomProvider';
 import LoadingProvider from '@/app/providers/LoadingProvider';
-import dynamic from 'next/dynamic';
 import Header from './components/layout/header/Header';
 import { RootLayoutProps } from './type';
 import { metadataConfig } from './meta';
@@ -12,11 +12,6 @@ const DynamicModalEventDelegation = dynamic(
   () => import('@/app/components/shared/modal/ModalEventDelegation'),
   { ssr: false }, // 클라이언트 측에서만 로드
 );
-
-// WebSocketInitializer 컴포넌트를 동적으로 임포트
-const DynamicWebSocketInitializer = dynamic(() => import('@/app/providers/WebSocketInitializer'), {
-  ssr: false,
-});
 
 // Toast 컴포넌트를 동적으로 임포트
 const DynamicToast = dynamic(() => import('@/app/components/shared/toast/Toast'), { ssr: false });
@@ -32,7 +27,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <head></head>
       <body>
         <DynamicModalEventDelegation />
-        <DynamicWebSocketInitializer />
         <AuthProvider>
           <RoomProvider>
             <LoadingProvider>
