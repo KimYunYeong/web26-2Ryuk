@@ -76,6 +76,8 @@ export function useGame(roomId?: string): UseGameResult {
   useEffect(() => {
     if (selectedGame?.id) lastSelectedGameIdRef.current = selectedGame.id;
   }, [selectedGame?.id]);
+
+  // 게임 시작 전 준비 상태 (게임 시작/참가 조건)
   const shouldHandleGameEvents = myStatus?.isHost || Boolean(myStatus?.isReady);
 
   useEffect(() => {
@@ -389,6 +391,9 @@ export function useGame(roomId?: string): UseGameResult {
       clearResultSnapshot();
       resetGameProgress();
 
+      // 게임 참가 상태 설정
+      gameStore.getState().setIsMePlaying(true);
+
       // GameStore에 시작 정보 저장
       const startTimeDate = data.startTime;
       gameStore.getState().setStartTime(startTimeDate);
@@ -436,16 +441,23 @@ export function useGame(roomId?: string): UseGameResult {
   // game:player:result 처리
   useEffect(() => {
     return gameService.onResult((data) => {
-      if (!shouldHandleGameEvents) return;
+      const store = gameStore.getState();
+      console.log(store, store.isMePlaying);
+
+      if (!store.isMePlaying) return;
+
       rankingStore.getState().setResult(data);
 
       handleGameEnd();
+
+      // 다음 게임을 위해 참가 상태 리셋
+      store.setIsMePlaying(false);
 
       const targetGameId = selectedGame?.id ?? lastSelectedGameIdRef.current;
       if (!roomId || !targetGameId) return;
       gotoGameRanking(roomId, targetGameId);
     });
-  }, [handleGameEnd, gotoGameRanking, roomId, selectedGame?.id, shouldHandleGameEvents]);
+  }, [handleGameEnd, gotoGameRanking, roomId, selectedGame?.id]);
 
   // 남은 시간 계산
   useEffect(() => {
