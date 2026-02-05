@@ -77,6 +77,7 @@ export function useGame(roomId?: string): UseGameResult {
     if (selectedGame?.id) lastSelectedGameIdRef.current = selectedGame.id;
   }, [selectedGame?.id]);
   const shouldHandleGameEvents = myStatus?.isHost || Boolean(myStatus?.isReady);
+
   useEffect(() => {
     const players = roomPlayers;
     if (!players || players.length === 0) return;
@@ -380,9 +381,8 @@ export function useGame(roomId?: string): UseGameResult {
 
   // game:player:start 처리 및 watchDate 설정
   useEffect(() => {
-    const canHandleEvents = shouldHandleGameEvents;
     return gameService.onStart((data) => {
-      if (!canHandleEvents) return;
+      if (!shouldHandleGameEvents) return;
 
       rankingStore.getState().clearResult();
       setIsReadyModalOpen(false);
@@ -436,6 +436,7 @@ export function useGame(roomId?: string): UseGameResult {
   // game:player:result 처리
   useEffect(() => {
     return gameService.onResult((data) => {
+      if (!shouldHandleGameEvents) return;
       rankingStore.getState().setResult(data);
 
       handleGameEnd();
@@ -444,7 +445,7 @@ export function useGame(roomId?: string): UseGameResult {
       if (!roomId || !targetGameId) return;
       gotoGameRanking(roomId, targetGameId);
     });
-  }, [handleGameEnd, gotoGameRanking, roomId, selectedGame?.id]);
+  }, [handleGameEnd, gotoGameRanking, roomId, selectedGame?.id, shouldHandleGameEvents]);
 
   // 남은 시간 계산
   useEffect(() => {
