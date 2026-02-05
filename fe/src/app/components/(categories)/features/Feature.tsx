@@ -434,7 +434,7 @@ export default function FeatureComponents() {
         <ComponentRelations componentId="realtime-rooms" />
         <div className={styles.showcaseBlock}>
           <Component fullWidth>
-            <RealtimeRoomsSection />
+            <RealtimeRoomsSection initialRooms={[]} />
           </Component>
         </div>
       </section>
