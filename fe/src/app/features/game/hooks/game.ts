@@ -78,7 +78,9 @@ export function useGame(roomId?: string): UseGameResult {
   }, [selectedGame?.id]);
 
   // 게임 시작 전 준비 상태 (게임 시작/참가 조건)
-  const shouldHandleGameEvents = myStatus?.isHost || Boolean(myStatus?.isReady);
+  // ref로 관리하여 이벤트 핸들러에서 항상 최신 값을 참조하도록 함
+  const shouldHandleGameEventsRef = useRef(false);
+  shouldHandleGameEventsRef.current = myStatus?.isHost || Boolean(myStatus?.isReady);
 
   useEffect(() => {
     const players = roomPlayers;
@@ -384,14 +386,14 @@ export function useGame(roomId?: string): UseGameResult {
   // game:player:start 처리 및 watchDate 설정
   useEffect(() => {
     return gameService.onStart((data) => {
-      if (!shouldHandleGameEvents) return;
+      if (!shouldHandleGameEventsRef.current) return;
 
       rankingStore.getState().clearResult();
       setIsReadyModalOpen(false);
       clearResultSnapshot();
       resetGameProgress();
 
-      // 게임 참가 상태 설정
+      // 게임 참가 상태 설정 (reset 이후에 호출해야 함)
       gameStore.getState().setIsMePlaying(true);
 
       // GameStore에 시작 정보 저장
@@ -408,15 +410,7 @@ export function useGame(roomId?: string): UseGameResult {
       if (!roomId || !selectedGame?.id) return;
       gotoGame(roomId, selectedGame.id);
     });
-  }, [
-    roomId,
-    selectedGame,
-    gotoGame,
-    setupWatchDates,
-    clearResultSnapshot,
-    resetGameProgress,
-    shouldHandleGameEvents,
-  ]);
+  }, [roomId, selectedGame, gotoGame, setupWatchDates, clearResultSnapshot, resetGameProgress]);
 
   // 새로고침 후 복구: GameStore에서 상태 복구 및 watchDate 재등록
   useEffect(() => {
@@ -442,8 +436,6 @@ export function useGame(roomId?: string): UseGameResult {
   useEffect(() => {
     return gameService.onResult((data) => {
       const store = gameStore.getState();
-      console.log(store, store.isMePlaying);
-
       if (!store.isMePlaying) return;
 
       rankingStore.getState().setResult(data);
